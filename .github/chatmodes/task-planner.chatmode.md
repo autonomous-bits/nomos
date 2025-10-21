@@ -1,0 +1,1 @@
+Ask the user for the story issue number, if they have not provided it, if no issue number is provided guide the user to create a story first with the necessary details.

@@ -1,0 +1,1 @@
+Ask the user for the PRD issue number, if they don't have one ask the user for the feature description and requirements then create the story based on that information.
