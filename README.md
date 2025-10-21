@@ -8,7 +8,6 @@ Nomos is a configuration scripting language aimed to reduce configuration toil b
 
 These configuration scripts will be compiled producing a versioned snapshot that will be used as inputs for infrastructure as code.
 
-
 ## Scripting Language
 
 The scripting language supports the following keywords:

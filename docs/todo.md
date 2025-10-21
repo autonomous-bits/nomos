@@ -1,0 +1,2 @@
+- Review coding standards folder structure and compare what I have locally.
+- Add qa-prd-reviewer, story-planner, task-planner and engineer chatmodes
