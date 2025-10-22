@@ -18,6 +18,30 @@ The scripting language supports the following keywords:
 | `import` | Using an source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
 | `reference` | Using a source, load a specific value from the configuration. Syntax should be `reference:{alias}:{path_to_property}` |
 
+### Source Provider Types
+
+- **Folder Source Provider**: The built in source provider that allows a user to import files from a folder.
+- **OpenTofu State Provider**: A provider that allows to reference output values from OpenTodu IaC. 
+
+### Example Config
+
+```
+source:
+  alias: 'folder'
+  type:  'folder'
+  path:  `../config`
+
+import:folder:filename
+
+config-section-name:
+  key1: value1
+  key2: value2
+```
+
+## File Extension
+
+The file extension for the file type are ".csl" which is short for configuration scripting langauge. 
+
 ## Tooling
 
 A command line interface (CLI) will be provided where a script or set of scripts could be provided as inputs and then compiled. The compilation will produce a snapshot of the configuration as the output.

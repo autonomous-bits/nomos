@@ -1,6 +1,7 @@
 ---
 description: 'Generate an implementation plan for new features or refactoring existing code.'
-tools: ['search', 'github/*', 'microsoftdocs/mcp/*', 'Azure MCP/search', 'usages', 'fetch', 'githubRepo', 'todos']
+model: GPT-5 mini
+tools: ['search', 'Azure MCP/search', 'github/*', 'microsoftdocs/mcp/*', 'gh-copilot_spaces/*', 'usages', 'fetch', 'githubRepo', 'todos']
 ---
 
 # Planning Mode Instructions

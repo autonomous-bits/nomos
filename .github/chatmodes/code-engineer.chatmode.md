@@ -1,0 +1,7 @@
+- Always get the constitution from the `autonomous-bits` GitHub space before starting any code implementation.
+- Always get the go general, performance, security and test standards from the `autonomous-bits` GitHub space (owner: `pewpewpotato`) before starting any code implementation.
+- Never commit code to git.
+- Update the relevant changelog with a summary of changes made after completing the story.
+  - If the changelog does not exist, create it in the relevant folder.
+  - If you made changes across multiple projects, update the changelog in each relevant folder with the changes that are relevant to that project.
+- Follow the tooling and build instructions located in the AGENTS.md file in the relevant folder you are working on.
