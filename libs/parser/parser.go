@@ -53,7 +53,9 @@ func (p *Parser) ParseFile(path string) (*ast.AST, error) {
 	if err != nil {
 		return nil, NewParseError(IOError, path, 0, 0, fmt.Sprintf("failed to open file: %v", err))
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() // Explicitly ignore close error on read-only file
+	}()
 
 	return p.Parse(file, path)
 }
@@ -173,7 +175,7 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
 		return nil, err
 	}
-	s.Expect(':')
+	_ = s.Expect(':') // Error already checked via PeekChar
 
 	// Parse configuration block (indented key-value pairs)
 	config, err := p.parseConfigBlock(s)
@@ -181,17 +183,39 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 		return nil, err
 	}
 
-	// Validate alias is not empty
-	alias, ok := config["alias"]
-	if !ok || alias == "" {
+	// Extract and validate alias field
+	aliasExpr, ok := config["alias"]
+	if !ok {
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			"invalid syntax: 'source' declaration requires an 'alias' field")
+		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		return nil, err
+	}
+
+	// Alias must be a StringLiteral
+	aliasLiteral, ok := aliasExpr.(*ast.StringLiteral)
+	if !ok {
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			"invalid syntax: 'source' alias must be a string literal, not a reference")
+		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		return nil, err
+	}
+
+	alias := aliasLiteral.Value
+	if alias == "" {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 			"invalid syntax: 'source' declaration requires a non-empty 'alias' field")
 		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
 		return nil, err
 	}
 
-	// Extract alias and type from config
-	typeName := config["type"]
+	// Extract type (optional)
+	typeName := ""
+	if typeExpr, ok := config["type"]; ok {
+		if typeLiteral, ok := typeExpr.(*ast.StringLiteral); ok {
+			typeName = typeLiteral.Value
+		}
+	}
 
 	endLine, endCol := s.Line(), s.Column()
 
@@ -220,7 +244,7 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, so
 		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
 		return nil, err
 	}
-	s.Expect(':')
+	_ = s.Expect(':') // Error already checked via PeekChar
 
 	alias := s.ReadIdentifier()
 
@@ -257,61 +281,15 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, so
 }
 
 // parseReferenceStmt parses a reference statement.
+// NOTE: Top-level reference statements are deprecated (BREAKING CHANGE).
+// Users should use inline references in value positions instead.
 func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.ReferenceStmt, error) {
-	s.ConsumeToken() // consume "reference"
-
-	// Validate colon after keyword
-	if s.PeekChar() != ':' {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'reference' keyword must be followed by ':'")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
-		return nil, err
-	}
-	s.Expect(':')
-
-	alias := s.ReadIdentifier()
-
-	// Validate alias is not empty
-	if alias == "" {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'reference' statement requires an alias")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
-		return nil, err
-	}
-
-	// Validate second colon exists
-	if s.PeekChar() != ':' {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: expected ':' after alias in 'reference' statement")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
-		return nil, err
-	}
-	s.Expect(':')
-
-	path := s.ReadPath()
-
-	// Validate path is not empty
-	if path == "" {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'reference' statement requires a path")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
-		return nil, err
-	}
-
-	s.SkipToNextLine()
-	endLine, endCol := s.Line(), s.Column()
-
-	return &ast.ReferenceStmt{
-		Alias: alias,
-		Path:  path,
-		SourceSpan: ast.SourceSpan{
-			Filename:  s.Filename(),
-			StartLine: startLine,
-			StartCol:  startCol,
-			EndLine:   endLine,
-			EndCol:    endCol,
-		},
-	}, nil
+	// Reject top-level reference statements with a migration message
+	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+		"invalid syntax: top-level 'reference:' statements are no longer supported. Use inline references instead.\n"+
+			"Example: Instead of a top-level 'reference:alias:path', use 'key: reference:alias:path' in a value position.")
+	err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+	return nil, err
 }
 
 // parseSectionDecl parses a configuration section.
@@ -323,8 +301,7 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int, s
 		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
 		return nil, err
 	}
-	s.Expect(':')
-	s.SkipToNextLine()
+	_ = s.Expect(':') // Error already checked via PeekChar
 
 	// Parse indented entries
 	entries, err := p.parseConfigBlock(s)
@@ -348,8 +325,8 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int, s
 }
 
 // parseConfigBlock parses an indented block of key-value pairs.
-func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]string, error) {
-	config := make(map[string]string)
+func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, error) {
+	config := make(map[string]ast.Expr)
 
 	s.SkipToNextLine()
 
@@ -390,24 +367,104 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]string, error)
 		//		fmt.Sprintf("invalid syntax: duplicate key '%s'", key))
 		//}
 
-		s.Expect(':')
 		s.SkipWhitespace()
-		value := s.ReadValue()
+		if err := s.Expect(':'); err != nil {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				"invalid syntax: expected ':' after key")
+		}
+		s.SkipWhitespace()
 
-		// Validate value is properly terminated (no unterminated strings)
-		if strings.HasPrefix(value, "'") || strings.HasPrefix(value, "\"") {
-			quote := value[0]
-			if len(value) < 2 || value[len(value)-1] != quote {
-				return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-					fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
-			}
+		// Parse value expression (can be StringLiteral or ReferenceExpr)
+		valueStartLine, valueStartCol := s.Line(), s.Column()
+		valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
+		if err != nil {
+			return nil, err
 		}
 
-		config[key] = value
+		config[key] = valueExpr
 		s.SkipToNextLine()
 	}
 
 	return config, nil
+}
+
+// parseValueExpr parses a value expression, which can be either a string literal
+// or an inline reference expression of the form reference:alias:dotted.path
+func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (ast.Expr, error) {
+	// startLine and startCol point to where the value starts (after skipping whitespace)
+
+	// ReadValue() reads the value and trims quotes/whitespace
+	valueText := s.ReadValue()
+
+	// Validate that strings are properly terminated (ReadValue only strips matching quotes)
+	if len(valueText) > 0 && (valueText[0] == '\'' || valueText[0] == '"') {
+		quote := valueText[0]
+		return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
+	}
+
+	// Check if this is an inline reference expression
+	if strings.HasPrefix(valueText, "reference:") {
+		// Parse reference expression: reference:alias:dotted.path
+		parts := strings.SplitN(valueText, ":", 3)
+		if len(parts) < 3 {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: inline reference must be 'reference:alias:path'")
+		}
+
+		alias := parts[1]
+		pathStr := parts[2]
+
+		// Validate alias
+		if alias == "" {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: inline reference requires a non-empty alias")
+		}
+
+		// Validate path
+		if pathStr == "" {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: inline reference requires a non-empty path")
+		}
+
+		// Split path by dots
+		pathComponents := strings.Split(pathStr, ".")
+
+		// Calculate the end column (1-indexed, inclusive)
+		// startCol is the 1-indexed column where the value starts
+		// EndCol should point to the last character of the value (inclusive)
+		refEndCol := startCol + len(valueText) - 1
+
+		return &ast.ReferenceExpr{
+			Alias: alias,
+			Path:  pathComponents,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: startLine,
+				StartCol:  startCol,
+				EndLine:   startLine, // Inline references are single-line
+				EndCol:    refEndCol,
+			},
+		}, nil
+	}
+
+	// Plain string literal (ReadValue has already stripped quotes if any)
+	// EndCol is 1-indexed and inclusive (points to last character)
+	literalEndCol := startCol + len(valueText) - 1
+	if len(valueText) == 0 {
+		literalEndCol = startCol
+	}
+
+	return &ast.StringLiteral{
+		Value: valueText,
+		SourceSpan: ast.SourceSpan{
+			Filename:  s.Filename(),
+			StartLine: startLine,
+			StartCol:  startCol,
+			EndLine:   startLine,
+			EndCol:    literalEndCol,
+		},
+	}, nil
 }
 
 // generateSnippetFromSource is a convenience wrapper around generateSnippet from errors.go.

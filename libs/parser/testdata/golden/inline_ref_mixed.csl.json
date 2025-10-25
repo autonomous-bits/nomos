@@ -1,0 +1,294 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 30,
+    "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "network",
+      "config": {
+        "alias": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 9,
+            "start_line": 2
+          },
+          "value": "network"
+        },
+        "path": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 8,
+            "start_line": 4
+          },
+          "value": "./config"
+        },
+        "type": {
+          "source_span": {
+            "end_col": 13,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 8,
+            "start_line": 3
+          },
+          "value": "folder"
+        }
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 5,
+        "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "folder"
+    },
+    {
+      "alias": "app",
+      "config": {
+        "alias": {
+          "source_span": {
+            "end_col": 11,
+            "end_line": 7,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 9,
+            "start_line": 7
+          },
+          "value": "app"
+        },
+        "path": {
+          "source_span": {
+            "end_col": 19,
+            "end_line": 9,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 8,
+            "start_line": 9
+          },
+          "value": "./app-config"
+        },
+        "type": {
+          "source_span": {
+            "end_col": 13,
+            "end_line": 8,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 8,
+            "start_line": 8
+          },
+          "value": "folder"
+        }
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 10,
+        "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_col": 1,
+        "start_line": 6
+      },
+      "type": "folder"
+    },
+    {
+      "entries": {
+        "app_tag": {
+          "alias": "app",
+          "path": [
+            "tags",
+            "environment"
+          ],
+          "source_span": {
+            "end_col": 41,
+            "end_line": 26,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 12,
+            "start_line": 26
+          }
+        },
+        "backup1": {
+          "alias": "network",
+          "path": [
+            "backup1",
+            "host"
+          ],
+          "source_span": {
+            "end_col": 41,
+            "end_line": 14,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 12,
+            "start_line": 14
+          }
+        },
+        "backup2": {
+          "alias": "network",
+          "path": [
+            "backup2",
+            "host"
+          ],
+          "source_span": {
+            "end_col": 41,
+            "end_line": 16,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 12,
+            "start_line": 16
+          }
+        },
+        "backup_hosts": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 13,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 15,
+            "start_line": 13
+          },
+          "value": ""
+        },
+        "deep_ref": {
+          "alias": "network",
+          "path": [
+            "deep",
+            "nested",
+            "value"
+          ],
+          "source_span": {
+            "end_col": 48,
+            "end_line": 22,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 14,
+            "start_line": 22
+          }
+        },
+        "endpoint": {
+          "alias": "app",
+          "path": [
+            "api",
+            "endpoint"
+          ],
+          "source_span": {
+            "end_col": 38,
+            "end_line": 20,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 13,
+            "start_line": 20
+          }
+        },
+        "env": {
+          "source_span": {
+            "end_col": 17,
+            "end_line": 25,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 8,
+            "start_line": 25
+          },
+          "value": "production"
+        },
+        "literal": {
+          "source_span": {
+            "end_col": 25,
+            "end_line": 23,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 13,
+            "start_line": 23
+          },
+          "value": "literal-value"
+        },
+        "nested": {
+          "source_span": {
+            "end_col": 10,
+            "end_line": 21,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 10,
+            "start_line": 21
+          },
+          "value": ""
+        },
+        "primary_host": {
+          "alias": "network",
+          "path": [
+            "vpc",
+            "cidr"
+          ],
+          "source_span": {
+            "end_col": 41,
+            "end_line": 12,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 16,
+            "start_line": 12
+          }
+        },
+        "region": {
+          "source_span": {
+            "end_col": 19,
+            "end_line": 27,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 11,
+            "start_line": 27
+          },
+          "value": "us-west-2"
+        },
+        "retry_count": {
+          "source_span": {
+            "end_col": 16,
+            "end_line": 19,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 16,
+            "start_line": 19
+          },
+          "value": "3"
+        },
+        "settings": {
+          "source_span": {
+            "end_col": 11,
+            "end_line": 17,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 11,
+            "start_line": 17
+          },
+          "value": ""
+        },
+        "static_backup": {
+          "source_span": {
+            "end_col": 42,
+            "end_line": 15,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 18,
+            "start_line": 15
+          },
+          "value": "static-backup.example.com"
+        },
+        "tags": {
+          "source_span": {
+            "end_col": 7,
+            "end_line": 24,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 7,
+            "start_line": 24
+          },
+          "value": ""
+        },
+        "timeout": {
+          "source_span": {
+            "end_col": 14,
+            "end_line": 18,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 12,
+            "start_line": 18
+          },
+          "value": "30s"
+        }
+      },
+      "name": "config",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 28,
+        "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_col": 1,
+        "start_line": 11
+      }
+    }
+  ]
+}

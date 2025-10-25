@@ -1,0 +1,12 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+servers:
+	server1: reference:network:server1.ip
+	server2: reference:network:server2.ip
+	static_server: 'static-server.example.com'
+	server3: reference:network:server3.ip
+
+

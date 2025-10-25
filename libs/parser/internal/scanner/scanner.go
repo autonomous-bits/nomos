@@ -45,6 +45,11 @@ func (s *Scanner) Column() int {
 	return s.col
 }
 
+// Pos returns the current byte position in the input.
+func (s *Scanner) Pos() int {
+	return s.pos
+}
+
 // IsEOF returns true if the scanner has reached the end of input.
 func (s *Scanner) IsEOF() bool {
 	return s.pos >= len(s.input)

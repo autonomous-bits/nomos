@@ -1,0 +1,8 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+infrastructure:
+	# Missing path after alias
+	bad_ref: reference:network:

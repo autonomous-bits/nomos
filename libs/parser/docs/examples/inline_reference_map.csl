@@ -1,0 +1,28 @@
+# Inline References in Map/Collection Context
+#
+# This example shows how inline references work within nested map structures,
+# allowing you to reference different properties for different keys.
+
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './network-config'
+
+source:
+	alias: 'secrets'
+	type: 'vault'
+	path: './secrets'
+
+servers:
+	web:
+		ip: reference:network:web.ip
+		port: '8080'
+		ssl_cert: reference:secrets:web.cert
+	api:
+		ip: reference:network:api.ip
+		port: '3000'
+		api_key: reference:secrets:api.key
+	database:
+		host: reference:network:db.host
+		port: '5432'
+		password: reference:secrets:db.password

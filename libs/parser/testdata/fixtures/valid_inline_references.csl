@@ -1,0 +1,20 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+source:
+	alias: 'security'
+	type: 'folder'
+	path: './security'
+
+infrastructure:
+	vpc_cidr: reference:network:vpc.cidr
+	region: 'us-west-2'
+	subnet: reference:network:subnets.public.az1
+	security_group: reference:security:rules.ingress.http
+
+application:
+	name: 'my-app'
+	port: '8080'
+	database_host: reference:network:rds.endpoint

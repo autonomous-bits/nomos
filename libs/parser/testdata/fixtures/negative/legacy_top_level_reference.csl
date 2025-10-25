@@ -1,0 +1,10 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+reference:network:vpc.cidr
+reference:security:rules.ingress.http
+
+config:
+	key: 'value'

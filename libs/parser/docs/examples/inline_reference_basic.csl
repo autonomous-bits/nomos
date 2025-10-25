@@ -1,0 +1,14 @@
+# Basic Inline Reference Example
+#
+# This example demonstrates the simplest use case for inline references:
+# referencing values from a source in scalar value positions.
+
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './network-config'
+
+infrastructure:
+	vpc_cidr: reference:network:vpc.cidr
+	region: 'us-west-2'
+	availability_zone: 'us-west-2a'

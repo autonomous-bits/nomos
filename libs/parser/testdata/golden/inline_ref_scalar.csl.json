@@ -1,0 +1,90 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 9,
+    "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "network",
+      "config": {
+        "alias": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_col": 9,
+            "start_line": 2
+          },
+          "value": "network"
+        },
+        "path": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_col": 8,
+            "start_line": 4
+          },
+          "value": "./config"
+        },
+        "type": {
+          "source_span": {
+            "end_col": 13,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_col": 8,
+            "start_line": 3
+          },
+          "value": "folder"
+        }
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 5,
+        "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "folder"
+    },
+    {
+      "entries": {
+        "region": {
+          "source_span": {
+            "end_col": 18,
+            "end_line": 8,
+            "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_col": 10,
+            "start_line": 8
+          },
+          "value": "us-west-2"
+        },
+        "vpc_cidr": {
+          "alias": "network",
+          "path": [
+            "vpc",
+            "cidr"
+          ],
+          "source_span": {
+            "end_col": 37,
+            "end_line": 7,
+            "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_col": 12,
+            "start_line": 7
+          }
+        }
+      },
+      "name": "infrastructure",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 9,
+        "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+        "start_col": 1,
+        "start_line": 6
+      }
+    }
+  ]
+}

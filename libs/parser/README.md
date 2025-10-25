@@ -428,6 +428,219 @@ The parser exports the following stable AST node types:
 
 All types include JSON tags for deterministic serialization, which is useful for testing and tooling.
 
+## Inline Reference Syntax
+
+Nomos supports **inline references** as first-class values. References allow you to reference values from imported sources or other sections directly in value positions, eliminating the need for separate reference declarations.
+
+### Syntax
+
+The inline reference syntax follows the pattern: `reference:{alias}:{path}`
+
+- **`reference`**: Keyword indicating a reference expression
+- **`{alias}`**: The source or import alias to reference
+- **`{path}`**: A dotted path to the target property (e.g., `vpc.cidr` or `database.connection.host`)
+
+### Examples
+
+#### Scalar Value
+
+```csl
+infrastructure:
+  vpc_cidr: reference:network:vpc.cidr
+  region: 'us-west-2'
+```
+
+The `vpc_cidr` value is an inline reference to `vpc.cidr` from the `network` source.
+
+#### Map/Collection Context
+
+```csl
+servers:
+  web:
+    ip: reference:network:web.ip
+    port: '8080'
+  api:
+    ip: reference:network:api.ip
+    port: '3000'
+```
+
+Multiple inline references can be used within the same section, allowing dynamic configuration across different keys.
+
+#### List Context (Nested Maps)
+
+```csl
+databases:
+  primary:
+    host: reference:infra:db.primary.host
+    port: '5432'
+  replica:
+    host: reference:infra:db.replica.host
+    port: '5433'
+```
+
+Inline references work seamlessly in deeply nested structures.
+
+#### Mixed Literals and References
+
+```csl
+application:
+  name: 'my-app'
+  database_url: reference:config:database.url
+  debug: 'false'
+  api_key: reference:secrets:api.key
+```
+
+You can freely mix string literals and inline references within the same section.
+
+### AST Representation
+
+When the parser encounters an inline reference, it creates a `ReferenceExpr` node in the AST:
+
+```json
+{
+  "type": "ReferenceExpr",
+  "alias": "network",
+  "path": ["vpc", "cidr"],
+  "source_span": {
+    "filename": "config.csl",
+    "start_line": 3,
+    "start_col": 13,
+    "end_line": 3,
+    "end_col": 40
+  }
+}
+```
+
+**Fields:**
+- **`alias`** (string): The source alias to resolve (e.g., `"network"`)
+- **`path`** ([]string): Array of path components (e.g., `["vpc", "cidr"]`)
+- **`source_span`** (SourceSpan): Precise source location covering the entire `reference:alias:path` token
+
+### Working with ReferenceExpr in Code
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/autonomous-bits/nomos/libs/parser"
+    "github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
+)
+
+func main() {
+    source := `
+infrastructure:
+  vpc_cidr: reference:network:vpc.cidr
+  region: 'us-west-2'
+`
+    
+    result, err := parser.Parse(strings.NewReader(source), "example.csl")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Find the infrastructure section
+    for _, stmt := range result.Statements {
+        if section, ok := stmt.(*ast.SectionDecl); ok && section.Name == "infrastructure" {
+            // Iterate over entries
+            for key, expr := range section.Entries {
+                switch e := expr.(type) {
+                case *ast.ReferenceExpr:
+                    fmt.Printf("%s is a reference to %s:%s\n", 
+                        key, e.Alias, strings.Join(e.Path, "."))
+                case *ast.StringLiteral:
+                    fmt.Printf("%s is a literal: %s\n", key, e.Value)
+                }
+            }
+        }
+    }
+}
+```
+
+**Output:**
+```
+vpc_cidr is a reference to network:vpc.cidr
+region is a literal: us-west-2
+```
+
+### Benefits of Inline References
+
+1. **Co-location**: References appear exactly where values are used, reducing cognitive overhead
+2. **Clarity**: No need to track separate reference declarations
+3. **Flexibility**: Mix references and literals freely within the same section
+4. **Type Safety**: The parser enforces correct syntax and provides precise error messages
+
+### Migration from Legacy Top-Level References
+
+**IMPORTANT:** Top-level `reference:` statements have been **removed** as of this version. This is a **breaking change**.
+
+Legacy syntax (no longer supported):
+```csl
+reference:network:vpc.cidr
+
+infrastructure:
+  vpc_cidr: ???  # How do we reference it?
+```
+
+New inline syntax (required):
+```csl
+infrastructure:
+  vpc_cidr: reference:network:vpc.cidr
+```
+
+For migration assistance and detailed guidance, see:
+- **PRD Issue**: [#10 - Inline References as First-Class Values](https://github.com/autonomous-bits/nomos/issues/10)
+- **Codemod Script**: `tools/scripts/convert-top-level-references` (automated conversion tool)
+- **Migration Guide**: See the "Migration Notes" section below
+
+The codemod script can automatically convert legacy top-level references to inline references for you.
+
+### SourceSpan Behavior
+
+All AST nodes include precise source location information through the `SourceSpan` type:
+
+```go
+type SourceSpan struct {
+    Filename  string
+    StartLine int  // 1-indexed line number
+    StartCol  int  // 1-indexed column (byte position, not rune)
+    EndLine   int  // 1-indexed line number
+    EndCol    int  // 1-indexed column (byte position, inclusive)
+}
+```
+
+**Important characteristics:**
+
+- **1-indexed**: All line and column numbers start at 1 (not 0)
+- **Byte-based columns**: Column positions are byte offsets, not character (rune) counts. For ASCII text, bytes and characters are the same, but for Unicode text (e.g., Japanese 日本), multi-byte characters will consume multiple column positions.
+- **Inclusive EndCol**: The `EndCol` points to the **last byte** of the token, not one-past-the-end. To extract text: `line[StartCol-1:EndCol]`
+
+**Example:**
+
+For the input line `"  key: reference:net:日本"` (where 日本 is 6 bytes):
+- StartCol = 8 (first byte of "reference")
+- EndCol = 27 (last byte of "本")
+- Token length = `EndCol - StartCol + 1 = 20 bytes`
+
+**ReferenceExpr span accuracy:**
+
+`ReferenceExpr` nodes capture the **entire inline reference token** including the `reference:` keyword, alias, and dotted path. For example:
+
+```csl
+section:
+  cidr: reference:network:vpc.cidr
+```
+
+The `ReferenceExpr` span for this value covers columns 9-36 (assuming 2-space indent), encompassing the complete text `"reference:network:vpc.cidr"` (28 bytes).
+
+This precision enables:
+- Accurate error reporting with caret positioning
+- IDE features like go-to-definition and hover tooltips
+- Source code transformations and refactoring tools
+- Precise AST-to-source-text mappings for round-tripping
+
 ## Error Handling
 
 Parse errors include precise location information:
@@ -527,6 +740,173 @@ Migration guidance:
 
 - Replace any top-level `reference:{alias}:{path}` with an inline value under the appropriate section key.
 - Update consumers that rely on `SectionDecl.Entries` to handle expression values (when the new major version lands).
+
+## Migration Notes
+
+### Breaking Change: Removal of Top-Level `reference:` Statements
+
+As of this version, the parser **no longer supports** top-level `reference:` statements. This is a **breaking change** introduced to standardize on inline references as the canonical syntax.
+
+#### What Changed
+
+**Legacy Syntax (REMOVED):**
+```csl
+source:
+  alias: 'network'
+  type: 'folder'
+  path: './network'
+
+reference:network:vpc.cidr
+reference:network:subnet.mask
+
+infrastructure:
+  # These references were declared above, but how to use them?
+  vpc: ???
+```
+
+**New Syntax (REQUIRED):**
+```csl
+source:
+  alias: 'network'
+  type: 'folder'
+  path: './network'
+
+infrastructure:
+  vpc_cidr: reference:network:vpc.cidr
+  subnet_mask: reference:network:subnet.mask
+```
+
+#### Why This Change?
+
+1. **Co-location**: References now appear exactly where values are used, reducing cognitive overhead and improving readability
+2. **Clarity**: No ambiguity about where references are consumed
+3. **Consistency**: All value positions support the same expression syntax (strings or references)
+4. **Reduced Boilerplate**: Eliminates separate reference declaration blocks
+
+#### Migration Path
+
+**Option 1: Automated Migration with Codemod**
+
+Use the provided codemod script to automatically convert legacy references:
+
+```bash
+# From repository root
+./tools/scripts/convert-top-level-references path/to/config.csl
+```
+
+The script will:
+- Identify all top-level `reference:` statements
+- Convert them to inline `reference:` expressions in appropriate value positions
+- Preserve comments and formatting where possible
+- Generate a backup file (`.csl.bak`)
+
+**Option 2: Manual Migration**
+
+For each top-level `reference:alias:path` statement:
+
+1. Remove the top-level `reference:` line
+2. Find the section where the value should be used
+3. Add a key-value pair with an inline reference: `key: reference:alias:path`
+
+**Before:**
+```csl
+source:
+  alias: 'config'
+  type: 'folder'
+
+reference:config:database.host
+reference:config:database.port
+
+application:
+  # How to use the references?
+```
+
+**After:**
+```csl
+source:
+  alias: 'config'
+  type: 'folder'
+
+application:
+  db_host: reference:config:database.host
+  db_port: reference:config:database.port
+```
+
+#### Error Messages
+
+If the parser encounters a legacy top-level `reference:` statement, it will produce a helpful error:
+
+```
+config.csl:5:1: top-level 'reference:' statements are no longer supported.
+Use inline references instead. Example: Instead of a top-level 'reference:alias:path',
+use 'key: reference:alias:path' in a value position.
+
+   4 | 
+   5 | reference:network:vpc.cidr
+   6 | 
+     | ^
+```
+
+#### Additional Resources
+
+- **Product Requirements**: [Issue #10 - Inline References as First-Class Values](https://github.com/autonomous-bits/nomos/issues/10)
+- **Architecture Discussion**: See PRD Architecture Review section in Issue #10
+- **Codemod Source**: `tools/scripts/convert-top-level-references`
+- **Example Fixtures**: `libs/parser/testdata/fixtures/inline_ref_*.csl`
+
+#### AST Changes for Library Consumers
+
+If your code consumes the parser's AST, note the following changes:
+
+**1. Section Entries are Now Expressions**
+
+```go
+// OLD (no longer valid):
+// section.Entries is map[string]string
+
+// NEW (current):
+// section.Entries is map[string]Expr
+for key, expr := range section.Entries {
+    switch e := expr.(type) {
+    case *ast.StringLiteral:
+        fmt.Printf("%s: %s\n", key, e.Value)
+    case *ast.ReferenceExpr:
+        fmt.Printf("%s: ref to %s:%s\n", key, e.Alias, strings.Join(e.Path, "."))
+    }
+}
+```
+
+**2. ReferenceStmt is Deprecated**
+
+The `ReferenceStmt` AST node type is no longer produced by the parser. Use `ReferenceExpr` in value positions instead:
+
+```go
+// OLD (deprecated):
+// type ReferenceStmt struct { Alias, Path string, ... }
+
+// NEW (use this):
+// type ReferenceExpr struct { Alias string, Path []string, SourceSpan }
+```
+
+**3. Migration Timeline**
+
+- **Current Version**: Top-level references are rejected with error
+- **Recommended Action**: Update all `.csl` files to use inline references
+- **Tooling Support**: Codemod script available for automated conversion
+
+#### Frequently Asked Questions
+
+**Q: Can I still use the old syntax?**  
+A: No. Top-level `reference:` statements are no longer supported. The parser will return an error if it encounters them.
+
+**Q: What about backward compatibility?**  
+A: This is a **breaking change**. Since Nomos has not been officially released, we are making this change now to standardize on the better inline syntax before the 1.0 release.
+
+**Q: Will my existing config files still work?**  
+A: No. You must migrate to inline references using the codemod script or manual migration.
+
+**Q: Where can I get help?**  
+A: See Issue #10 for detailed examples, or open a new issue on GitHub if you encounter migration challenges.
 
 ## Development
 

@@ -6,12 +6,11 @@ source:
 import:module1:./module1.csl
 import:module2
 
-reference:module1:config.value
-reference:module2:data.key.nested
-
 section1:
 	key1: value1
 	key2: value2
+	ref1: reference:module1:config.value
+	ref2: reference:module2:data.key.nested
 
 section2:
 	nested:

@@ -1,0 +1,8 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+infrastructure:
+	vpc_cidr: reference:network:vpc.cidr
+	region: 'us-west-2'

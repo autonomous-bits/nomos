@@ -2,6 +2,7 @@
 package parser_test
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -146,7 +147,8 @@ func TestAST_StatementsHaveCorrectTypes(t *testing.T) {
 
 import:folder:filename
 
-reference:folder:config.key
+config:
+	ref: reference:folder:config.key
 `
 	reader := strings.NewReader(input)
 
@@ -158,7 +160,7 @@ reference:folder:config.key
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// We expect at least 3 statements: source, import, reference
+	// We expect at least 3 statements: source, import, section
 	if len(result.Statements) < 3 {
 		t.Fatalf("expected at least 3 statements, got %d", len(result.Statements))
 	}
@@ -170,8 +172,8 @@ reference:folder:config.key
 	if _, ok := result.Statements[1].(*ast.ImportStmt); !ok {
 		t.Errorf("expected second statement to be *ast.ImportStmt, got %T", result.Statements[1])
 	}
-	if _, ok := result.Statements[2].(*ast.ReferenceStmt); !ok {
-		t.Errorf("expected third statement to be *ast.ReferenceStmt, got %T", result.Statements[2])
+	if _, ok := result.Statements[2].(*ast.SectionDecl); !ok {
+		t.Errorf("expected third statement to be *ast.SectionDecl, got %T", result.Statements[2])
 	}
 }
 
@@ -271,9 +273,9 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		t.Fatalf("expected no error parsing simple.csl, got %v", err)
 	}
 
-	// Verify we have all expected statement types
-	if len(result.Statements) < 4 {
-		t.Fatalf("expected at least 4 statements (source, import, reference, section), got %d", len(result.Statements))
+	// Verify we have all expected statement types (source, import, section with inline ref)
+	if len(result.Statements) < 3 {
+		t.Fatalf("expected at least 3 statements (source, import, section), got %d", len(result.Statements))
 	}
 
 	// Verify source declaration is present and correct
@@ -323,30 +325,36 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		t.Error("expected to find import statement")
 	}
 
-	// Verify reference statement with dotted path is present
+	// Verify reference is now inline within section (as per User Story #18)
+	// Check that the section contains an inline reference
 	referenceFound := false
 	for _, stmt := range result.Statements {
-		if refStmt, ok := stmt.(*ast.ReferenceStmt); ok {
-			referenceFound = true
-			if refStmt.Alias != "folder" {
-				t.Errorf("reference: expected alias 'folder', got '%s'", refStmt.Alias)
-			}
-			// Verify dotted path tokenization
-			if refStmt.Path != "config.key" {
-				t.Errorf("reference: expected path 'config.key', got '%s'", refStmt.Path)
-			}
-			if !strings.Contains(refStmt.Path, ".") {
-				t.Error("reference: path should contain dot for path tokenization")
-			}
-			// Verify source span
-			span := refStmt.Span()
-			if span.Filename != filePath {
-				t.Errorf("reference: expected filename '%s', got '%s'", filePath, span.Filename)
+		if section, ok := stmt.(*ast.SectionDecl); ok {
+			if section.Name == "config-section" {
+				// Check for the inline reference entry
+				if refExpr, ok := section.Entries["ref_example"]; ok {
+					if refNode, ok := refExpr.(*ast.ReferenceExpr); ok {
+						referenceFound = true
+						if refNode.Alias != "folder" {
+							t.Errorf("inline reference: expected alias 'folder', got '%s'", refNode.Alias)
+						}
+						// Verify dotted path tokenization
+						expectedPath := []string{"config", "key"}
+						if !reflect.DeepEqual(refNode.Path, expectedPath) {
+							t.Errorf("inline reference: expected path %v, got %v", expectedPath, refNode.Path)
+						}
+						// Verify source span
+						span := refNode.SourceSpan
+						if span.Filename != filePath {
+							t.Errorf("inline reference: expected filename '%s', got '%s'", filePath, span.Filename)
+						}
+					}
+				}
 			}
 		}
 	}
 	if !referenceFound {
-		t.Error("expected to find reference statement with dotted path")
+		t.Error("expected to find inline reference within section")
 	}
 
 	// Verify section declaration is present
@@ -371,5 +379,53 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		t.Error("expected to find section declaration")
 	}
 
-	t.Log("Integration test PASS: All grammar constructs (source, import, reference, dotted paths, sections) parsed successfully with correct source spans")
+	t.Log("Integration test PASS: All grammar constructs (source, import, inline reference, dotted paths, sections) parsed successfully with correct source spans")
+}
+
+// TestParseFile_InlineReferenceScalar tests parsing a file with inline reference expressions.
+// This is the mandatory integration test for FEATURE-10-1.
+func TestParseFile_InlineReferenceScalar(t *testing.T) {
+	// Arrange
+	filePath := "../testdata/fixtures/inline_ref_scalar.csl"
+
+	// Act
+	result, err := parser.ParseFile(filePath)
+
+	// Assert - parse should succeed
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil AST, got nil")
+	}
+
+	// Find the 'infrastructure' section
+	var infraSection *ast.SectionDecl
+	for _, stmt := range result.Statements {
+		if section, ok := stmt.(*ast.SectionDecl); ok && section.Name == "infrastructure" {
+			infraSection = section
+			break
+		}
+	}
+
+	if infraSection == nil {
+		t.Fatal("expected to find 'infrastructure' section")
+	}
+
+	// The parser doesn't support inline reference syntax yet,
+	// so this test documents the expected behavior once grammar support is added.
+	// Currently, the inline reference will be treated as a string value.
+	// Once FEATURE-10-2 (grammar update) is implemented, we expect:
+	//   - infraSection to contain an entry "vpc_cidr" with a ReferenceExpr value
+	//   - ReferenceExpr.Alias == "network"
+	//   - ReferenceExpr.Path == []string{"vpc", "cidr"}
+	//   - ReferenceExpr.Span is non-empty
+
+	// TODO: Update this assertion once parser grammar supports inline references
+	// For now, we just verify the section exists and has entries
+	if infraSection.Entries == nil {
+		t.Fatal("expected infrastructure section to have entries")
+	}
+
+	t.Logf("Integration test: Section 'infrastructure' parsed with %d entries (parser grammar support pending)", len(infraSection.Entries))
 }

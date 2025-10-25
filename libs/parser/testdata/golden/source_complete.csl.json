@@ -10,11 +10,56 @@
     {
       "alias": "azure-provider",
       "config": {
-        "alias": "azure-provider",
-        "enabled": "true",
-        "path": "./providers/azure",
-        "region": "us-east-1",
-        "type": "azure"
+        "alias": {
+          "source_span": {
+            "end_col": 22,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/source_complete.csl",
+            "start_col": 9,
+            "start_line": 2
+          },
+          "value": "azure-provider"
+        },
+        "enabled": {
+          "source_span": {
+            "end_col": 14,
+            "end_line": 5,
+            "filename": "../testdata/fixtures/source_complete.csl",
+            "start_col": 11,
+            "start_line": 5
+          },
+          "value": "true"
+        },
+        "path": {
+          "source_span": {
+            "end_col": 25,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/source_complete.csl",
+            "start_col": 9,
+            "start_line": 4
+          },
+          "value": "./providers/azure"
+        },
+        "region": {
+          "source_span": {
+            "end_col": 18,
+            "end_line": 6,
+            "filename": "../testdata/fixtures/source_complete.csl",
+            "start_col": 10,
+            "start_line": 6
+          },
+          "value": "us-east-1"
+        },
+        "type": {
+          "source_span": {
+            "end_col": 13,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/source_complete.csl",
+            "start_col": 9,
+            "start_line": 3
+          },
+          "value": "azure"
+        }
       },
       "source_span": {
         "end_col": 1,

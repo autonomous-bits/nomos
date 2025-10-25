@@ -1,54 +1,80 @@
 {
   "source_span": {
     "end_col": 1,
-    "end_line": 5,
+    "end_line": 6,
     "filename": "../testdata/fixtures/reference_dotted_path.csl",
     "start_col": 1,
     "start_line": 1
   },
   "statements": [
     {
-      "alias": "base",
-      "path": "config.vpc.cidr",
+      "entries": {
+        "security": {
+          "alias": "security",
+          "path": [
+            "rules",
+            "ingress",
+            "http"
+          ],
+          "source_span": {
+            "end_col": 48,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/reference_dotted_path.csl",
+            "start_col": 12,
+            "start_line": 4
+          }
+        },
+        "subnet": {
+          "alias": "network",
+          "path": [
+            "subnet",
+            "public",
+            "az1"
+          ],
+          "source_span": {
+            "end_col": 44,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/reference_dotted_path.csl",
+            "start_col": 10,
+            "start_line": 3
+          }
+        },
+        "value": {
+          "alias": "simple",
+          "path": [
+            "value"
+          ],
+          "source_span": {
+            "end_col": 30,
+            "end_line": 5,
+            "filename": "../testdata/fixtures/reference_dotted_path.csl",
+            "start_col": 9,
+            "start_line": 5
+          }
+        },
+        "vpc_cidr": {
+          "alias": "base",
+          "path": [
+            "config",
+            "vpc",
+            "cidr"
+          ],
+          "source_span": {
+            "end_col": 41,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/reference_dotted_path.csl",
+            "start_col": 12,
+            "start_line": 2
+          }
+        }
+      },
+      "name": "config",
       "source_span": {
         "end_col": 1,
-        "end_line": 2,
+        "end_line": 6,
         "filename": "../testdata/fixtures/reference_dotted_path.csl",
         "start_col": 1,
         "start_line": 1
-      }
-    },
-    {
-      "alias": "network",
-      "path": "subnet.public.az1",
-      "source_span": {
-        "end_col": 1,
-        "end_line": 3,
-        "filename": "../testdata/fixtures/reference_dotted_path.csl",
-        "start_col": 1,
-        "start_line": 2
-      }
-    },
-    {
-      "alias": "security",
-      "path": "rules.ingress.http",
-      "source_span": {
-        "end_col": 1,
-        "end_line": 4,
-        "filename": "../testdata/fixtures/reference_dotted_path.csl",
-        "start_col": 1,
-        "start_line": 3
-      }
-    },
-    {
-      "alias": "simple",
-      "path": "value",
-      "source_span": {
-        "end_col": 1,
-        "end_line": 5,
-        "filename": "../testdata/fixtures/reference_dotted_path.csl",
-        "start_col": 1,
-        "start_line": 4
       }
     }
   ]

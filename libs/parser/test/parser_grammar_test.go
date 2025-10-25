@@ -37,8 +37,18 @@ func TestParseSourceDecl_ValidDeclaration(t *testing.T) {
 	if decl.Type != "folder" {
 		t.Errorf("expected type 'folder', got '%s'", decl.Type)
 	}
-	if decl.Config["path"] != "../config" {
-		t.Errorf("expected path '../config', got '%s'", decl.Config["path"])
+
+	// Extract path from Config (now contains Expr values)
+	pathExpr, ok := decl.Config["path"]
+	if !ok {
+		t.Fatal("expected 'path' in Config")
+	}
+	pathLiteral, ok := pathExpr.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("expected path to be StringLiteral, got %T", pathExpr)
+	}
+	if pathLiteral.Value != "../config" {
+		t.Errorf("expected path '../config', got '%s'", pathLiteral.Value)
 	}
 }
 
@@ -118,43 +128,31 @@ func TestParseImportStmt_WithoutPath(t *testing.T) {
 	}
 }
 
-// TestParseReferenceStmt_SimplePath tests reference with simple path.
+// TestParseReferenceStmt_SimplePath tests that top-level references are rejected.
 func TestParseReferenceStmt_SimplePath(t *testing.T) {
 	input := "reference:folder:config\n"
 	reader := strings.NewReader(input)
-	result, err := parser.Parse(reader, "test.csl")
+	_, err := parser.Parse(reader, "test.csl")
 
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if err == nil {
+		t.Fatal("expected error for deprecated top-level reference, got nil")
 	}
 
-	stmt, ok := result.Statements[0].(*ast.ReferenceStmt)
-	if !ok {
-		t.Fatalf("expected *ast.ReferenceStmt, got %T", result.Statements[0])
-	}
-
-	if stmt.Alias != "folder" {
-		t.Errorf("expected alias 'folder', got '%s'", stmt.Alias)
-	}
-	if stmt.Path != "config" {
-		t.Errorf("expected path 'config', got '%s'", stmt.Path)
+	// Verify error message suggests inline references
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "top-level") && !strings.Contains(errMsg, "inline") {
+		t.Errorf("expected error message to mention 'top-level' or 'inline', got: %s", errMsg)
 	}
 }
 
-// TestParseReferenceStmt_DottedPath tests reference with dotted path.
+// TestParseReferenceStmt_DottedPath tests that top-level references with dotted paths are rejected.
 func TestParseReferenceStmt_DottedPath(t *testing.T) {
 	input := "reference:folder:config.key.value\n"
 	reader := strings.NewReader(input)
-	result, err := parser.Parse(reader, "test.csl")
+	_, err := parser.Parse(reader, "test.csl")
 
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	stmt := result.Statements[0].(*ast.ReferenceStmt)
-
-	if stmt.Path != "config.key.value" {
-		t.Errorf("expected path 'config.key.value', got '%s'", stmt.Path)
+	if err == nil {
+		t.Fatal("expected error for deprecated top-level reference, got nil")
 	}
 }
 
@@ -180,42 +178,45 @@ func TestParseSectionDecl_SimpleSection(t *testing.T) {
 	// Note: The parser may have a bug where it doesn't preserve all entries.
 	// The golden test file shows only key2 being preserved.
 	// Testing for at least 1 entry as the integration test does.
-	if len(decl.Entries) < 1 {
-		t.Errorf("expected at least 1 entry, got %d", len(decl.Entries))
+	if len(decl.Entries) < 2 {
+		t.Errorf("expected 2 entries, got %d", len(decl.Entries))
 	}
 
 	// Verify at least one expected key exists
-	if decl.Entries["key2"] != "value2" {
-		t.Errorf("expected key2='value2', got '%s'", decl.Entries["key2"])
+	key2Expr, ok := decl.Entries["key2"]
+	if !ok {
+		t.Fatal("expected 'key2' in Entries")
+	}
+	key2Literal, ok := key2Expr.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("expected key2 to be StringLiteral, got %T", key2Expr)
+	}
+	if key2Literal.Value != "value2" {
+		t.Errorf("expected key2='value2', got '%s'", key2Literal.Value)
 	}
 }
 
-// TestParse_PathTokenization_ComplexPaths tests complex dotted path expressions.
+// TestParse_PathTokenization_ComplexPaths tests that top-level references are rejected.
+// Path tokenization is now tested via inline references in TestParseInlineReferences_* tests.
 func TestParse_PathTokenization_ComplexPaths(t *testing.T) {
 	tests := []struct {
-		name         string
-		input        string
-		expectedPath string
+		name  string
+		input string
 	}{
-		{"single level", "reference:src:key\n", "key"},
-		{"two levels", "reference:src:config.key\n", "config.key"},
-		{"three levels", "reference:src:app.config.key\n", "app.config.key"},
-		{"deep nesting", "reference:src:a.b.c.d.e.f\n", "a.b.c.d.e.f"},
-		{"with dashes", "reference:src:app-config.key-name\n", "app-config.key-name"},
-		{"with underscores", "reference:src:app_config.key_name\n", "app_config.key_name"},
+		{"single level", "reference:src:key\n"},
+		{"two levels", "reference:src:config.key\n"},
+		{"three levels", "reference:src:app.config.key\n"},
+		{"deep nesting", "reference:src:a.b.c.d.e.f\n"},
+		{"with dashes", "reference:src:app-config.key-name\n"},
+		{"with underscores", "reference:src:app_config.key_name\n"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.input)
-			result, err := parser.Parse(reader, "test.csl")
-			if err != nil {
-				t.Fatalf("expected no error, got %v", err)
-			}
-
-			stmt := result.Statements[0].(*ast.ReferenceStmt)
-			if stmt.Path != tt.expectedPath {
-				t.Errorf("expected path '%s', got '%s'", tt.expectedPath, stmt.Path)
+			_, err := parser.Parse(reader, "test.csl")
+			if err == nil {
+				t.Fatal("expected error for deprecated top-level reference, got nil")
 			}
 		})
 	}

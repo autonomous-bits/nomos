@@ -6,13 +6,11 @@ source:
 import:base:./base.csl
 import:network
 
-reference:base:config.region
-reference:network:vpc.cidr
-
 infrastructure:
 	vpc:
 		cidr: '10.0.0.0/16'
-		region: 'us-east-1'
+		region: reference:base:config.region
+	vpc_cidr_ref: reference:network:vpc.cidr
 	security-groups:
 		web:
 			ingress:

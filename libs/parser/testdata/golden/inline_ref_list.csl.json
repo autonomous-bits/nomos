@@ -1,0 +1,118 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 13,
+    "filename": "../testdata/fixtures/inline_ref_list.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "network",
+      "config": {
+        "alias": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 9,
+            "start_line": 2
+          },
+          "value": "network"
+        },
+        "path": {
+          "source_span": {
+            "end_col": 15,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 8,
+            "start_line": 4
+          },
+          "value": "./config"
+        },
+        "type": {
+          "source_span": {
+            "end_col": 13,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 8,
+            "start_line": 3
+          },
+          "value": "folder"
+        }
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 5,
+        "filename": "../testdata/fixtures/inline_ref_list.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "folder"
+    },
+    {
+      "entries": {
+        "server1": {
+          "alias": "network",
+          "path": [
+            "server1",
+            "ip"
+          ],
+          "source_span": {
+            "end_col": 38,
+            "end_line": 7,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 11,
+            "start_line": 7
+          }
+        },
+        "server2": {
+          "alias": "network",
+          "path": [
+            "server2",
+            "ip"
+          ],
+          "source_span": {
+            "end_col": 38,
+            "end_line": 8,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 11,
+            "start_line": 8
+          }
+        },
+        "server3": {
+          "alias": "network",
+          "path": [
+            "server3",
+            "ip"
+          ],
+          "source_span": {
+            "end_col": 38,
+            "end_line": 10,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 11,
+            "start_line": 10
+          }
+        },
+        "static_server": {
+          "source_span": {
+            "end_col": 41,
+            "end_line": 9,
+            "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_col": 17,
+            "start_line": 9
+          },
+          "value": "static-server.example.com"
+        }
+      },
+      "name": "servers",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 11,
+        "filename": "../testdata/fixtures/inline_ref_list.csl",
+        "start_col": 1,
+        "start_line": 6
+      }
+    }
+  ]
+}

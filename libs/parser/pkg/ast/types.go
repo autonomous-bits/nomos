@@ -46,10 +46,10 @@ type Stmt interface {
 //	type: 'folder'
 //	path: '../config'
 type SourceDecl struct {
-	Alias      string            `json:"alias"`
-	Type       string            `json:"type"`
-	Config     map[string]string `json:"config"` // Key-value configuration
-	SourceSpan SourceSpan        `json:"source_span"`
+	Alias      string          `json:"alias"`
+	Type       string          `json:"type"`
+	Config     map[string]Expr `json:"config"` // Key-value configuration with expression values
+	SourceSpan SourceSpan      `json:"source_span"`
 }
 
 // Span implements Node for SourceDecl.
@@ -89,9 +89,9 @@ func (r *ReferenceStmt) stmt()            {}
 //	key1: value1
 //	key2: value2
 type SectionDecl struct {
-	Name       string            `json:"name"`
-	Entries    map[string]string `json:"entries"`
-	SourceSpan SourceSpan        `json:"source_span"`
+	Name       string          `json:"name"`
+	Entries    map[string]Expr `json:"entries"` // Values are expressions (StringLiteral or ReferenceExpr)
+	SourceSpan SourceSpan      `json:"source_span"`
 }
 
 // Span implements Node for SectionDecl.
@@ -138,3 +138,20 @@ type StringLiteral struct {
 func (s *StringLiteral) Span() SourceSpan { return s.SourceSpan }
 func (s *StringLiteral) node()            {}
 func (s *StringLiteral) expr()            {}
+
+// ReferenceExpr represents an inline reference expression.
+// Example: reference:network:vpc.cidr
+//
+// References are first-class values that can appear anywhere a value is expected.
+// They consist of an alias (identifying the source/import) and a dotted path
+// to the target property within that source.
+type ReferenceExpr struct {
+	Alias      string     `json:"alias"`       // Source alias to resolve
+	Path       []string   `json:"path"`        // Dotted path components
+	SourceSpan SourceSpan `json:"source_span"` // Precise source location
+}
+
+// Span implements Node for ReferenceExpr.
+func (r *ReferenceExpr) Span() SourceSpan { return r.SourceSpan }
+func (r *ReferenceExpr) node()            {}
+func (r *ReferenceExpr) expr()            {}

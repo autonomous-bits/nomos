@@ -1,0 +1,29 @@
+source:
+	alias: 'network'
+	type: 'folder'
+	path: './config'
+
+source:
+	alias: 'app'
+	type: 'folder'
+	path: './app-config'
+
+config:
+	primary_host: reference:network:vpc.cidr
+	backup_hosts:
+		backup1: reference:network:backup1.host
+		static_backup: 'static-backup.example.com'
+		backup2: reference:network:backup2.host
+	settings:
+		timeout: '30s'
+		retry_count: '3'
+		endpoint: reference:app:api.endpoint
+		nested:
+			deep_ref: reference:network:deep.nested.value
+			literal: 'literal-value'
+	tags:
+		env: 'production'
+		app_tag: reference:app:tags.environment
+		region: 'us-west-2'
+
+

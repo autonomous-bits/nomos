@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/inline_ref_malformed.csl:7:2: invalid syntax: expected identifier for key",
+  "filename": "../testdata/errors/inline_ref_malformed.csl"
+}

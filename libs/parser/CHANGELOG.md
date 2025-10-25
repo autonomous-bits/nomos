@@ -7,6 +7,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **:books: Documentation: Inline reference syntax guide** (User Story #21, FEATURE-10-5)
+  - Comprehensive "Inline Reference Syntax" section in README.md with examples for scalar, map, and list positions
+  - AST JSON representation example showing `ReferenceExpr` structure
+  - Code examples demonstrating how to work with `ReferenceExpr` nodes programmatically
+  - Example output showing reference vs literal value handling
+- **:books: Documentation: Migration guide** (User Story #21, FEATURE-10-5)
+  - Complete "Migration Notes" section explaining removal of top-level `reference:` statements
+  - Before/after examples showing legacy vs new syntax
+  - Reference to PRD issue #10 for detailed rationale
+  - Codemod script location and usage instructions (`tools/scripts/convert-top-level-references`)
+  - FAQ section addressing common migration questions
+  - AST changes guide for library consumers
+- **:file_folder: Documentation examples** (User Story #21, FEATURE-10-5)
+  - Created `docs/examples/` directory with comprehensive inline reference examples
+  - `inline_reference_basic.csl` - scalar value examples
+  - `inline_reference_map.csl` - map/collection context examples
+  - `inline_reference_mixed.csl` - mixed literals and references
+  - `inline_reference_nested.csl` - deeply nested structures
+  - `docs/examples/README.md` - examples index and usage guide
+- **:white_check_mark: Test: Documentation validation** (User Story #21, FEATURE-10-5)
+  - Automated doc-check test (`test/doc_checks_test.go`) ensuring README completeness
+  - Validates presence of inline reference section with examples
+  - Verifies migration notes and PRD/codemod references
+  - Checks example files exist and contain expected syntax
+  - Runs in CI to prevent documentation regressions
+
+### Changed
+- **:sparkles: SourceSpan precision for ReferenceExpr**: Improved source span calculation to accurately capture the entire inline reference token sequence (User Story #20, FEATURE-10-4)
+  - `ReferenceExpr.Span` now provides precise byte-accurate `EndCol` values covering the complete reference expression
+  - Scanner exposes `Pos()` method to track byte position for accurate span calculations
+  - Parser calculates `EndCol` as `StartCol + len(valueText) - 1` (1-indexed, inclusive)
+  - All golden test files regenerated with correct `EndCol` values for inline references
+
+### Added
+- [Test] Source span accuracy tests for `ReferenceExpr` nodes (User Story #20, FEATURE-10-4)
+  - `TestReferenceExprSourceSpan_ScalarValue` with 3 test cases validating scalar inline references
+  - `TestReferenceExprSourceSpan_MapValue` validating inline references in map/collection contexts
+  - `TestReferenceExprSourceSpan_EdgeCases` covering unicode characters, long dotted paths, and complex identifiers
+  - Helper functions: `findReferenceExpr()`, `findAllReferenceExprs()`, `extractTextFromSpan()` for AST traversal and span validation
+- [Test] Comprehensive golden tests for inline reference expressions (User Story #19, FEATURE-10-3)
+  - `inline_ref_list.csl` fixture demonstrating inline references in map collections (multiple named server entries)
+  - `inline_ref_mixed.csl` fixture with deeply nested structures combining inline references and string literals
+  - Golden JSON files generated for deterministic AST comparison
+  - Tests validate correct parsing and AST structure for inline references across various nesting levels
+- [Test] Negative tests for malformed inline reference syntax (User Story #19, FEATURE-10-3)
+  - `inline_ref_malformed.csl` - tests parser behavior with incomplete reference paths
+  - `inline_ref_invalid_alias.csl` - tests parser error handling for invalid alias characters
+  - Golden error JSON files generated capturing expected error messages and locations
+  - Integration with existing `TestGolden_ErrorScenarios` test suite for consistent error validation
+- [Parser] **Inline reference support**: Parse `reference:alias:path` expressions in value positions (User Story #18)
+  - `parseValueExpr()` function to parse both string literals and inline reference expressions
+  - Support for dotted path syntax in inline references (e.g., `reference:network:vpc.cidr`)
+  - Comprehensive unit tests for inline references with various path complexities
+  - Integration tests for mixed sections with both literals and inline references
+- [AST] Add `ReferenceExpr` node type for inline reference expressions with `Alias`, `Path`, and `SourceSpan` fields (FEATURE-10-1, #17)
+- [AST] Extend `Expr` interface to include `ReferenceExpr` alongside existing expression types
+- [Test] Add comprehensive unit tests for `ReferenceExpr` constructor, Node/Expr interface compliance, and type switching
+- [Test] Add JSON serialization round-trip test for `ReferenceExpr`
+- [Test] Add integration test fixture `inline_ref_scalar.csl` with parser grammar support
+- [Test] Add legacy reference rejection tests verifying helpful migration error messages
+
+### Changed
+- [AST] **BREAKING**: `SectionDecl.Entries` changed from `map[string]string` to `map[string]Expr` to support inline expressions (User Story #18)
+- [AST] **BREAKING**: `SourceDecl.Config` changed from `map[string]string` to `map[string]Expr` for consistency with sections
+- [Parser] `parseConfigBlock()` now returns `map[string]Expr` instead of `map[string]string`
+- [Test] Updated all golden test files to reflect new AST structure with typed expression nodes
+
+### Deprecated
+- [Parser] **BREAKING**: Top-level `reference:alias:path` statements are no longer supported (User Story #18)
+  - Parser now rejects legacy top-level references with clear error message
+  - Error message includes migration guidance: "Use inline references instead. Example: Instead of a top-level 'reference:alias:path', use 'key: reference:alias:path' in a value position."
+  - All test fixtures updated to use inline reference syntax
+
+### Fixed
+- [Parser] Fixed bug where `parseSectionDecl` was dropping first entry due to extra `SkipToNextLine()` call
+  - Removed duplicate `SkipToNextLine()` call in `parseSectionDecl` that was skipping the first entry line
+  - All section entries are now correctly parsed and preserved in the AST
+  - Updated `TestParseSectionDecl_SimpleSection` to verify all entries are parsed
+
+### Security
+- [Parser] Maintained validation for unterminated string literals in new `parseValueExpr` function
+  - Detects missing closing quotes and provides clear error messages
+  - Ensures input validation is preserved across grammar changes
+
 ## [1.0.0-beta] - 2025-10-25
 
 ### Added

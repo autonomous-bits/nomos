@@ -9,9 +9,46 @@
   "statements": [
     {
       "entries": {
-        "description": "Unicode support: café, naïve, 日本語",
-        "emoji": "🚀 📦 ⚙️",
-        "symbols": "→ ← ↑ ↓ ✓ ✗"
+        "description": {
+          "source_span": {
+            "end_col": 55,
+            "end_line": 3,
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 15,
+            "start_line": 3
+          },
+          "value": "Unicode support: café, naïve, 日本語"
+        },
+        "emoji": {
+          "source_span": {
+            "end_col": 24,
+            "end_line": 5,
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 9,
+            "start_line": 5
+          },
+          "value": "🚀 📦 ⚙️"
+        },
+        "name": {
+          "source_span": {
+            "end_col": 32,
+            "end_line": 2,
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 8,
+            "start_line": 2
+          },
+          "value": "Test Configuration 测试"
+        },
+        "symbols": {
+          "source_span": {
+            "end_col": 33,
+            "end_line": 4,
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 11,
+            "start_line": 4
+          },
+          "value": "→ ← ↑ ↓ ✓ ✗"
+        }
       },
       "name": "configuration",
       "source_span": {

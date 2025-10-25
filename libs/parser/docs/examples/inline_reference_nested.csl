@@ -1,0 +1,32 @@
+# Deeply Nested Structures with Inline References
+#
+# This example shows inline references in deeply nested map structures,
+# demonstrating that references work at any nesting level.
+
+source:
+	alias: 'infra'
+	type: 'folder'
+	path: './infrastructure'
+
+databases:
+	primary:
+		host: reference:infra:db.primary.host
+		port: '5432'
+		database: 'production'
+		connection:
+			max_pool_size: '20'
+			timeout_ms: '5000'
+	replica:
+		host: reference:infra:db.replica.host
+		port: '5433'
+		database: 'production'
+		connection:
+			max_pool_size: '10'
+			timeout_ms: '3000'
+	analytics:
+		host: reference:infra:db.analytics.host
+		port: '5434'
+		database: 'analytics'
+		connection:
+			max_pool_size: '5'
+			timeout_ms: '10000'
