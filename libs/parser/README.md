@@ -1,8 +1,18 @@
 # Nomos Parser Library
 
-The parser converts Nomos source text into a well-defined abstract syntax tree (AST). It is intentionally focused on syntax; semantics (imports, providers, references) are handled by the compiler.
+A robust, concurrent-safe parser for the Nomos configuration scripting language (.csl files).
 
-## What it should achieve
+## Features
+
+- **Concurrency-safe**: Parser instances can be used concurrently without data races
+- **Precise error reporting**: All errors include file location and context snippets
+- **Performance optimized**: Benchmarked for files up to 1MB with minimal allocations
+- **Well-tested**: Comprehensive unit, integration, and concurrency tests
+- **Stable AST**: Documented Abstract Syntax Tree with source location tracking
+
+## What it achieves
+
+The parser converts Nomos source text into a well-defined abstract syntax tree (AST). It is intentionally focused on syntax; semantics (imports, providers, references) are handled by the compiler.
 
 - Tokenize and parse Nomos language constructs with helpful, deterministic errors.
 - Produce an AST with stable public types for consumption by the compiler.
@@ -88,6 +98,27 @@ var parserPool = sync.Pool{
         return parser.NewParser()
     },
 }
+
+func parseWithPooling(content string) error {
+    p := parserPool.Get().(*parser.Parser)
+    defer parserPool.Put(p)
+    
+    reader := strings.NewReader(content)
+    _, err := p.Parse(reader, "pooled.csl")
+    return err
+}
+```
+
+## Workspace Setup
+
+For local development in the Nomos monorepo, use the workspace sync script:
+
+```bash
+# From repository root
+./tools/scripts/work-sync.sh
+```
+
+This will create or update the `go.work` file with all required modules (apps/command-line, libs/compiler, libs/parser).
 
 func parseWithPool(filename string) (*parser.AST, error) {
     p := parserPool.Get().(*parser.Parser)

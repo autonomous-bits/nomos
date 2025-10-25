@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta] - 2025-10-25
+
+### Added
+- Parser API with `ParseFile(path string)` and `Parse(r io.Reader, filename string)` (#3, #8)
+- Parser instance pattern with `NewParser(opts...)` for pooling and reuse (#8)
+- Complete Nomos grammar support: `source`, `import`, `reference`, sections, mappings (#3)
+- Stable AST types with source location tracking (file, line, column) (#3)
+- Structured error types: `LexError`, `SyntaxError`, `IOError` with precise location info (#3)
+- Error formatting with context snippets and caret position indicators (#3)
+- Concurrency tests for 100 concurrent parses and 1MB files (#8)
+- Integration tests for error handling and real-world scenarios (#3)
+- Golden tests for AST deterministic JSON output and error messages (#3)
+- Performance benchmarks for small, medium, and large files (~1MB) (#8)
+- Workspace sync script (`tools/scripts/work-sync.sh`) for go.work management (#8)
+- Makefile with comprehensive test, coverage, and benchmark targets (#3)
+
+### Performance
+- Parser is concurrency-safe with no package-level mutable state (#8)
+- Benchmarked performance: ~1.1μs for small files, ~11ms for 1MB files (#8)
+- Parallel benchmark demonstrates scalability (#8)
+
+## Notes
+
+This is the initial beta release of the Nomos parser library targeting production readiness.
+
 ### Added
 - Parser validation for syntax errors (#TBD)
   - Validate keywords (`source`, `import`, `reference`) must be followed by `:`
