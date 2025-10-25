@@ -1,2 +1,0 @@
-- Add details to the nomos space.
-- Remove the go-monorepo-structure.md file (update co-pilot instructions) and refer to code space project structure file, move tools instructions into relevant AGENTS.md

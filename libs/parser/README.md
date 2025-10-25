@@ -19,6 +19,12 @@ The parser converts Nomos source text into a well-defined abstract syntax tree (
 - Preserve source locations (file/line/column) on nodes for diagnostics.
 - Keep runtime dependencies minimal and avoid global state.
 
+> References are value expressions (not top-level statements)
+>
+> In Nomos, references are intended to be used as values within sections, e.g., `cidr: reference:network:vpc.cidr`. Top-level `reference:` statements are considered legacy/deprecated and will be removed in a future major version. Until the deprecation window ends, the parser may still accept legacy top-level references for backward compatibility, but new content should only use inline references as values.
+>
+> Key values support either a string literal or a reference expression; both forms are supported by the parser and preserved distinctly in the AST.
+
 ## Relationship to other projects
 
 - `libs/compiler` depends on the parser to obtain the AST used for analysis and code generation of the snapshot.
@@ -141,7 +147,9 @@ for _, stmt := range ast.Statements {
     case *ast.ImportStmt:
         fmt.Printf("Import: alias=%s, path=%s\n", s.Alias, s.Path)
     case *ast.ReferenceStmt:
-        fmt.Printf("Reference: alias=%s, path=%s\n", s.Alias, s.Path)
+        // Deprecated: top-level ReferenceStmt is legacy and scheduled for removal.
+        // Prefer inline reference values (see ReferenceExpr in the Expressions section).
+        fmt.Printf("Reference (deprecated): alias=%s, path=%s\n", s.Alias, s.Path)
     case *ast.SectionDecl:
         fmt.Printf("Section: name=%s, entries=%d\n", s.Name, len(s.Entries))
     }
@@ -347,6 +355,10 @@ Some validations are intentionally not performed:
 - **Indentation Consistency**: Non-indented content after a section simply terminates the section (results in empty section, which is valid)
 - **Unknown Statements**: Unknown identifiers are treated as section declarations (by design)
 
+Legacy behavior and current direction:
+
+- Top-level `reference:` statements are legacy and deprecated. References are intended to be used inline as values. The parser will evolve to represent inline references as typed expressions in the AST.
+
 ```go
 package main
 
@@ -412,6 +424,8 @@ The parser exports the following stable AST node types:
 - **`IdentExpr`**: Simple identifier
 - **`StringLiteral`**: String literal value
 
+- **`ReferenceExpr`**: Inline reference value (`reference:{alias}:{path}`) used anywhere a value is allowed. Section entry values are expressions (`Expr`) and can be either a `StringLiteral` or a `ReferenceExpr`. The legacy top-level `ReferenceStmt` will be removed in a future major version.
+
 All types include JSON tags for deterministic serialization, which is useful for testing and tooling.
 
 ## Error Handling
@@ -434,16 +448,29 @@ From the repository README, Nomos supports the following surface:
 - `import` — import configuration from a source, optionally at a nested path
 - `reference` — reference a specific value from a source
 
-An illustrative (non-normative) EBNF sketch:
+Current high-level grammar sketch (non-normative but reflects parser behavior):
 
 ```
-File        = { Stmt } .
-Stmt        = SourceDecl | ImportStmt | ReferenceStmt .
-SourceDecl  = "source" Ident TypeName SourceConfig .
-ImportStmt  = "import" ":" Alias [ ":" Path ] .
-ReferenceStmt = "reference" ":" Alias ":" Path .
-Alias       = Ident .
-Path        = Ident { "." Ident } .
+File            = { Stmt } .
+Stmt            = SourceDecl | ImportStmt | SectionDecl .
+SourceDecl      = "source" ":" NewLine SourceConfig .
+ImportStmt      = "import" ":" Alias [ ":" Path ] .
+Alias           = Ident .
+Path            = Ident { "." Ident } .
+
+# Expression-valued entries (references are values, not top-level statements)
+SectionDecl     = Ident ":" NewLine IndentedEntries .
+IndentedEntries = { Indent Key ":" Value NewLine } .
+Key             = Ident .
+Value           = String | Expr .              # A key's value can be a string literal or a reference
+Expr            = ReferenceExpr | IdentExpr | PathExpr .
+ReferenceExpr   = "reference" ":" Alias ":" Path .
+```
+
+Legacy acceptance (to be removed in a future major version):
+
+```
+ReferenceStmt = "reference" ":" Alias ":" Path .   // deprecated
 ```
 
 Concrete token forms (as used in scripts):
@@ -465,6 +492,17 @@ config-section-name:
 	key2: value2
 ```
 
+Inline reference example (recommended):
+
+```
+infrastructure:
+  vpc:
+        cidr: reference:network:vpc.cidr   # reference value
+        name: 'prod-vpc'                   # string value
+```
+
+Note: Until expression-valued entries are implemented, the line above may be parsed as a string value by older parser versions. New content should still use the inline form; top-level `reference:` is deprecated.
+
 ## Error behavior
 
 - Deterministic messages with a short description, file, line/column, and a small source snippet when feasible.
@@ -479,6 +517,16 @@ config-section-name:
 ## Versioning
 
 - Tagged as `libs/parser/vX.Y.Z`. Follow semantic versioning for public AST/type changes.
+
+Deprecation and breaking-change notice:
+
+- Top-level `ReferenceStmt` is deprecated and will be removed in a future major version.
+- Inline reference support as first-class expressions will change section entry values from `map[string]string` to an expression-backed representation. This will ship in a major version with migration notes and updated golden tests.
+
+Migration guidance:
+
+- Replace any top-level `reference:{alias}:{path}` with an inline value under the appropriate section key.
+- Update consumers that rely on `SectionDecl.Entries` to handle expression values (when the new major version lands).
 
 ## Development
 
