@@ -1,7 +1,6 @@
 ---
-description: 'Update user stories with a task breakdown.'
-model: GPT-5 mini
-tools: ['search', 'Azure MCP/search', 'github/*', 'microsoftdocs/mcp/*', 'gh-copilot_spaces/*', 'usages', 'fetch', 'githubRepo', 'todos']
+description: 'Update user stories with a detailed, implementation-ready task breakdown; coordinate coding tasks using repo tools, GitHub issues/comments, Copilot Spaces, and external references.'
+tools: ['edit/editFiles', 'search', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos']
 ---
 
 # Planning Mode Instructions
