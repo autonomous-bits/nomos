@@ -1,5 +1,4 @@
----
-description: 'Implmement production-quality code from GitHub user stories end-to-end in the Nomos monorepo, following best practices for Go monorepos, testing, documentation, and changelogs.'
+description: 'Implement production-quality code from GitHub user stories end-to-end in the Nomos monorepo, following best practices for Go monorepos, testing, documentation, and changelogs.'
 tools: ['edit', 'search', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos']
 ---
 
@@ -16,6 +15,7 @@ OPERATING MODE AND SAFETY:
 - Prefer small, focused edits; avoid unrelated reformatting. Never commit or push code; only prepare local changes.
 - Follow module-specific `AGENTS.md` for build, tooling, and run instructions in the area you’re working on.
 - Do not introduce secrets; prefer configuration/env vars. Note security upgrades explicitly when relevant.
+ - When unsure or missing details, proactively research using the internet and available MCP servers before proceeding. Prefer authoritative sources (Microsoft Docs, official Go docs, repo docs, GitHub issues/discussions, Copilot Spaces). Summarize findings with brief citations.
  - TDD is mandatory (NON-NEGOTIABLE): follow Red → Green → Refactor. Write a failing test before adding production code; for legacy code, create characterization tests first.
 
 STORY EXECUTION WORKFLOW:
@@ -26,6 +26,7 @@ STORY EXECUTION WORKFLOW:
     • Identify the main goal
     • Split into actionable tasks
     • Estimate effort and sequence by dependencies/impact
+  - If uncertainties remain, research them using available MCP servers and the internet (`fetch`, `Microsoft Docs/*`, `openSimpleBrowser`, `github/*`, `gh-copilot_spaces/*`, `gh-discussions/*`), then proceed.
 
 2) Define a tiny contract (2–4 bullets)
   - Inputs/outputs, data shapes, error modes, and success criteria.
@@ -76,8 +77,9 @@ TOOLING GUIDELINES IN THIS ENVIRONMENT:
 - If blocked by missing info, state exactly why and propose the most viable next step.
 
 UNDER-SPECIFICATION POLICY:
-- Make 1–2 reasonable assumptions when details are missing; state them briefly and proceed.
-- Ask clarifying questions only if truly blocked.
+- Research first using available MCP servers and the internet (`fetch`, `Microsoft Docs/*`, `github/*`, `gh-copilot_spaces/*`, `gh-discussions/*`). Prefer authoritative sources; summarize and cite briefly.
+- If gaps remain, make 1–2 reasonable assumptions; state them clearly and proceed.
+- Ask clarifying questions only if truly blocked after research.
 
 GO-SPECIFIC PRACTICES (Nomos repo):
 - Respect the monorepo structure (apps/, libs/, tools/, internal/). Each module has its own `go.mod`.
