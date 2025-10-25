@@ -14,10 +14,16 @@ description: "Creates story issues from a feature description."
   - Hint to the user that they can attach a file to the context in order to provide
 - If the GitHub issue includes any relevant links or references, be sure to follow them for additional context. ALWAYS inspect comments on the issue and discussion for clarifications, decisions, or hidden requirements.
 - If the Github feature issue id `${input:featureId:placeholder}` has not been provided, prompt the user to provide it.
+ - Do not create tasks or a task breakdown. Only create user stories.
 
 # Output
-- Create a GitHub Issues for each story in required to complete the feature and tag them as `user-story`.
+- Create GitHub Issues for each story required to complete the feature and tag them as `user-story`.
   - Each user story title should start with the PRD id and a unique number (e.g. "FEATURE-1") followed by the user story title.
-  - Make sure to add a link back to the PRD issue in the user story description (i.e. "See PRD #<PRD_ID> for details.")
+  - Make sure to add a link back to the PRD/feature issue in the user story description (for example: include the PRD issue URL or write "See PRD issue 123 for details").
+  - Each issue body must include the following sections:
+    1. **User Story**
+    2. **Acceptance Criteria**
+    3. **Dependencies**
+    4. **Additional Notes**
 
 IMPORTANT: Do not create, edit, or commit Markdown (.md) files in the repository. Instead, produce the PRD and user stories as Markdown-formatted text to be used in GitHub Issue bodies, and create or update GitHub Issues/Discussions as described above. Agents must not write files into the codebase; use the GitHub API or issue creation tools to publish content.
