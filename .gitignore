@@ -1,9 +1,13 @@
 # Test coverage files
 coverage.out
+coverage.txt
+coverage.html
+*.cover
 *.out
 
 # Binaries
 bin/
+dist/
 *.exe
 *.dll
 *.so
@@ -15,13 +19,59 @@ bin/
 # Go workspace file
 go.work.sum
 
+# Profiling and debugging
+*.prof
+*.trace
+*.pprof
+cpu.out
+mem.out
+
+# Build artifacts
+vendor/
+_obj/
+_test/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+secrets.yml
+
 # IDE and editor files
-.vscode/
+# Keep .vscode/settings.json for team-shared project settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
 # OS files
 .DS_Store
 Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Release artifacts (from tools like goreleaser)
+dist/
+*.tar.gz
+*.zip
+
+# Documentation builds
+site/
