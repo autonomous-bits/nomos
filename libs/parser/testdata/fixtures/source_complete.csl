@@ -1,0 +1,6 @@
+source:
+	alias: 'azure-provider'
+	type:  'azure'
+	path:  './providers/azure'
+	enabled: true
+	region: 'us-east-1'

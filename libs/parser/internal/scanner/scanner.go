@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Scanner represents a lexical scanner for Nomos source text.
@@ -54,7 +55,8 @@ func (s *Scanner) PeekChar() rune {
 	if s.IsEOF() {
 		return 0
 	}
-	return rune(s.input[s.pos])
+	r, _ := utf8.DecodeRuneInString(s.input[s.pos:])
+	return r
 }
 
 // Advance moves to the next character.
@@ -67,11 +69,12 @@ func (s *Scanner) Advance() {
 		s.line++
 		s.col = 1
 		s.lineStart = s.pos + 1
+		s.pos++
 	} else {
+		_, size := utf8.DecodeRuneInString(s.input[s.pos:])
 		s.col++
+		s.pos += size
 	}
-
-	s.pos++
 }
 
 // SkipWhitespace skips whitespace characters except newlines.

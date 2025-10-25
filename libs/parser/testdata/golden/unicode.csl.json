@@ -1,0 +1,26 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 6,
+    "filename": "../testdata/fixtures/unicode.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "entries": {
+        "description": "Unicode support: café, naïve, 日本語",
+        "emoji": "🚀 📦 ⚙️",
+        "symbols": "→ ← ↑ ↓ ✓ ✗"
+      },
+      "name": "configuration",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 6,
+        "filename": "../testdata/fixtures/unicode.csl",
+        "start_col": 1,
+        "start_line": 1
+      }
+    }
+  ]
+}

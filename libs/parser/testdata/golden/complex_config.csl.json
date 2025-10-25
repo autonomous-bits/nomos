@@ -1,0 +1,103 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 30,
+    "filename": "../testdata/fixtures/complex_config.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "azure",
+      "config": {
+        "alias": "azure",
+        "path": "./providers/azure",
+        "type": "azure"
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 5,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "azure"
+    },
+    {
+      "alias": "base",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 7,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 6
+      }
+    },
+    {
+      "alias": "network",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 8,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 7
+      }
+    },
+    {
+      "alias": "base",
+      "path": "config.region",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 10,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 9
+      }
+    },
+    {
+      "alias": "network",
+      "path": "vpc.cidr",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 11,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 10
+      }
+    },
+    {
+      "entries": {
+        "cidr": "10.0.0.0/16",
+        "database": "",
+        "ingress": "",
+        "port": "5432",
+        "protocol": "tcp",
+        "region": "us-east-1",
+        "security-groups": "",
+        "web": ""
+      },
+      "name": "infrastructure",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 25,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 12
+      }
+    },
+    {
+      "entries": {
+        "replicas": "3",
+        "version": "1.0.0"
+      },
+      "name": "application",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 30,
+        "filename": "../testdata/fixtures/complex_config.csl",
+        "start_col": 1,
+        "start_line": 26
+      }
+    }
+  ]
+}

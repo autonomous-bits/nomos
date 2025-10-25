@@ -1,0 +1,13 @@
+vpc:
+	cidr: '10.0.0.0/16'
+	name: 'main-vpc'
+	subnets:
+		public:
+			az1: '10.0.1.0/24'
+			az2: '10.0.2.0/24'
+		private:
+			az1: '10.0.10.0/24'
+			az2: '10.0.20.0/24'
+	tags:
+		Environment: 'production'
+		Project: 'nomos'

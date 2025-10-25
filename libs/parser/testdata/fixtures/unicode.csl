@@ -1,0 +1,5 @@
+configuration:
+	name: 'Test Configuration 测试'
+	description: 'Unicode support: café, naïve, 日本語'
+	symbols: '→ ← ↑ ↓ ✓ ✗'
+	emoji: '🚀 📦 ⚙️'

@@ -1,0 +1,29 @@
+source:
+	alias: 'azure'
+	type:  'azure'
+	path:  './providers/azure'
+
+import:base:./base.csl
+import:network
+
+reference:base:config.region
+reference:network:vpc.cidr
+
+infrastructure:
+	vpc:
+		cidr: '10.0.0.0/16'
+		region: 'us-east-1'
+	security-groups:
+		web:
+			ingress:
+				port: 80
+				protocol: 'tcp'
+		database:
+			ingress:
+				port: 5432
+				protocol: 'tcp'
+
+application:
+	name: 'my-app'
+	version: '1.0.0'
+	replicas: 3

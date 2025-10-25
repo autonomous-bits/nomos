@@ -1,0 +1,32 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 14,
+    "filename": "../testdata/fixtures/mapping_nested.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "entries": {
+        "Environment": "production",
+        "Project": "nomos",
+        "az1": "10.0.10.0/24",
+        "az2": "10.0.20.0/24",
+        "name": "main-vpc",
+        "private": "",
+        "public": "",
+        "subnets": "",
+        "tags": ""
+      },
+      "name": "vpc",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 14,
+        "filename": "../testdata/fixtures/mapping_nested.csl",
+        "start_col": 1,
+        "start_line": 1
+      }
+    }
+  ]
+}

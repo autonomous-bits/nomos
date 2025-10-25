@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/invalid_character.csl:1:1: invalid syntax: expected ':' after identifier 'invalid'",
+  "filename": "../testdata/errors/invalid_character.csl"
+}

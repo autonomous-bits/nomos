@@ -1,0 +1,10 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 6,
+    "filename": "../testdata/fixtures/whitespace_only.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": null
+}

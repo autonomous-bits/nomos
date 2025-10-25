@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/autonomous-bits/nomos/libs/parser/internal/scanner"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
@@ -50,7 +51,7 @@ func ParseFile(path string) (*ast.AST, error) {
 func (p *Parser) ParseFile(path string) (*ast.AST, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, NewParseError(IOError, path, 0, 0, fmt.Sprintf("failed to open file: %v", err))
 	}
 	defer file.Close()
 
@@ -69,14 +70,17 @@ func (p *Parser) Parse(r io.Reader, filename string) (*ast.AST, error) {
 	// Read all input
 	content, err := io.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read input: %w", err)
+		return nil, NewParseError(IOError, filename, 0, 0, fmt.Sprintf("failed to read input: %v", err))
 	}
 
+	// Store source text for error formatting
+	sourceText := string(content)
+
 	// Create scanner
-	s := scanner.New(string(content), filename)
+	s := scanner.New(sourceText, filename)
 
 	// Parse statements
-	statements, err := p.parseStatements(s)
+	statements, err := p.parseStatements(s, sourceText)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +101,7 @@ func (p *Parser) Parse(r io.Reader, filename string) (*ast.AST, error) {
 }
 
 // parseStatements parses all statements in the input.
-func (p *Parser) parseStatements(s *scanner.Scanner) ([]ast.Stmt, error) {
+func (p *Parser) parseStatements(s *scanner.Scanner, sourceText string) ([]ast.Stmt, error) {
 	var statements []ast.Stmt
 
 	for !s.IsEOF() {
@@ -107,7 +111,7 @@ func (p *Parser) parseStatements(s *scanner.Scanner) ([]ast.Stmt, error) {
 			break
 		}
 
-		stmt, err := p.parseStatement(s)
+		stmt, err := p.parseStatement(s, sourceText)
 		if err != nil {
 			return nil, err
 		}
@@ -120,13 +124,15 @@ func (p *Parser) parseStatements(s *scanner.Scanner) ([]ast.Stmt, error) {
 }
 
 // parseStatement parses a single statement.
-func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
+func (p *Parser) parseStatement(s *scanner.Scanner, sourceText string) (ast.Stmt, error) {
 	startLine, startCol := s.Line(), s.Column()
 
 	// Check for invalid characters first
 	ch := s.PeekChar()
 	if ch == '!' || ch == '@' || ch == '#' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
-		return nil, fmt.Errorf("%s:%d:%d: invalid syntax: unexpected character '%c'", s.Filename(), startLine, startCol, ch)
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: unexpected character '%c'", ch))
+		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		return nil, err
 	}
 
 	// Peek at the first token to determine statement type
@@ -140,15 +146,15 @@ func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 
 	switch token {
 	case "source":
-		return p.parseSourceDecl(s, startLine, startCol)
+		return p.parseSourceDecl(s, startLine, startCol, sourceText)
 	case "import":
-		return p.parseImportStmt(s, startLine, startCol)
+		return p.parseImportStmt(s, startLine, startCol, sourceText)
 	case "reference":
-		return p.parseReferenceStmt(s, startLine, startCol)
+		return p.parseReferenceStmt(s, startLine, startCol, sourceText)
 	default:
 		// Try to parse as a section declaration
 		if ch != '\n' && ch != '\r' && !s.IsEOF() {
-			return p.parseSectionDecl(s, startLine, startCol)
+			return p.parseSectionDecl(s, startLine, startCol, sourceText)
 		}
 		// Skip unknown/empty lines
 		s.SkipToNextLine()
@@ -157,8 +163,16 @@ func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 }
 
 // parseSourceDecl parses a source declaration.
-func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*ast.SourceDecl, error) {
+func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.SourceDecl, error) {
 	s.ConsumeToken() // consume "source"
+
+	// Validate colon after keyword
+	if s.PeekChar() != ':' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'source' keyword must be followed by ':'")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
 	s.Expect(':')
 
 	// Parse configuration block (indented key-value pairs)
@@ -167,8 +181,16 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 		return nil, err
 	}
 
+	// Validate alias is not empty
+	alias, ok := config["alias"]
+	if !ok || alias == "" {
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			"invalid syntax: 'source' declaration requires a non-empty 'alias' field")
+		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		return nil, err
+	}
+
 	// Extract alias and type from config
-	alias := config["alias"]
 	typeName := config["type"]
 
 	endLine, endCol := s.Line(), s.Column()
@@ -188,11 +210,28 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 }
 
 // parseImportStmt parses an import statement.
-func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*ast.ImportStmt, error) {
+func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.ImportStmt, error) {
 	s.ConsumeToken() // consume "import"
+
+	// Validate colon after keyword
+	if s.PeekChar() != ':' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'import' keyword must be followed by ':'")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
 	s.Expect(':')
 
 	alias := s.ReadIdentifier()
+
+	// Validate alias is not empty
+	if alias == "" {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'import' statement requires an alias")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
+
 	path := ""
 
 	// Check for optional path
@@ -218,13 +257,46 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*
 }
 
 // parseReferenceStmt parses a reference statement.
-func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int) (*ast.ReferenceStmt, error) {
+func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.ReferenceStmt, error) {
 	s.ConsumeToken() // consume "reference"
+
+	// Validate colon after keyword
+	if s.PeekChar() != ':' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'reference' keyword must be followed by ':'")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
 	s.Expect(':')
 
 	alias := s.ReadIdentifier()
+
+	// Validate alias is not empty
+	if alias == "" {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'reference' statement requires an alias")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
+
+	// Validate second colon exists
+	if s.PeekChar() != ':' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: expected ':' after alias in 'reference' statement")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
 	s.Expect(':')
+
 	path := s.ReadPath()
+
+	// Validate path is not empty
+	if path == "" {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			"invalid syntax: 'reference' statement requires a path")
+		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
 
 	s.SkipToNextLine()
 	endLine, endCol := s.Line(), s.Column()
@@ -243,11 +315,13 @@ func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int)
 }
 
 // parseSectionDecl parses a configuration section.
-func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (*ast.SectionDecl, error) {
+func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.SectionDecl, error) {
 	name := s.ReadIdentifier()
 	if s.PeekChar() != ':' {
 		// Not a valid section declaration - this is invalid syntax
-		return nil, fmt.Errorf("%s:%d:%d: invalid syntax: expected ':' after identifier '%s'", s.Filename(), startLine, startCol, name)
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: expected ':' after identifier '%s'", name))
+		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		return nil, err
 	}
 	s.Expect(':')
 	s.SkipToNextLine()
@@ -287,18 +361,56 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]string, error)
 		}
 
 		s.SkipWhitespace()
+
 		if s.IsEOF() || s.PeekChar() == '\n' {
 			break
 		}
 
+		keyStart := s.Column()
 		key := s.ReadIdentifier()
+
+		// Validate key is not empty
+		if key == "" {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), keyStart,
+				"invalid syntax: expected identifier for key")
+		}
+
+		// Validate key doesn't contain invalid characters (check first char of what remains)
+		ch := s.PeekChar()
+		if ch != ':' && ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' && !s.IsEOF() {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				fmt.Sprintf("invalid syntax: invalid character '%c' in key", ch))
+		}
+
+		// TODO: Duplicate key detection needs to be scope-aware for nested structures
+		// Currently disabled to allow nested sections with same key names
+		// Check for duplicate keys
+		//if _, exists := config[key]; exists {
+		//	return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), keyStart,
+		//		fmt.Sprintf("invalid syntax: duplicate key '%s'", key))
+		//}
+
 		s.Expect(':')
 		s.SkipWhitespace()
 		value := s.ReadValue()
+
+		// Validate value is properly terminated (no unterminated strings)
+		if strings.HasPrefix(value, "'") || strings.HasPrefix(value, "\"") {
+			quote := value[0]
+			if len(value) < 2 || value[len(value)-1] != quote {
+				return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+					fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
+			}
+		}
 
 		config[key] = value
 		s.SkipToNextLine()
 	}
 
 	return config, nil
+}
+
+// generateSnippetFromSource is a convenience wrapper around generateSnippet from errors.go.
+func generateSnippetFromSource(sourceText string, line, col int) string {
+	return generateSnippet(sourceText, line, col)
 }

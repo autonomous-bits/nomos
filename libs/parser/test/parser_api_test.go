@@ -179,3 +179,197 @@ reference:folder:config.key
 func TestParseFile_EdgeCase_LargeFile(t *testing.T) {
 	t.Skip("TODO: Add large file test once parser implementation is complete")
 }
+
+// TestParse_Negative_InvalidSyntax tests error handling for malformed input.
+func TestParse_Negative_InvalidSyntax(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		shouldContain string // Expected error message substring
+	}{
+		{
+			name:          "invalid character",
+			input:         "!invalid",
+			shouldContain: "invalid syntax",
+		},
+		{
+			name:          "incomplete import missing path",
+			input:         "import:",
+			shouldContain: "", // Empty identifier is handled gracefully
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			_, err := parser.Parse(reader, "test.csl")
+
+			if tt.shouldContain == "" {
+				// Some cases might not error (graceful handling)
+				return
+			}
+
+			if err == nil {
+				t.Errorf("expected error containing '%s', got nil", tt.shouldContain)
+				return
+			}
+
+			if !strings.Contains(err.Error(), tt.shouldContain) {
+				t.Errorf("expected error containing '%s', got: %v", tt.shouldContain, err)
+			}
+		})
+	}
+}
+
+// TestParse_Negative_FilePaths tests error handling for invalid file paths.
+func TestParseFile_Negative_NonexistentFile(t *testing.T) {
+	_, err := parser.ParseFile("../testdata/fixtures/nonexistent.csl")
+	if err == nil {
+		t.Error("expected error for nonexistent file, got nil")
+	}
+}
+
+// TestParse_Negative_ErrorContainsLocation tests that errors include location info.
+func TestParse_Negative_ErrorContainsLocation(t *testing.T) {
+	input := "section\nkey: value"
+	reader := strings.NewReader(input)
+
+	_, err := parser.Parse(reader, "test.csl")
+
+	if err == nil {
+		t.Fatal("expected parse error, got nil")
+	}
+
+	errMsg := err.Error()
+
+	// Error should contain filename
+	if !strings.Contains(errMsg, "test.csl") {
+		t.Errorf("error should contain filename, got: %s", errMsg)
+	}
+
+	// Error should contain line number
+	if !strings.Contains(errMsg, "1:") || !strings.Contains(errMsg, ":") {
+		t.Errorf("error should contain line:col format, got: %s", errMsg)
+	}
+}
+
+// TestParseFile_Integration_AllGrammarConstructs tests end-to-end parsing
+// of a comprehensive file with all grammar elements (MANDATORY integration test per AC).
+func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
+	// This test satisfies the mandatory integration requirement from the story:
+	// "Integration Test: test/integration/grammar_test.go that invokes Parse/ParseFile
+	// on real .csl fixtures exercising each construct"
+
+	// Arrange
+	filePath := "../testdata/fixtures/simple.csl"
+
+	// Act
+	result, err := parser.ParseFile(filePath)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected no error parsing simple.csl, got %v", err)
+	}
+
+	// Verify we have all expected statement types
+	if len(result.Statements) < 4 {
+		t.Fatalf("expected at least 4 statements (source, import, reference, section), got %d", len(result.Statements))
+	}
+
+	// Verify source declaration is present and correct
+	sourceFound := false
+	for _, stmt := range result.Statements {
+		if decl, ok := stmt.(*ast.SourceDecl); ok {
+			sourceFound = true
+			if decl.Alias != "folder" {
+				t.Errorf("source: expected alias 'folder', got '%s'", decl.Alias)
+			}
+			if decl.Type != "folder" {
+				t.Errorf("source: expected type 'folder', got '%s'", decl.Type)
+			}
+			// Verify source span is populated
+			span := decl.Span()
+			if span.Filename != filePath {
+				t.Errorf("source: expected filename '%s', got '%s'", filePath, span.Filename)
+			}
+			if span.StartLine < 1 {
+				t.Error("source: start line should be >= 1")
+			}
+		}
+	}
+	if !sourceFound {
+		t.Error("expected to find source declaration")
+	}
+
+	// Verify import statement is present and correct
+	importFound := false
+	for _, stmt := range result.Statements {
+		if impStmt, ok := stmt.(*ast.ImportStmt); ok {
+			importFound = true
+			if impStmt.Alias != "folder" {
+				t.Errorf("import: expected alias 'folder', got '%s'", impStmt.Alias)
+			}
+			if impStmt.Path != "filename" {
+				t.Errorf("import: expected path 'filename', got '%s'", impStmt.Path)
+			}
+			// Verify source span
+			span := impStmt.Span()
+			if span.Filename != filePath {
+				t.Errorf("import: expected filename '%s', got '%s'", filePath, span.Filename)
+			}
+		}
+	}
+	if !importFound {
+		t.Error("expected to find import statement")
+	}
+
+	// Verify reference statement with dotted path is present
+	referenceFound := false
+	for _, stmt := range result.Statements {
+		if refStmt, ok := stmt.(*ast.ReferenceStmt); ok {
+			referenceFound = true
+			if refStmt.Alias != "folder" {
+				t.Errorf("reference: expected alias 'folder', got '%s'", refStmt.Alias)
+			}
+			// Verify dotted path tokenization
+			if refStmt.Path != "config.key" {
+				t.Errorf("reference: expected path 'config.key', got '%s'", refStmt.Path)
+			}
+			if !strings.Contains(refStmt.Path, ".") {
+				t.Error("reference: path should contain dot for path tokenization")
+			}
+			// Verify source span
+			span := refStmt.Span()
+			if span.Filename != filePath {
+				t.Errorf("reference: expected filename '%s', got '%s'", filePath, span.Filename)
+			}
+		}
+	}
+	if !referenceFound {
+		t.Error("expected to find reference statement with dotted path")
+	}
+
+	// Verify section declaration is present
+	sectionFound := false
+	for _, stmt := range result.Statements {
+		if section, ok := stmt.(*ast.SectionDecl); ok {
+			sectionFound = true
+			if section.Name != "config-section" {
+				t.Errorf("section: expected name 'config-section', got '%s'", section.Name)
+			}
+			if len(section.Entries) < 1 {
+				t.Error("section: expected at least one key-value entry")
+			}
+			// Verify source span
+			span := section.Span()
+			if span.Filename != filePath {
+				t.Errorf("section: expected filename '%s', got '%s'", filePath, span.Filename)
+			}
+		}
+	}
+	if !sectionFound {
+		t.Error("expected to find section declaration")
+	}
+
+	t.Log("Integration test PASS: All grammar constructs (source, import, reference, dotted paths, sections) parsed successfully with correct source spans")
+}

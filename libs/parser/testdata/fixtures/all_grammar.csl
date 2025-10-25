@@ -1,0 +1,21 @@
+source:
+	alias: 'complete-test'
+	type:  'test'
+	path:  './test'
+
+import:module1:./module1.csl
+import:module2
+
+reference:module1:config.value
+reference:module2:data.key.nested
+
+section1:
+	key1: value1
+	key2: value2
+
+section2:
+	nested:
+		level1:
+			level2: deep-value
+		another: value
+	simple: text

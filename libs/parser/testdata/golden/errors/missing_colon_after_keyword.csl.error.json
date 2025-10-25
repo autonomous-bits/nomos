@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/missing_colon_after_keyword.csl:1:7: invalid syntax: 'source' keyword must be followed by ':'",
+  "filename": "../testdata/errors/missing_colon_after_keyword.csl"
+}

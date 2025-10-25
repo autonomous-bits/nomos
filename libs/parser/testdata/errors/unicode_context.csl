@@ -1,0 +1,4 @@
+my-section:
+	key: 'value'
+	unicode: 'Hello 世界 test'
+	another: 'ok'

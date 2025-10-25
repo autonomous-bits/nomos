@@ -1,0 +1,4 @@
+reference:base:config.vpc.cidr
+reference:network:subnet.public.az1
+reference:security:rules.ingress.http
+reference:simple:value

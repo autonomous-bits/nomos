@@ -1,0 +1,41 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 4,
+    "filename": "../testdata/fixtures/import_with_path.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "base",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 2,
+        "filename": "../testdata/fixtures/import_with_path.csl",
+        "start_col": 1,
+        "start_line": 1
+      }
+    },
+    {
+      "alias": "network",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 3,
+        "filename": "../testdata/fixtures/import_with_path.csl",
+        "start_col": 1,
+        "start_line": 2
+      }
+    },
+    {
+      "alias": "security",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 4,
+        "filename": "../testdata/fixtures/import_with_path.csl",
+        "start_col": 1,
+        "start_line": 3
+      }
+    }
+  ]
+}
