@@ -1,0 +1,12 @@
+source:
+	alias: 'folder'
+	type:  'folder'
+	path:  '../config'
+
+import:folder:filename
+
+reference:folder:config.key
+
+config-section:
+	key1: value1
+	key2: value2

@@ -18,26 +18,168 @@ The parser converts Nomos source text into a well-defined abstract syntax tree (
 CLI -> Compiler -> Parser
 ```
 
-## Public API (proposed contract)
+## Public API
+
+### Basic Usage
 
 ```go
-package parser
+package main
 
-type AST struct{ /* ... */ }
+import (
+    "fmt"
+    "log"
 
-// ParseFile parses a file path into an AST.
-func ParseFile(path string) (*AST, error)
+    "github.com/autonomous-bits/nomos/libs/parser"
+)
 
-// Parse parses from an io.Reader; useful for tests and embedding.
-func Parse(r io.Reader, filename string) (*AST, error)
+func main() {
+    // Parse a file from disk
+    ast, err := parser.ParseFile("config.csl")
+    if err != nil {
+        log.Fatalf("Parse error: %v", err)
+    }
+
+    fmt.Printf("Parsed %d statements\n", len(ast.Statements))
+}
 ```
 
-Key requirements:
-- All errors include filename and line/column.
-- AST node types (e.g., `SourceDecl`, `ImportStmt`, `ReferenceExpr`) are documented and stable.
+### Parsing from a Reader
 
-File types:
-- Parser targets files with the `.csl` extension by convention. Filenames should be preserved in diagnostics.
+```go
+package main
+
+import (
+    "log"
+    "strings"
+
+    "github.com/autonomous-bits/nomos/libs/parser"
+)
+
+func main() {
+    input := `source:
+	alias: 'folder'
+	type:  'folder'
+	path:  './config'
+`
+    
+    reader := strings.NewReader(input)
+    ast, err := parser.Parse(reader, "inline.csl")
+    if err != nil {
+        log.Fatalf("Parse error: %v", err)
+    }
+
+    // Process AST...
+}
+```
+
+### Using Parser Instances (for pooling/reuse)
+
+```go
+package main
+
+import (
+    "sync"
+
+    "github.com/autonomous-bits/nomos/libs/parser"
+)
+
+var parserPool = sync.Pool{
+    New: func() interface{} {
+        return parser.NewParser()
+    },
+}
+
+func parseWithPool(filename string) (*parser.AST, error) {
+    p := parserPool.Get().(*parser.Parser)
+    defer parserPool.Put(p)
+
+    return p.ParseFile(filename)
+}
+```
+
+### Working with AST Nodes
+
+All AST nodes include source span information for precise error reporting:
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/autonomous-bits/nomos/libs/parser"
+    "github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
+)
+
+func main() {
+    result, err := parser.ParseFile("config.csl")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Iterate over statements
+    for i, stmt := range result.Statements {
+        span := stmt.Span()
+        fmt.Printf("Statement %d: %s:%d:%d-%d:%d\n",
+            i,
+            span.Filename,
+            span.StartLine, span.StartCol,
+            span.EndLine, span.EndCol,
+        )
+
+        // Type switch on statement kind
+        switch s := stmt.(type) {
+        case *ast.SourceDecl:
+            fmt.Printf("  Source: alias=%s type=%s\n", s.Alias, s.Type)
+        case *ast.ImportStmt:
+            fmt.Printf("  Import: alias=%s path=%s\n", s.Alias, s.Path)
+        case *ast.ReferenceStmt:
+            fmt.Printf("  Reference: alias=%s path=%s\n", s.Alias, s.Path)
+        case *ast.SectionDecl:
+            fmt.Printf("  Section: name=%s entries=%d\n", s.Name, len(s.Entries))
+        }
+    }
+}
+```
+
+## AST Types
+
+The parser exports the following stable AST node types:
+
+### Core Types
+
+- **`AST`**: Root node containing all statements and source span
+- **`SourceSpan`**: Source location with filename, line, and column information
+- **`Node`**: Base interface for all AST nodes with `Span()` method
+
+### Statement Types
+
+- **`SourceDecl`**: Source provider declaration with alias, type, and configuration
+- **`ImportStmt`**: Import statement with alias and optional path
+- **`ReferenceStmt`**: Reference statement with alias and path
+- **`SectionDecl`**: Configuration section with name and key-value entries
+
+### Expression Types
+
+- **`PathExpr`**: Dotted path expression (e.g., `config.key.value`)
+- **`IdentExpr`**: Simple identifier
+- **`StringLiteral`**: String literal value
+
+All types include JSON tags for deterministic serialization, which is useful for testing and tooling.
+
+## Error Handling
+
+Parse errors include precise location information:
+
+```go
+ast, err := parser.ParseFile("bad.csl")
+if err != nil {
+    // Error message includes filename, line, and column
+    // Example: "config.csl:5:10: invalid syntax: expected ':' after identifier 'foo'"
+    fmt.Println(err)
+}
+```
 
 ## Language sketch (keywords)
 

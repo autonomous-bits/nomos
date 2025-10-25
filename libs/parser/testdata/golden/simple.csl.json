@@ -1,0 +1,62 @@
+{
+  "source_span": {
+    "end_col": 1,
+    "end_line": 13,
+    "filename": "../testdata/fixtures/simple.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": [
+    {
+      "alias": "folder",
+      "config": {
+        "alias": "folder",
+        "path": "../config",
+        "type": "folder"
+      },
+      "source_span": {
+        "end_col": 1,
+        "end_line": 5,
+        "filename": "../testdata/fixtures/simple.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "folder"
+    },
+    {
+      "alias": "folder",
+      "path": "filename",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 7,
+        "filename": "../testdata/fixtures/simple.csl",
+        "start_col": 1,
+        "start_line": 6
+      }
+    },
+    {
+      "alias": "folder",
+      "path": "config.key",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 9,
+        "filename": "../testdata/fixtures/simple.csl",
+        "start_col": 1,
+        "start_line": 8
+      }
+    },
+    {
+      "entries": {
+        "key2": "value2"
+      },
+      "name": "config-section",
+      "source_span": {
+        "end_col": 1,
+        "end_line": 13,
+        "filename": "../testdata/fixtures/simple.csl",
+        "start_col": 1,
+        "start_line": 10
+      }
+    }
+  ]
+}
