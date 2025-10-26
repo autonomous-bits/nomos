@@ -1,0 +1,210 @@
+name: CLI CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/command-line/**'
+      - 'libs/compiler/**'
+      - 'libs/parser/**'
+      - 'go.work'
+      - '.github/workflows/cli-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/command-line/**'
+      - 'libs/compiler/**'
+      - 'libs/parser/**'
+      - 'go.work'
+      - '.github/workflows/cli-ci.yml'
+
+jobs:
+  # Fast unit tests - should complete in ~2 minutes
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+          cache-dependency-path: |
+            apps/command-line/go.sum
+            libs/compiler/go.sum
+            libs/parser/go.sum
+            go.work.sum
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            echo "go.work not found, creating it..."
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./apps/command-line
+            go work sync
+          else
+            echo "go.work found, syncing..."
+            go work sync
+          fi
+      
+      - name: Download dependencies
+        working-directory: apps/command-line
+        run: go mod download
+      
+      - name: Run unit tests
+        working-directory: apps/command-line
+        run: |
+          # Run unit tests only (exclude integration tests in test/ directory)
+          go test -v -race -coverprofile=coverage.out -covermode=atomic \
+            ./internal/... ./cmd/...
+      
+      - name: Calculate coverage
+        working-directory: apps/command-line
+        run: |
+          echo "Coverage summary:"
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Coverage: $COVERAGE%"
+      
+      - name: Check coverage threshold
+        working-directory: apps/command-line
+        run: |
+          THRESHOLD=80
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
+          echo "Coverage: $COVERAGE_INT% (threshold: $THRESHOLD%)"
+          if [ "$COVERAGE_INT" -lt "$THRESHOLD" ]; then
+            echo "::error::Coverage $COVERAGE_INT% is below threshold of $THRESHOLD%"
+            exit 1
+          fi
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./apps/command-line/coverage.out
+          flags: cli
+          name: cli-coverage
+        continue-on-error: true
+
+  # Integration tests - longer running, includes building and invoking CLI binary
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+          cache-dependency-path: |
+            apps/command-line/go.sum
+            libs/compiler/go.sum
+            libs/parser/go.sum
+            go.work.sum
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            echo "go.work not found, creating it..."
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./apps/command-line
+            go work sync
+          else
+            echo "go.work found, syncing..."
+            go work sync
+          fi
+      
+      - name: Download dependencies
+        working-directory: apps/command-line
+        run: go mod download
+      
+      - name: Run integration tests
+        working-directory: apps/command-line
+        run: |
+          # Run integration tests from test/ directory
+          go test -v -timeout 10m ./test/...
+      
+      - name: Build CLI binary for validation
+        working-directory: apps/command-line
+        run: |
+          go build -o ../../bin/nomos ./cmd/nomos
+          ../../bin/nomos build --help
+
+  # Determinism test - runs same build multiple times to verify byte-for-byte stability
+  determinism:
+    name: Determinism Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+          cache-dependency-path: |
+            apps/command-line/go.sum
+            libs/compiler/go.sum
+            libs/parser/go.sum
+            go.work.sum
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            echo "go.work not found, creating it..."
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./apps/command-line
+            go work sync
+          else
+            echo "go.work found, syncing..."
+            go work sync
+          fi
+      
+      - name: Download dependencies
+        working-directory: apps/command-line
+        run: go mod download
+      
+      - name: Run determinism test
+        working-directory: apps/command-line
+        run: |
+          # Run only the determinism integration test
+          go test -v -timeout 15m -run TestDeterministicJSON ./test/...
+
+  # Linting and static analysis
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: apps/command-line
+          args: --timeout=5m

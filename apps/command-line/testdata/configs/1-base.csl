@@ -1,0 +1,5 @@
+// Base configuration - processed first due to numeric prefix
+base {
+  app_name: "multi-file-example"
+  version: "1.0.0"
+}

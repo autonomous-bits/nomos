@@ -13,6 +13,9 @@ dist/
 *.so
 *.dylib
 
+# Compiled binaries in app directories
+apps/*/nomos
+
 # Test binary, built with `go test -c`
 *.test
 

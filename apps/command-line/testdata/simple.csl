@@ -1,0 +1,6 @@
+// Simple example configuration for README examples
+config {
+  app_name: "example-app"
+  environment: "development"
+  region: "us-west"
+}
