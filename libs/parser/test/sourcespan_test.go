@@ -210,9 +210,10 @@ func TestReferenceExprSourceSpan_MapValue(t *testing.T) {
 	var vpcRef, subnetRef *ast.ReferenceExpr
 	for _, ref := range refExprs {
 		if ref.Path[len(ref.Path)-1] == "id" && len(ref.Path) == 2 {
-			if ref.Path[0] == "vpc" {
+			switch ref.Path[0] {
+			case "vpc":
 				vpcRef = ref
-			} else if ref.Path[0] == "subnet" {
+			case "subnet":
 				subnetRef = ref
 			}
 		}
@@ -327,15 +328,16 @@ func extractTextFromSpan(input string, span ast.SourceSpan) string {
 			break
 		}
 		line := lines[i-1]
-		if i == span.StartLine {
+		switch i {
+		case span.StartLine:
 			if span.StartCol <= len(line) {
 				result.WriteString(line[span.StartCol-1:])
 			}
-		} else if i == span.EndLine {
+		case span.EndLine:
 			if span.EndCol <= len(line) {
 				result.WriteString(line[:span.EndCol])
 			}
-		} else {
+		default:
 			result.WriteString(line)
 		}
 		if i < span.EndLine {
