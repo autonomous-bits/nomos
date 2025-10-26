@@ -1,403 +1,186 @@
 # Nomos Parser Library
 
-A robust, concurrent-safe parser for the Nomos configuration scripting language (.csl files).
+This package parses Nomos configuration files (.csl) into a stable, strongly-typed
+Abstract Syntax Tree (AST) used by the compiler.
 
-> **📚 Architecture Documentation:** For in-depth technical details, design decisions, and implementation guidance, see the [Architecture Documentation](./docs/architecture/).
+The README below documents the parser's current public surface and behaviour as
+implemented in `parser.go`, `errors.go` and the AST types under `pkg/ast`.
 
-## Features
+See `docs/architecture/` for higher-level design docs and diagrams.
 
-- **Concurrency-safe**: Parser instances can be used concurrently without data races
-- **Precise error reporting**: All errors include file location and context snippets
-- **Performance optimized**: Benchmarked for files up to 1MB with minimal allocations
-- **Well-tested**: Comprehensive unit, integration, and concurrency tests
-- **Stable AST**: Documented Abstract Syntax Tree with source location tracking
+## Highlights / Implementation notes
 
-## What it achieves
+- Public parsing entry points: `ParseFile(path string) (*ast.AST, error)` and
+  `Parse(r io.Reader, filename string) (*ast.AST, error)`.
+- You can create and reuse parser instances via `NewParser()` and call
+  the instance methods `(*Parser).ParseFile` / `(*Parser).Parse`.
+- Inline references are first-class expressions (`ast.ReferenceExpr`) and have the
+  form `reference:alias:dotted.path` when used as a value. Top-level
+  `reference:` statements are rejected (deprecated) and the parser returns a
+  `SyntaxError` with a migration hint.
+- Parse errors are represented by `*parser.ParseError` with kinds
+  `LexError`, `SyntaxError`, or `IOError`. Errors include filename, line/column
+  and an optional context snippet. Use `FormatParseError` to render a
+  human-friendly message with a caret marker.
 
-The parser converts Nomos source text into a well-defined abstract syntax tree (AST). It is intentionally focused on syntax; semantics (imports, providers, references) are handled by the compiler.
+## Public API (summary)
 
-- Tokenize and parse Nomos language constructs with helpful, deterministic errors.
-- Produce an AST with stable public types for consumption by the compiler.
-- Preserve source locations (file/line/column) on nodes for diagnostics.
-- Keep runtime dependencies minimal and avoid global state.
->
-> References are first-class value expressions (not top-level statements)
->
-> Inline references are implemented as first-class expression values in the parser. Use the inline form in value positions, e.g. `cidr: reference:network:vpc.cidr`. Top-level `reference:` statements are not supported and will produce a parse error — inline references are the canonical and required form.
->
-> Key values support either a string literal or a `ReferenceExpr`; both are preserved distinctly in the AST.
->
-## Relationship to other projects
+- NewParser(opts ...ParserOption) *Parser
+  - Create parser instances that can be reused (good for pooling).
 
-- `libs/compiler` depends on the parser to obtain the AST used for analysis and code generation of the snapshot.
-- The CLI does not import the parser directly.
+- ParseFile(path string) (*ast.AST, error)
+  - Convenience top-level function that reads from disk and parses.
 
-```
-CLI -> Compiler -> Parser
-```
+- Parse(r io.Reader, filename string) (*ast.AST, error)
+  - Parse from an arbitrary reader; `filename` is used in error messages
+    and node source spans.
 
-## Public API
+Returned AST:
+- `*ast.AST` with `Statements []ast.Stmt` and a top-level `SourceSpan`.
 
-### Basic Usage
-
-```go
-package main
-
-import (
-    "fmt"
-    "log"
-
-    "github.com/autonomous-bits/nomos/libs/parser"
-)
-
-func main() {
-    // Parse a file from disk
-    ast, err := parser.ParseFile("config.csl")
-    if err != nil {
-        log.Fatalf("Parse error: %v", err)
-    }
-
-    fmt.Printf("Parsed %d statements\n", len(ast.Statements))
-}
-```
-
-### Parsing from a Reader
-
-```go
-package main
-
-import (
-    "log"
-    "strings"
-
-    "github.com/autonomous-bits/nomos/libs/parser"
-)
-
-func main() {
-    input := `source:
-	alias: 'folder'
-	type:  'folder'
-	path:  './config'
-`
-    
-    reader := strings.NewReader(input)
-    ast, err := parser.Parse(reader, "inline.csl")
-    if err != nil {
-        log.Fatalf("Parse error: %v", err)
-    }
-
-    // Process AST...
-}
-```
-
-### Using Parser Instances (for pooling/reuse)
-
-```go
-package main
-
-import (
-    "strings"
-    "sync"
-
-    "github.com/autonomous-bits/nomos/libs/parser"
-)
-
-var parserPool = sync.Pool{
-    New: func() interface{} {
-        return parser.NewParser()
-    },
-}
-
-func parseWithPooling(content string) error {
-    p := parserPool.Get().(*parser.Parser)
-    defer parserPool.Put(p)
-
-    reader := strings.NewReader(content)
-    _, err := p.Parse(reader, "pooled.csl")
-    return err
-}
-```
-
-## Workspace Setup
-
-For local development in the Nomos monorepo, use the workspace sync script:
-
-```bash
-# From repository root
-./tools/scripts/work-sync.sh
-```
-
-This will create or update the `go.work` file with all required modules (apps/command-line, libs/compiler, libs/parser).
-
-
-### Working with AST Nodes
-
-The parser produces a strongly-typed AST with nodes representing different Nomos constructs:
-
-```go
-// Access statements in the AST
-for _, stmt := range ast.Statements {
-    switch s := stmt.(type) {
-    case *ast.SourceDecl:
-        fmt.Printf("Source: alias=%s, type=%s\n", s.Alias, s.Type)
-    case *ast.ImportStmt:
-        fmt.Printf("Import: alias=%s, path=%s\n", s.Alias, s.Path)
-    case *ast.ReferenceStmt:
-        // Deprecated: top-level ReferenceStmt is legacy and scheduled for removal.
-        // Prefer inline reference values (see ReferenceExpr in the Expressions section).
-        fmt.Printf("Reference (deprecated): alias=%s, path=%s\n", s.Alias, s.Path)
-    case *ast.SectionDecl:
-        fmt.Printf("Section: name=%s, entries=%d\n", s.Name, len(s.Entries))
-    }
-}
-```
-
-All AST nodes include source location information via `SourceSpan`:
-
-```go
-span := stmt.Span()
-fmt.Printf("Location: %s:%d:%d\n", span.Filename, span.StartLine, span.StartCol)
-```
-
-## Error Handling
-
-The parser provides deterministic, human-friendly error messages with precise source location information.
-
-### Error Types
-
-Parse errors are returned as `*parser.ParseError`, which includes:
-
-- **Filename**: Source file name
-- **Line** and **Column**: Error position (1-indexed)
-- **Message**: Descriptive error message
-- **Kind**: Error category (`LexError`, `SyntaxError`, or `IOError`)
-- **Span**: Source location as `ast.SourceSpan`
-
-### Error Kinds
-
-```go
-const (
-    LexError     ParseErrorKind = iota  // Lexical/tokenization error
-    SyntaxError                          // Grammar/syntax error
-    IOError                              // File I/O error
-)
-```
-
-### Basic Error Handling
+Quick example (file):
 
 ```go
 ast, err := parser.ParseFile("config.csl")
 if err != nil {
-    // Check if it's a parse error
-    if parseErr, ok := err.(*parser.ParseError); ok {
-        fmt.Printf("Parse error at %s:%d:%d: %s\n",
-            parseErr.Filename(),
-            parseErr.Line(),
-            parseErr.Column(),
-            parseErr.Message())
-    } else {
-        log.Fatal(err)
-    }
+    return err
 }
+fmt.Printf("parsed %d statements\n", len(ast.Statements))
 ```
 
-### Programmatic Error Inspection
-
-Parse errors can be inspected programmatically for custom handling:
+Quick example (reader):
 
 ```go
-_, err := parser.ParseFile("config.csl")
+r := strings.NewReader(sourceText)
+ast, err := parser.Parse(r, "inline.csl")
+```
+
+Pooling reuse example:
+
+```go
+pool := sync.Pool{New: func() interface{} { return parser.NewParser() }}
+p := pool.Get().(*parser.Parser)
+defer pool.Put(p)
+_, _ = p.Parse(strings.NewReader(source), "p.csl")
+```
+
+## AST and expressions
+
+- Section declarations, `source` declarations, and `import` statements are
+  represented as concrete `ast.Stmt` implementations (e.g. `ast.SourceDecl`,
+  `ast.ImportStmt`, `ast.SectionDecl`).
+- Values in key/value pairs are `ast.Expr` values. Currently supported value
+  expressions include:
+  - `*ast.StringLiteral` — plain string values (the parser strips quotes)
+  - `*ast.ReferenceExpr` — inline reference values parsed from
+    `reference:alias:path.to.value` (the parser splits the dotted path into
+    components)
+
+All AST nodes carry `ast.SourceSpan` (filename, start/end line/column) which
+is used by the compiler and error reporting.
+
+## Inline references and migration note
+
+The parser implements inline references as value expressions:
+
+  key: reference:someAlias:parent.child
+
+This produces an `ast.ReferenceExpr{Alias: "someAlias", Path: []string{"parent","child"}, ...}`.
+
+Top-level `reference:` statements (e.g. `reference:alias:path`) are rejected by
+the parser with a `SyntaxError` and a clear migration message. The compiler
+should expect references to appear in value positions.
+
+## Error handling
+
+Parse errors are returned as `*ParseError` with the following properties:
+
+- Kind: one of `LexError`, `SyntaxError`, `IOError`
+- Filename, Line (1-indexed), Column (1-indexed)
+- Message: human-friendly description
+- Snippet: optional context lines with a caret marker (set by the parser or
+  generated via `FormatParseError`)
+
+Use `FormatParseError(err, sourceText)` to get a multi-line, user-friendly
+message that includes context lines and a caret pointing to the error. If you
+need programmatic handling, assert `err.(*parser.ParseError)` and inspect
+`Kind()` and `Span()`.
+
+Example programmatic handling:
+
+```go
+ast, err := parser.ParseFile("config.csl")
 if err != nil {
-    if parseErr, ok := err.(*parser.ParseError); ok {
-        switch parseErr.Kind() {
+    if pe, ok := err.(*parser.ParseError); ok {
+        switch pe.Kind() {
         case parser.SyntaxError:
-            // Handle syntax error
-            log.Printf("Syntax error: %s", parseErr.Message())
+            // handle
         case parser.LexError:
-            // Handle lexical error
-            log.Printf("Lexical error: %s", parseErr.Message())
+            // handle
         case parser.IOError:
-            // Handle I/O error
-            log.Printf("I/O error: %s", parseErr.Message())
-        }
-        
-        // Access source location
-        span := parseErr.Span()
-        fmt.Printf("Error at %s:%d:%d\n", 
-            span.Filename, span.StartLine, span.StartCol)
-    }
-}
-```
-
-### User-Friendly Error Formatting
-
-Use `FormatParseError` to generate human-readable error messages with context snippets and caret markers:
-
-```go
-sourceText := "source:\n\talias: 'test'\nmy-section\n\tkey: 'value'"
-_, err := parser.Parse(strings.NewReader(sourceText), "app.csl")
-if err != nil {
-    formatted := parser.FormatParseError(err, sourceText)
-    fmt.Println(formatted)
-}
-```
-
-Output:
-```
-app.csl:3:1: invalid syntax: expected ':' after identifier 'my-section'
-   2 | 	alias: 'test'
-   3 | my-section
-   4 | 	key: 'value'
-     | ^
-```
-
-The formatted error includes:
-- **Machine-parseable prefix**: `file:line:col: message`
-- **Context lines**: 1-3 lines showing the error location
-- **Caret marker** (`^`): Points to the exact error position
-
-**Note:** The caret position is rune-aware and correctly handles multi-byte UTF-8 characters.
-
-### Error Formatting Best Practices
-
-1. **Always provide source text** to `FormatParseError` for best error messages
-2. **Log or display formatted errors** to end users for clarity
-3. **Use programmatic inspection** when you need to handle different error types differently
-
-```go
-// Example: Log formatted error and handle programmatically
-_, err := parser.ParseFile("config.csl")
-if err != nil {
-    if parseErr, ok := err.(*parser.ParseError); ok {
-        // User-facing error
-        sourceText, _ := os.ReadFile("config.csl")
-        log.Println(parser.FormatParseError(parseErr, string(sourceText)))
-        
-        // Programmatic handling
-        if parseErr.Kind() == parser.IOError {
-            // Retry or suggest file path correction
+            // handle
         }
     }
 }
 ```
 
-All AST nodes include source span information for precise error reporting:
+## Validation rules enforced by the parser
 
-## Validation
+The parser performs syntax-level validation and returns `SyntaxError` for
+violations. Key rules implemented in the code:
 
-The parser performs syntax validation during parsing to catch common errors early:
+- Keywords `source` and `import` must be followed by `:` (otherwise SyntaxError).
+- `source` declarations require a non-empty string `alias` field; the alias
+  must be a string literal (not a reference).
+- `import` requires an alias; an optional `:path` may follow (parsed as
+  identifier-like token after a second `:`).
+- Top-level `reference:` statements are rejected (deprecated) — use inline
+  `reference:alias:dot.path` values.
+- String values must be properly terminated; unterminated strings produce
+  `SyntaxError` describing the missing closing quote.
+- Key identifiers must be valid (empty key or invalid start character results
+  in `SyntaxError`).
 
-### Validated Syntax Errors
+Notably the parser currently does NOT enforce some higher-level checks:
 
-1. **Missing Colons After Keywords**
-   - `source`, `import`, and `reference` keywords must be followed by `:`
-   - Example: `source alias: 'test'` → Error: expected `:` after `source`
+- Duplicate key detection is not performed (comment in code: requires scope-aware
+  detection).
+- Some structural/semantic checks (unknown provider types, import resolution,
+  reference resolution) are intentionally left to the compiler.
 
-2. **Empty or Missing Aliases**
-   - `source` declarations require a non-empty `alias` field
-   - `import` statements require an alias
-   - `reference` statements require both alias and path
-   - Example: `source: alias: ''` → Error: non-empty alias required
+## Error formatting details
 
-3. **Incomplete Statements**
-   - `reference` statements must include both alias and path separated by `:`
-   - Example: `reference:my-alias` → Error: expected `:` after alias
+Use `parser.FormatParseError(err, sourceText)` to produce a formatted message
+with a machine-parsable prefix (`file:line:col: message`), the surrounding
+context lines, and a caret marker. The caret logic is rune-aware so UTF-8
+characters are handled correctly.
 
-4. **Unterminated Strings**
-   - String literals must be properly terminated with matching quotes
-   - Example: `key: 'value` → Error: unterminated string (missing closing ')
+## Workspace / development
 
-5. **Invalid Key Characters**
-   - Key identifiers cannot start with special characters like `@`, `!`, `#`, etc.
-   - Example: `@invalid: value` → Error: expected identifier for key
+To include this module in a local Go workspace, run the repo helper script
+from the project root:
 
-### Validation Examples
-
-```go
-// Valid syntax
-validSource := `
-source:
-	alias: 'my-source'
-	type: 'folder'
-`
-
-// Invalid: missing colon after keyword
-invalidSource1 := `source
-	alias: 'test'
-`
-
-// Invalid: empty alias
-invalidSource2 := `
-source:
-	alias: ''
-	type: 'test'
-`
-
-// Invalid: unterminated string
-invalidSource3 := `
-source:
-	alias: 'unterminated
-	type: 'test'
-`
-
-// All invalid examples will return *ParseError with specific validation messages
+```bash
+./tools/scripts/work-sync.sh
 ```
 
-### Validation Limitations
+## Tests and quality
 
-Some validations are intentionally not performed:
+This package contains unit, integration and concurrency tests in `test/` and
+`internal/` subpackages. The parser code is intentionally minimal in
+dependencies to make testing deterministic. Run `go test ./...` from the
+repository root (or from the `libs/parser` module) to run the suite.
 
-- **Duplicate Keys**: Currently not validated (would require scope-aware detection for nested structures)
-- **Indentation Consistency**: Non-indented content after a section simply terminates the section (results in empty section, which is valid)
-- **Unknown Statements**: Unknown identifiers are treated as section declarations (by design)
+## Notes / future work
 
-Legacy behavior and current direction:
+- Consider adding duplicate-key detection and scope-aware validation in the
+  parser or a separate semantic validation pass.
+- Expand supported expression types (arrays, maps) if language evolves.
 
-- Top-level `reference:` statements are legacy and deprecated. References are intended to be used inline as values. The parser will evolve to represent inline references as typed expressions in the AST.
+---
 
-```go
-package main
-
-import (
-    "fmt"
-    "log"
-
-    "github.com/autonomous-bits/nomos/libs/parser"
-    "github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
-)
-
-func main() {
-    result, err := parser.ParseFile("config.csl")
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    // Iterate over statements
-    for i, stmt := range result.Statements {
-        span := stmt.Span()
-        fmt.Printf("Statement %d: %s:%d:%d-%d:%d\n",
-            i,
-            span.Filename,
-            span.StartLine, span.StartCol,
-            span.EndLine, span.EndCol,
-        )
-
-        // Type switch on statement kind
-        switch s := stmt.(type) {
-        case *ast.SourceDecl:
-            fmt.Printf("  Source: alias=%s type=%s\n", s.Alias, s.Type)
-        case *ast.ImportStmt:
-            fmt.Printf("  Import: alias=%s path=%s\n", s.Alias, s.Path)
-        case *ast.ReferenceStmt:
-            fmt.Printf("  Reference: alias=%s path=%s\n", s.Alias, s.Path)
-        case *ast.SectionDecl:
-            fmt.Printf("  Section: name=%s entries=%d\n", s.Name, len(s.Entries))
-        }
-    }
-}
-```
-
-## AST Types
+If you want a change in this README (more examples, additional AST docs, or
+code snippets), tell me what you'd like and I will update it.
 
 The parser exports the following stable AST node types:
 
