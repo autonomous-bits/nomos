@@ -2,6 +2,8 @@
 
 A robust, concurrent-safe parser for the Nomos configuration scripting language (.csl files).
 
+> **📚 Architecture Documentation:** For in-depth technical details, design decisions, and implementation guidance, see the [Architecture Documentation](./docs/architecture/).
+
 ## Features
 
 - **Concurrency-safe**: Parser instances can be used concurrently without data races
@@ -18,13 +20,13 @@ The parser converts Nomos source text into a well-defined abstract syntax tree (
 - Produce an AST with stable public types for consumption by the compiler.
 - Preserve source locations (file/line/column) on nodes for diagnostics.
 - Keep runtime dependencies minimal and avoid global state.
-
-> References are value expressions (not top-level statements)
 >
-> In Nomos, references are intended to be used as values within sections, e.g., `cidr: reference:network:vpc.cidr`. Top-level `reference:` statements are considered legacy/deprecated and will be removed in a future major version. Until the deprecation window ends, the parser may still accept legacy top-level references for backward compatibility, but new content should only use inline references as values.
+> References are first-class value expressions (not top-level statements)
 >
-> Key values support either a string literal or a reference expression; both forms are supported by the parser and preserved distinctly in the AST.
-
+> Inline references are implemented as first-class expression values in the parser. Use the inline form in value positions, e.g. `cidr: reference:network:vpc.cidr`. Top-level `reference:` statements are not supported and will produce a parse error — inline references are the canonical and required form.
+>
+> Key values support either a string literal or a `ReferenceExpr`; both are preserved distinctly in the AST.
+>
 ## Relationship to other projects
 
 - `libs/compiler` depends on the parser to obtain the AST used for analysis and code generation of the snapshot.
@@ -94,6 +96,7 @@ func main() {
 package main
 
 import (
+    "strings"
     "sync"
 
     "github.com/autonomous-bits/nomos/libs/parser"
@@ -108,7 +111,7 @@ var parserPool = sync.Pool{
 func parseWithPooling(content string) error {
     p := parserPool.Get().(*parser.Parser)
     defer parserPool.Put(p)
-    
+
     reader := strings.NewReader(content)
     _, err := p.Parse(reader, "pooled.csl")
     return err
@@ -126,13 +129,6 @@ For local development in the Nomos monorepo, use the workspace sync script:
 
 This will create or update the `go.work` file with all required modules (apps/command-line, libs/compiler, libs/parser).
 
-func parseWithPool(filename string) (*parser.AST, error) {
-    p := parserPool.Get().(*parser.Parser)
-    defer parserPool.Put(p)
-
-    return p.ParseFile(filename)
-}
-```
 
 ### Working with AST Nodes
 
@@ -714,7 +710,7 @@ infrastructure:
         name: 'prod-vpc'                   # string value
 ```
 
-Note: Until expression-valued entries are implemented, the line above may be parsed as a string value by older parser versions. New content should still use the inline form; top-level `reference:` is deprecated.
+Inline references are parsed as `ReferenceExpr` nodes and section entry values are expression-backed; the parser produces `ReferenceExpr` for inline references and will reject legacy top-level `reference:` statements.
 
 ## Error behavior
 
@@ -1012,4 +1008,29 @@ See `.github/workflows/parser-ci.yml` for full CI configuration.
 4. Check coverage: `make test-coverage`
 5. Run linter: `make lint`
 6. If AST changes are intentional, update golden files: `make update-golden`
+
+## Documentation
+
+### For Users
+
+- **[README](./README.md)** (this file) - Quick start, API reference, and usage examples
+- **[Examples](./docs/examples/)** - Example Nomos configuration files demonstrating language features
+- **[CHANGELOG](./CHANGELOG.md)** - Version history and release notes
+
+### For Developers
+
+- **[Architecture Documentation](./docs/architecture/)** - Comprehensive technical documentation
+  - [Parser Architecture](./docs/architecture/parser-architecture.md) - Design, implementation, and key decisions
+  - [Architecture Diagrams](./docs/architecture/diagrams.md) - Visual reference for data flow and structure
+  - [Architecture Index](./docs/architecture/README.md) - Documentation overview and quick reference
+- **[Development Guide](./AGENTS.md)** - Module layout and development guidelines
+- **[Monorepo Structure](../../docs/architecture/go-monorepo-structure.md)** - Repository-wide organization patterns
+
+### Quick Links
+
+- **Understanding the Parser**: Start with [Parser Architecture](./docs/architecture/parser-architecture.md)
+- **Visual Reference**: See [Architecture Diagrams](./docs/architecture/diagrams.md)
+- **Contributing**: Read [Architecture Index](./docs/architecture/README.md) and [AGENTS.md](./AGENTS.md)
+- **AST Structure**: Detailed in [Parser Architecture § AST Structure](./docs/architecture/parser-architecture.md#ast-structure)
+- **Error Handling**: See [Parser Architecture § Error Handling](./docs/architecture/parser-architecture.md#error-handling)
 7. Review all changes before committing
