@@ -15,7 +15,7 @@ func TestIntegration_FileProvider_FetchJSON(t *testing.T) {
 
 	// Create registry and register file provider
 	registry := compiler.NewProviderRegistry()
-	if err := RegisterFileProvider(registry, "file", "testdata"); err != nil {
+	if err := RegisterFileProvider(registry, "file", "testdata/config.json"); err != nil {
 		t.Fatalf("RegisterFileProvider failed: %v", err)
 	}
 
@@ -25,8 +25,8 @@ func TestIntegration_FileProvider_FetchJSON(t *testing.T) {
 		t.Fatalf("GetProvider failed: %v", err)
 	}
 
-	// Fetch JSON file
-	result, err := provider.Fetch(ctx, []string{"config.json"})
+	// Fetch JSON file - fetch the entire file (empty path)
+	result, err := provider.Fetch(ctx, []string{})
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestIntegration_FileProvider_FetchYAML(t *testing.T) {
 
 	// Create registry and register file provider
 	registry := compiler.NewProviderRegistry()
-	if err := RegisterFileProvider(registry, "file", "testdata"); err != nil {
+	if err := RegisterFileProvider(registry, "file", "testdata/network.yaml"); err != nil {
 		t.Fatalf("RegisterFileProvider failed: %v", err)
 	}
 
@@ -78,8 +78,8 @@ func TestIntegration_FileProvider_FetchYAML(t *testing.T) {
 		t.Fatalf("GetProvider failed: %v", err)
 	}
 
-	// Fetch YAML file
-	result, err := provider.Fetch(ctx, []string{"network.yaml"})
+	// Fetch YAML file - fetch the entire file (empty path)
+	result, err := provider.Fetch(ctx, []string{})
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestIntegration_FileProvider_Caching(t *testing.T) {
 
 	// Create registry and register file provider
 	registry := compiler.NewProviderRegistry()
-	if err := RegisterFileProvider(registry, "file", "testdata"); err != nil {
+	if err := RegisterFileProvider(registry, "file", "testdata/config.json"); err != nil {
 		t.Fatalf("RegisterFileProvider failed: %v", err)
 	}
 
@@ -156,12 +156,12 @@ func TestIntegration_FileProvider_Caching(t *testing.T) {
 	}
 
 	// Fetch same file twice
-	result1, err := provider1.Fetch(ctx, []string{"config.json"})
+	result1, err := provider1.Fetch(ctx, []string{})
 	if err != nil {
 		t.Fatalf("Fetch failed first time: %v", err)
 	}
 
-	result2, err := provider1.Fetch(ctx, []string{"config.json"})
+	result2, err := provider1.Fetch(ctx, []string{})
 	if err != nil {
 		t.Fatalf("Fetch failed second time: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestIntegration_FileProvider_Caching(t *testing.T) {
 func TestIntegration_FileProvider_Info(t *testing.T) {
 	// Create registry and register file provider
 	registry := compiler.NewProviderRegistry()
-	if err := RegisterFileProvider(registry, "myfiles", "testdata"); err != nil {
+	if err := RegisterFileProvider(registry, "myfiles", "testdata/config.json"); err != nil {
 		t.Fatalf("RegisterFileProvider failed: %v", err)
 	}
 
