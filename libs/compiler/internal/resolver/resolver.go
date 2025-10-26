@@ -150,7 +150,7 @@ func (r *Resolver) resolveSlice(ctx context.Context, s []any) ([]any, error) {
 }
 
 // handleProviderError handles errors from GetProvider.
-func (r *Resolver) handleProviderError(ref *ast.ReferenceExpr, err error) error {
+func (r *Resolver) handleProviderError(ref *ast.ReferenceExpr, _ error) error {
 	if r.opts.AllowMissingProvider && r.opts.OnWarning != nil {
 		warning := fmt.Sprintf("provider %q not found for reference at %s:%d:%d",
 			ref.Alias,
