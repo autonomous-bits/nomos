@@ -1,0 +1,176 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Provider implementation guide and documentation (#32)
+  - Comprehensive `docs/provider.md` documenting Provider interface, lifecycle, and registration patterns
+  - Includes examples for Init/Fetch implementation, error handling, and testing
+  - Documents ProviderRegistry usage and provider caching behavior
+  - Best practices for provider implementation (context handling, error wrapping, thread-safety)
+  - Reference to FakeProvider test double for testing
+- FakeProvider example tests in `test/fakes/fake_provider_test.go` (#32)
+  - Demonstrates provider registration and lifecycle (Init called once per run)
+  - Shows provider caching behavior with multiple GetProvider calls
+  - Examples of error injection and configurable responses
+  - Multi-provider setup with different aliases
+  - Validates FakeProvider Reset functionality
+- Comprehensive test infrastructure and CI pipeline (#31)
+  - Benchmark suite in `test/bench/` measuring merge and reference resolution performance
+    - `BenchmarkMergeSmall` - small configuration merge (~743ns/op on Apple M2)
+    - `BenchmarkMergeLarge` - large configuration merge with 100 keys × 3 levels (~108ms/op)
+    - `BenchmarkMergeWithProvenance` - merge with provenance tracking (~805ns/op)
+    - `BenchmarkReferenceResolution` - single/cached/unique reference scenarios (144ns-7.9μs/op)
+    - `BenchmarkCompileEmpty` - empty compilation baseline (~13μs/op)
+    - Documented baseline performance metrics for Apple M2 in README
+  - Integration tests with `//go:build integration` tag for network-backed providers
+    - `test/integration_network_test.go` - HTTP provider tests using `httptest.NewServer`
+    - Excluded from default CI runs to avoid network dependencies
+    - Documented how to run locally with `-tags=integration` flag
+  - Concurrency/race tests validating thread-safety
+    - `test/concurrency_test.go` - concurrent provider registry and fetch operations
+    - Tests with `-race` detector for data race detection
+    - Validates per-run caching mechanism is thread-safe
+  - Golden data regeneration mechanism
+    - `GOLDEN_UPDATE=1` environment variable support in Makefile
+    - `make update-golden` target for regenerating expected snapshots
+    - Documented regeneration workflow in README
+  - Makefile automation following parser library patterns
+    - `make test` - run all tests (excludes integration)
+    - `make test-race` - run tests with race detector
+    - `make test-coverage` - generate HTML coverage report
+    - `make test-integration` - run network-backed integration tests
+    - `make bench` - run performance benchmarks
+    - `make lint` - run golangci-lint
+    - `make update-golden` - regenerate golden test files
+  - CI workflow `.github/workflows/compiler-ci.yml`
+    - Runs tests with race detector on `libs/compiler` changes
+    - Enforces 80% minimum test coverage threshold
+    - Lint job with golangci-lint
+    - Build verification job
+    - Benchmark job uploading results as artifacts
+    - Excludes integration tests from default runs
+  - Test helpers in `test/fakes/` package
+    - `FakeProvider` - test double implementing `compiler.Provider` interface
+    - Configurable fetch responses and error injection
+    - Init/Fetch call counting for verification
+  - Comprehensive testing documentation in README
+    - Test running instructions for all test types
+    - Baseline benchmark performance table
+    - Golden data regeneration workflow
+    - CI coverage requirements and enforcement
+- Snapshot.Metadata with comprehensive provenance tracking (#30)
+  - `Metadata` struct with JSON serialization support (snake_case field names)
+  - `InputFiles` - sorted list of all .csl files processed during compilation (absolute paths)
+  - `ProviderAliases` - list of all provider aliases registered in ProviderRegistry
+  - `StartTime` and `EndTime` - compilation timestamps for profiling and audit trails
+  - `Errors` - fatal compilation errors (structured messages with source locations)
+  - `Warnings` - non-fatal issues (e.g., provider fetch failures with AllowMissingProvider)
+  - `PerKeyProvenance` - maps each top-level key to its originating source file and provider alias
+  - Provenance tracking helps debug last-wins behavior and trace configuration origins
+  - Metadata fully JSON-serializable for CLI rendering and tooling integration
+- Diagnostic formatting utilities (#30)
+  - `FormatDiagnostic` function in `internal/diagnostic` package
+  - Integrates with `parser.FormatParseError` for consistent parse error formatting
+  - Generates caret-based snippets for semantic and provider errors using SourceSpan
+  - Machine-parseable error prefix format: `file:line:col: severity: message`
+  - Context lines with caret markers (^) pointing to exact error positions
+  - Correct handling of multi-byte UTF-8 characters in column positioning
+  - Supports parse errors, semantic errors, and warnings with SourceSpan information
+  - Comprehensive unit tests covering parse errors, semantic errors, warnings, and edge cases
+- Integration tests for Metadata population (#30)
+  - Tests verify InputFiles, ProviderAliases, Timestamps, PerKeyProvenance, Errors, Warnings
+  - Ensures Metadata fields correctly populated during compilation
+  - Validates JSON serialization round-trip for Metadata and Provenance types
+- Documentation for Metadata and diagnostic formatting (#30)
+  - README sections explaining Metadata structure and JSON field names
+  - Examples demonstrating provenance tracking and diagnostic formatting
+  - Usage patterns for debugging last-wins merge behavior
+  - JSON serialization examples with snake_case conventions
+- Import statement infrastructure (partial) - foundational support for `import:alias:path` syntax
+  - `internal/imports` package - extraction and basic resolution logic for import statements
+  - `ExtractImports` function - extracts source declarations, import statements, and section data from AST
+  - Support for two import forms: `import:alias` (whole source) and `import:alias:path` (nested path)
+  - Import path handling - preserves file paths without splitting on dots (e.g., "base.csl" stays as one component)
+  - Unit tests for import extraction covering source declarations and import statements
+  - Test fixtures demonstrating import syntax with file provider
+  - Known limitation: Dynamic provider creation from source declarations not yet implemented
+    - Current workaround: Pre-register providers before compilation
+    - Future enhancement needed: Provider type registry for dynamic instantiation from .csl files
+- Semantic validation pass - validates compiled data for unresolved references and cycles before finalization
+  - `internal/validator` package - provides semantic analysis and structured error reporting
+  - Unresolved reference detection - catches references to unregistered provider aliases
+  - Fuzzy matching suggestions - uses Levenshtein distance to suggest correct provider aliases for typos
+  - Structured error types - `ErrUnresolvedReference` and `ErrCycleDetected` with SourceSpan information
+  - Cycle detection algorithm - DFS-based graph traversal detects circular dependencies in imports and references
+  - User-friendly diagnostics - errors include source location, descriptions, and actionable suggestions
+  - Validation integration - runs automatically during compilation after parsing and before reference resolution
+  - `RegisteredAliases()` method added to `ProviderRegistry` interface for validation checks
+  - Comprehensive unit tests covering validation logic, fuzzy matching, and cycle detection
+  - Integration tests with fixtures demonstrating real-world validation scenarios
+  - Graph-based dependency tracking - supports future import cycle detection
+- Composition and merge semantics - deterministic merging of multiple .csl files following last-wins policy
+  - `DeepMerge` function - pure merge function implementing deep-merge for maps, array replacement, and scalar last-wins
+  - `DeepMergeWithProvenance` function - merge with provenance tracking for debugging last-wins behavior
+  - Per-key provenance tracking - records source file for each top-level configuration key in Snapshot.Metadata
+  - Deep-merge for nested maps - recursively merges map structures preserving non-overwritten keys
+  - Array replacement - arrays are replaced (not merged), latest file wins
+  - Scalar last-wins - string, number, boolean, and nil values use last-wins policy
+  - Type conflict handling - last file wins regardless of type (scalar can replace map and vice versa)
+  - Non-mutating merge - all merge operations create new data structures without modifying inputs
+  - `internal/converter` package - converts parser AST to runtime maps for merging
+  - Deterministic file processing - files merged in lexicographic order for reproducible builds
+  - Comprehensive unit tests - table-driven tests covering scalars, arrays, maps, edge cases, and provenance
+  - Integration tests with fixtures - golden tests demonstrating merge behavior with real .csl files
+  - Merge semantics documentation - detailed guide explaining rules with examples (docs/merge.md)
+- Reference resolution pass - resolves inline `ReferenceExpr` nodes via providers with per-run caching
+  - `internal/resolver` package - handles recursive resolution of references in AST values
+  - Per-run fetch caching - identical provider+path calls result in single fetch per compilation
+  - Context-aware resolution - respects cancellation and timeouts for provider fetch operations
+  - `AllowMissingProvider` option - configurable behavior for provider failures (fatal vs non-fatal warnings)
+  - Recursive resolution - handles references in maps, slices, and nested structures
+  - Thread-safe cache with read-write locks for concurrent access
+  - Provider adapters - internal adapters bridge compiler and resolver interfaces
+  - Comprehensive unit tests covering caching, error handling, and AllowMissingProvider mode
+  - Integration tests validating end-to-end reference resolution with real providers
+  - Warning collection - non-fatal provider failures recorded in Snapshot.Metadata.Warnings
+  - Source-aware error messages - resolution errors include filename, line, and column information
+- File Provider (`providers/file`) - built-in provider for resolving inline references from local files
+  - Supports JSON (.json) and YAML (.yaml, .yml) file formats
+  - Path traversal protection preventing access outside configured base directory
+  - Context-aware operations with cancellation and timeout support
+  - `RegisterFileProvider` helper function for easy registry setup
+  - Comprehensive unit tests covering security, parsing, and error cases
+  - Integration tests validating real-world usage scenarios
+  - Detailed README with usage examples and security documentation
+- `Compile` function - main entry point for compiling Nomos source files into snapshots
+- `Options` struct - configuration for compilation runs including Path, ProviderRegistry, Vars, and Timeouts
+- `Snapshot` struct - compiled output containing Data and Metadata
+- `Metadata` struct - provenance information including InputFiles, ProviderAliases, timestamps, errors, warnings, and per-key provenance
+- `Provider` interface - contract for external data source adapters with Init and Fetch methods
+- `ProviderRegistry` interface - manages provider instances during compilation with Register and GetProvider methods
+- `ProviderConstructor` type - function signature for creating provider instances
+- `NewProviderRegistry` function - creates a thread-safe provider registry with per-run caching
+- `ProviderInitOptions` struct - configuration passed to providers during initialization
+- `ErrUnresolvedReference` - sentinel error for unresolved references
+- `ErrCycleDetected` - sentinel error for cycle detection
+- `ErrProviderNotRegistered` - sentinel error when requesting unregistered provider alias
+- Provider instance caching - providers instantiated once per compilation run and cached
+- Thread-safe provider registration and retrieval with concurrent access support
+- Deterministic directory traversal - .csl files discovered in lexicographic order
+- Input validation - Compile validates context and required options
+- Empty directory handling - returns valid empty snapshot for directories with no .csl files
+- Parser integration - Compile now calls `libs/parser` to parse .csl files into ASTs
+- Structured diagnostics - Parse errors captured with source location and formatted with caret snippets
+- `internal/parse` package - integration layer between compiler and parser with ParseFile and ParseReader helpers
+- `internal/diagnostic` package - Diagnostic type wrapping parser errors with severity levels (Error, Warning, Info)
+- Metadata.Errors field - collects fatal parse errors with formatted messages including source snippets
+- Integration tests for parser error handling with valid and invalid .csl files
+- `test/fakes` package - FakeProvider test double for unit testing provider behavior
+- Comprehensive provider registry tests - registration, caching, concurrency, error handling
+

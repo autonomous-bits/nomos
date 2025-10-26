@@ -1,0 +1,180 @@
+name: Compiler CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'libs/compiler/**'
+      - 'go.work'
+      - '.github/workflows/compiler-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'libs/compiler/**'
+      - 'go.work'
+      - '.github/workflows/compiler-ci.yml'
+
+jobs:
+  test:
+    name: Test Compiler
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+          cache-dependency-path: |
+            libs/compiler/go.sum
+            libs/parser/go.sum
+            go.work.sum
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            echo "go.work not found, creating it..."
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./apps/command-line || true
+            go work sync
+          else
+            echo "go.work found, syncing..."
+            go work sync
+          fi
+      
+      - name: Download dependencies
+        working-directory: libs/compiler
+        run: go mod download
+      
+      - name: Run tests
+        working-directory: libs/compiler
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      
+      - name: Calculate coverage
+        working-directory: libs/compiler
+        run: |
+          echo "Coverage summary:"
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Coverage: $COVERAGE%"
+      
+      - name: Check coverage threshold
+        working-directory: libs/compiler
+        run: |
+          THRESHOLD=80
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
+          echo "Coverage: $COVERAGE_INT% (threshold: $THRESHOLD%)"
+          if [ "$COVERAGE_INT" -lt "$THRESHOLD" ]; then
+            echo "::error::Coverage $COVERAGE_INT% is below threshold of $THRESHOLD%"
+            exit 1
+          fi
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./libs/compiler/coverage.out
+          flags: compiler
+          name: compiler-coverage
+        continue-on-error: true
+
+  lint:
+    name: Lint Compiler
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: libs/compiler
+          args: --timeout=5m
+
+  build:
+    name: Build Compiler
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work sync
+          else
+            go work sync
+          fi
+      
+      - name: Build compiler library
+        working-directory: libs/compiler
+        run: go build -v ./...
+      
+      - name: Verify no integration tests in default run
+        working-directory: libs/compiler
+        run: |
+          # Ensure integration-tagged tests are excluded from default test runs
+          if go test -list=. ./... 2>&1 | grep -i "integration_http"; then
+            echo "::error::Integration tests found in default test run"
+            exit 1
+          fi
+          echo "✓ Integration tests properly excluded from default run"
+
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work sync
+          else
+            go work sync
+          fi
+      
+      - name: Run benchmarks
+        working-directory: libs/compiler
+        run: go test -bench=. -benchmem -run=^$ ./test/bench | tee benchmark-results.txt
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: libs/compiler/benchmark-results.txt

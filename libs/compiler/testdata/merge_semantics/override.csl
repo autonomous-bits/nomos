@@ -1,0 +1,6 @@
+database:
+  port: '5433'
+  ssl: 'true'
+
+server:
+  port: '9000'

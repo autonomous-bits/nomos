@@ -1,0 +1,11 @@
+{
+  "database": {
+    "host": "remote-host",
+    "port": "5432",
+    "name": "production_db"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": "9090"
+  }
+}

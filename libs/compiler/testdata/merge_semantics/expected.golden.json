@@ -1,0 +1,12 @@
+{
+  "database": {
+    "host": "localhost",
+    "name": "myapp",
+    "port": "5433",
+    "ssl": "true"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": "9000"
+  }
+}

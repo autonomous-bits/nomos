@@ -1,0 +1,4 @@
+import: cycle_base.csl
+
+base:
+  value: 'overridden'

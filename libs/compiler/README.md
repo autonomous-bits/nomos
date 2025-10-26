@@ -2,7 +2,153 @@
 
 The compiler turns Nomos source files into a deterministic configuration snapshot. It is a small, stable Go library consumed by the CLI and other tools.
 
-This README documents the compiler expectations and, importantly, the parser contract the compiler relies on. The compiler depends on `libs/parser` for a stable AST and precise parse errors — read the `Parser contract` section below for details you must rely on when implementing compilation, error reporting and diagnostics.
+## Overview
+
+The Nomos compiler library provides compilation functionality for Nomos configuration scripts (.csl files). It integrates with the parser library for syntax analysis, supports pluggable provider adapters for external data sources, and enforces deterministic composition semantics with deep-merge and last-wins behavior.
+
+## Installation
+
+```bash
+go get github.com/autonomous-bits/nomos/libs/compiler
+```
+
+## Basic Usage
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/autonomous-bits/nomos/libs/compiler"
+)
+
+// Example provider registry implementation
+type SimpleRegistry struct {
+	providers map[string]compiler.Provider
+}
+
+func (r *SimpleRegistry) GetProvider(alias string) (compiler.Provider, error) {
+	if p, ok := r.providers[alias]; ok {
+		return p, nil
+	}
+	return nil, fmt.Errorf("provider %q not found", alias)
+}
+
+func main() {
+	ctx := context.Background()
+	
+	// Configure compilation options
+	opts := compiler.Options{
+		Path:             "./configs",          // Directory or file path
+		ProviderRegistry: &SimpleRegistry{},    // Provider registry
+		Vars:             map[string]any{},     // Optional variables
+	}
+
+	// Compile source files into snapshot
+	snapshot, err := compiler.Compile(ctx, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Access compiled data
+	fmt.Printf("Compiled %d files\n", len(snapshot.Metadata.InputFiles))
+	fmt.Printf("Configuration: %+v\n", snapshot.Data)
+}
+```
+
+## API Reference
+
+### Core Types
+
+#### Options
+
+Configures a compilation run:
+
+```go
+type Options struct {
+	Path                 string            // Input file or directory path (required)
+	ProviderRegistry     ProviderRegistry  // Provider registry (required)
+	Vars                 map[string]any    // Variable substitutions (optional)
+	Timeouts             OptionsTimeouts   // Timeout configuration
+	AllowMissingProvider bool              // Allow provider fetch failures (default: false)
+}
+```
+
+#### Snapshot
+
+The compiled output containing data and metadata:
+
+```go
+type Snapshot struct {
+	Data     map[string]any  // Compiled configuration
+	Metadata Metadata        // Provenance and diagnostics
+}
+```
+
+#### Metadata
+
+Provenance and diagnostic information:
+
+```go
+type Metadata struct {
+	InputFiles       []string              // Source files processed
+	ProviderAliases  []string              // Providers used
+	StartTime        time.Time             // Compilation start
+	EndTime          time.Time             // Compilation end
+	Warnings         []string              // Non-fatal issues
+	PerKeyProvenance map[string]Provenance // Value origins
+}
+```
+
+### Provider Interface
+
+Providers fetch data from external sources:
+
+```go
+type Provider interface {
+	Init(ctx context.Context, opts ProviderInitOptions) error
+	Fetch(ctx context.Context, path []string) (any, error)
+}
+
+type ProviderRegistry interface {
+	GetProvider(alias string) (Provider, error)
+}
+```
+
+### Functions
+
+#### Compile
+
+```go
+func Compile(ctx context.Context, opts Options) (Snapshot, error)
+```
+
+Compiles Nomos source files into a deterministic configuration snapshot. The context controls cancellation and timeout. Returns a Snapshot on success or an error with location information on failure.
+
+## Determinism
+
+Compilation is deterministic: given identical inputs and provider responses, the compiler produces identical snapshots. Directory traversal is performed in lexicographic order to ensure consistency across platforms.
+
+## Error Handling
+
+The compiler returns structured errors with source location information when available:
+
+```go
+snapshot, err := compiler.Compile(ctx, opts)
+if err != nil {
+	if errors.Is(err, compiler.ErrUnresolvedReference) {
+		// Handle unresolved reference
+	}
+	if errors.Is(err, compiler.ErrCycleDetected) {
+		// Handle cycle detection
+	}
+	// Handle other errors
+	log.Fatal(err)
+}
+```
 
 ## Goals
 
@@ -12,10 +158,6 @@ This README documents the compiler expectations and, importantly, the parser con
 - Detect and report cycles, missing references and provider errors with context-rich diagnostics.
 - Produce a serializable snapshot (data + metadata) suitable for JSON/YAML/HCL rendering.
 
-## Files accepted
-
-- The compiler consumes files with the `.csl` extension and directories containing `.csl` files. Callers pass a path (file or directory) via `Options.Path`. The compiler must traverse directories in a deterministic order.
-
 ## Relationship to other projects
 
 - Consumed by `apps/command-line` (the CLI).
@@ -23,29 +165,6 @@ This README documents the compiler expectations and, importantly, the parser con
 
 ```
 CLI -> Compiler -> Parser
-```
-
-## Public API (contract)
-
-Keep the surface minimal and stable. Example public types used by consumers (CLI):
-
-```go
-package compiler
-
-type Options struct {
-        // Root path or file to compile.
-        Path string
-        // Provider registry, variables, timeouts etc.
-        Providers ProviderRegistry
-        Vars      map[string]any
-}
-
-type Snapshot struct {
-        Data     map[string]any // fully-composed configuration
-        Metadata Metadata       // sources, versions, timestamps
-}
-
-func Compile(opts Options) (Snapshot, error)
 ```
 
 Notes:
@@ -98,6 +217,39 @@ Implication for the compiler:
 - References (inline `ReferenceExpr`) are resolved after imports/values from providers are materialized, allowing cross-file linking and importing.
 - Cycles across imports/references must be detected and reported by the compiler.
 
+### Reference Resolution
+
+The compiler resolves inline `reference:` expressions via the provider system. References are first-class values that can appear anywhere a value is expected.
+
+**Per-run caching:** Provider fetch results are cached for the duration of a single compilation run. Identical provider+path combinations result in a single provider call, with subsequent resolutions using the cached value.
+
+**Context-aware:** All provider fetch operations respect the provided context for cancellation and timeouts. Use `Options.Timeouts.PerProviderFetch` to set a default timeout.
+
+**Error handling:** By default, provider fetch failures are fatal and cause compilation to fail. Set `Options.AllowMissingProvider = true` to treat failures as non-fatal warnings recorded in `Snapshot.Metadata.Warnings`.
+
+Example:
+
+```go
+// Configuration with reference
+config := `
+database:
+  host: reference:config:db.host
+  port: reference:config:db.port
+`
+
+// Compile with provider
+opts := compiler.Options{
+	Path:             "config.csl",
+	ProviderRegistry: registry,
+	AllowMissingProvider: false, // Fatal on missing provider (default)
+}
+
+snapshot, err := compiler.Compile(ctx, opts)
+// References resolved to actual values from providers
+```
+
+**Thread safety:** The internal cache uses read-write locks for safe concurrent access.
+
 ## Providers and sources
 
 - Providers resolve data from backing systems (filesystem, Git, HTTP, cloud state).
@@ -108,6 +260,208 @@ Implication for the compiler:
 
 - Use parser-provided `ParseError` for syntax/lexing faults. For semantic errors, return structured errors that include `SourceSpan` when possible.
 - Wrap lower-level errors (`fmt.Errorf("...: %w", err)`) to preserve root causes.
+
+### Diagnostic Formatting
+
+The `diagnostic` package provides `FormatDiagnostic` for formatting compiler diagnostics with source snippets and caret markers:
+
+```go
+import "github.com/autonomous-bits/nomos/libs/compiler/internal/diagnostic"
+
+// Format a diagnostic with source snippet
+formatted := diagnostic.FormatDiagnostic(diag, sourceText, parseErr)
+```
+
+FormatDiagnostic produces output like:
+
+```
+app.csl:3:9: error: unresolved reference to provider 'config'
+   3 |   port: reference:config:port
+     |         ^
+```
+
+The function:
+- Uses `parser.FormatParseError` for parse errors when a ParseError is provided
+- Generates caret-based snippets for semantic/provider errors using SourceSpan information
+- Returns a machine-parseable prefix (`file:line:col: severity: message`) followed by context lines
+- Handles multi-byte UTF-8 characters correctly in column positioning
+
+### Snapshot Metadata
+
+Every compilation produces a `Snapshot` containing both the compiled `Data` and rich `Metadata`:
+
+```go
+type Metadata struct {
+	InputFiles       []string              `json:"input_files"`
+	ProviderAliases  []string              `json:"provider_aliases"`
+	StartTime        time.Time             `json:"start_time"`
+	EndTime          time.Time             `json:"end_time"`
+	Errors           []string              `json:"errors"`
+	Warnings         []string              `json:"warnings"`
+	PerKeyProvenance map[string]Provenance `json:"per_key_provenance"`
+}
+```
+
+Fields:
+- **InputFiles**: Sorted list of all `.csl` source files processed (absolute paths)
+- **ProviderAliases**: All provider aliases registered in the ProviderRegistry
+- **StartTime/EndTime**: Compilation timestamps for profiling and audit trails
+- **Errors**: Fatal compilation errors (typically empty for successful compilations)
+- **Warnings**: Non-fatal issues (e.g., provider fetch failures when `AllowMissingProvider` is true)
+- **PerKeyProvenance**: Maps each top-level configuration key to its origin
+
+#### Provenance Tracking
+
+Each top-level key in the compiled data includes provenance information:
+
+```go
+type Provenance struct {
+	Source        string `json:"source"`
+	ProviderAlias string `json:"provider_alias"`
+}
+```
+
+Example:
+
+```go
+snapshot, _ := compiler.Compile(ctx, opts)
+
+// Check where a value came from
+if prov, ok := snapshot.Metadata.PerKeyProvenance["database"]; ok {
+	fmt.Printf("'database' came from: %s\n", prov.Source)
+	if prov.ProviderAlias != "" {
+		fmt.Printf("  via provider: %s\n", prov.ProviderAlias)
+	}
+}
+```
+
+The provenance map helps users:
+- Debug last-wins merge behavior by seeing which file contributed each key
+- Understand which providers were involved in resolving configuration values
+- Trace configuration back to source for auditing and compliance
+
+**JSON Serialization**: Metadata uses snake_case JSON field names following Go conventions:
+
+```json
+{
+  "data": { "app": "myapp" },
+  "metadata": {
+    "input_files": ["/path/to/config.csl"],
+    "provider_aliases": ["file", "env"],
+    "start_time": "2025-10-26T10:00:00Z",
+    "end_time": "2025-10-26T10:00:05Z",
+    "errors": [],
+    "warnings": [],
+    "per_key_provenance": {
+      "app": {
+        "source": "/path/to/config.csl",
+        "provider_alias": ""
+      }
+    }
+  }
+}
+```
+
+## Testing
+
+The compiler library includes comprehensive test coverage across unit tests, integration tests, concurrency tests, and performance benchmarks.
+
+### Running Tests
+
+```bash
+# Run all tests (excludes integration tests by default)
+make test
+
+# Run tests with race detector
+make test-race
+
+# Generate coverage report (HTML)
+make test-coverage
+# Opens coverage.html in your browser
+
+# Run integration tests (network-backed providers)
+make test-integration
+
+# Run all tests including integration
+go test -tags=integration -v ./...
+```
+
+### Running Benchmarks
+
+Benchmarks measure performance of merge semantics and reference resolution:
+
+```bash
+# Run all benchmarks
+make bench
+
+# Run specific benchmark
+go test -bench=BenchmarkMergeSmall -benchmem ./test/bench
+
+# Run with higher iterations for stability
+go test -bench=. -benchtime=10s ./test/bench
+```
+
+**Baseline Performance (Apple M2, Go 1.22):**
+
+| Benchmark | ns/op | B/op | allocs/op |
+|-----------|-------|------|-----------|
+| MergeSmall | 743 | 1680 | 10 |
+| MergeLarge (100 keys × 3 levels) | 107,752,271 | 193,104,036 | 1,060,804 |
+| MergeWithProvenance | 805 | 1680 | 10 |
+| ReferenceResolution (single) | 144 | 108 | 5 |
+| ReferenceResolution (10 unique) | 1,386 | 1,584 | 45 |
+| ReferenceResolution (10 cached) | 976 | 1,544 | 35 |
+| ReferenceResolution (100 cached) | 7,851 | 15,528 | 308 |
+| CompileEmpty | 13,342 | 1,984 | 18 |
+
+### Golden Data Regeneration
+
+Integration tests use golden files in `testdata/` for deterministic snapshot validation:
+
+```bash
+# Regenerate golden files after intentional changes
+make update-golden
+
+# Or use environment variable
+GOLDEN_UPDATE=1 go test ./...
+```
+
+**Important:** Only regenerate golden files when test behavior intentionally changes. Review diffs carefully before committing.
+
+### Test Organization
+
+- **Unit tests** (`*_test.go`): Test individual functions and types; use `test/fakes` for provider mocking
+- **Integration tests** (`test/integration_test.go`): Test end-to-end compilation with fixtures
+- **Network integration tests** (`test/integration_network_test.go`): Require `//go:build integration` tag; excluded from default CI
+- **Concurrency tests** (`test/concurrency_test.go`): Validate thread-safety with `-race` detector
+- **Benchmarks** (`test/bench/compiler_bench_test.go`): Performance measurements for merge and reference resolution
+
+### CI Coverage
+
+The CI workflow (`.github/workflows/compiler-ci.yml`) enforces:
+- ✅ 80% minimum test coverage
+- ✅ Race detector passes on all tests
+- ✅ Integration tests excluded from default runs
+- ✅ Benchmark performance tracked as artifacts
+
+### Test Helpers
+
+The `test/fakes` package provides test doubles:
+
+```go
+import "github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+
+// Create a fake provider for testing
+fake := fakes.NewFakeProvider("test-provider")
+fake.FetchResponses["config/vpc"] = map[string]any{
+    "cidr": "10.0.0.0/16",
+}
+
+// Use in tests
+registry := &mockRegistry{providers: map[string]compiler.Provider{
+    "test": fake,
+}}
+```
 
 ## Example usage (compiler consumer)
 

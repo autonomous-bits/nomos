@@ -1,0 +1,4 @@
+simple-section:
+  key: value
+  nested:
+    deep: data
