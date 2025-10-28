@@ -1,0 +1,7 @@
+// database.csl - Sample database configuration
+config database {
+  engine = "postgres"
+  version = "15"
+  instance_class = "db.t3.medium"
+  storage_gb = 100
+}

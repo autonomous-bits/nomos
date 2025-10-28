@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-01-21
+
+### ⚠️ BREAKING CHANGES
+
+**File Provider now uses directory-based imports with `.csl` files only**
+
+The file provider has been fundamentally changed from pointing to single files to pointing to folders containing `.csl` files. This is a breaking change with no backward compatibility.
+
+#### Migration Guide
+
+**Before (v0.1.0):**
+```go
+// Pointed to a single file
+err := RegisterFileProvider(registry, "configs", "./path/to/config.yaml")
+// Import: import:configs
+```
+
+**After (v0.2.0):**
+```go
+// Points to a directory containing .csl files
+err := RegisterFileProvider(registry, "configs", "./path/to/folder/")
+// Import: import:configs:network (loads network.csl from folder)
+```
+
+#### What Changed
+- `RegisterFileProvider` now requires a **directory path** instead of a file path
+- Only `.csl` files are recognized; JSON/YAML no longer supported
+- Files are referenced by their **base name** (without `.csl` extension)
+- Import syntax is now `import:{alias}:{base-name}`
+- Provider validates directory contains at least one `.csl` file
+- Provider detects and rejects duplicate base names in the directory
+
+### Changed
+- **[BREAKING]** File provider registration now requires directory path (#XX)
+  - `RegisterFileProvider(registry, alias, directory)` validates directory exists and contains `.csl` files
+  - Added `.csl` file enumeration during registration
+  - Built `cslFiles` map for O(1) name-to-path resolution during fetch
+- **[BREAKING]** File provider fetch now resolves by base name (#XX)
+  - `Fetch(ctx, path)` expects `path[0]` to be base name (without extension)
+  - Returns file content as string
+  - Errors if base name not found in directory
+- **[BREAKING]** Removed support for single-file mode (#XX)
+  - File provider no longer accepts individual file paths
+  - `.Init()` rejects file paths in favor of directory paths
+
+### Added
+- Directory validation in `RegisterFileProvider` (#XX)
+  - Validates path exists and is a directory (not a file)
+  - Enumerates all `.csl` files in directory
+  - Detects duplicate base names and returns descriptive error
+  - Returns error if directory contains no `.csl` files
+- Named file resolution in `FileProvider.Fetch` (#XX)
+  - `fetchFromDirectory` method resolves base name to absolute path
+  - Returns file content as string for consumption by compiler
+- Test fixtures for directory-based provider (#XX)
+  - `testdata/network.csl` - sample network configuration
+  - `testdata/database.csl` - sample database configuration
+
+### Removed
+- **[BREAKING]** JSON and YAML file support (#XX)
+  - Only `.csl` files are now recognized by file provider
+- **[BREAKING]** Single-file mode (#XX)
+  - File provider no longer supports pointing to individual files
+- Legacy file-based tests (#XX)
+  - Removed tests validating single-file registration
+  - Removed tests for JSON/YAML parsing
+
+## [0.1.0] - 2025-01-XX
+
 ### Added
 - Provider implementation guide and documentation (#32)
   - Comprehensive `docs/provider.md` documenting Provider interface, lifecycle, and registration patterns

@@ -20,14 +20,21 @@ import (
 )
 
 // FileProvider implements the compiler.Provider interface for local file access.
+// In v0.2.0+, it supports directory-based .csl file resolution with named imports.
 type FileProvider struct {
+	// v0.2.0+ fields for directory-based provider
+	directory string            // absolute path to directory containing .csl files
+	cslFiles  map[string]string // map of base name -> absolute file path
+
+	// Legacy fields (kept for backward compatibility during migration)
 	filePath       string
 	alias          string
 	configFilePath string // file path from config, used during Init
 }
 
 // Init initializes the file provider with the given options.
-// The file configuration is required and must point to an existing file.
+// In v0.2.0+, the provider operates in directory mode if directory and cslFiles
+// are already set (via RegisterFileProvider). No additional init needed in this case.
 func (p *FileProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
 	// Check for context cancellation
 	if err := ctx.Err(); err != nil {
@@ -36,59 +43,154 @@ func (p *FileProvider) Init(ctx context.Context, opts compiler.ProviderInitOptio
 
 	p.alias = opts.Alias
 
-	// Use configFilePath if set (from RegisterFileProvider), otherwise extract from config
-	var filePath string
-	if p.configFilePath != "" {
-		filePath = p.configFilePath
-	} else {
-		// Extract file from config
-		fileVal, ok := opts.Config["file"]
-		if !ok {
-			return errors.New("file provider requires 'file' in config")
-		}
+	// If directory and cslFiles are already set (from RegisterFileProvider),
+	// provider is already initialized - no additional work needed
+	if p.directory != "" && p.cslFiles != nil {
+		return nil
+	}
 
-		var ok2 bool
-		filePath, ok2 = fileVal.(string)
-		if !ok2 {
-			return fmt.Errorf("file must be a string, got %T", fileVal)
+	// Legacy path: extract file/directory from config (for backward compatibility during transition)
+	var configPath string
+	if p.configFilePath != "" {
+		configPath = p.configFilePath
+	} else {
+		// Try 'directory' config first (new v0.2.0 approach)
+		if dirVal, ok := opts.Config["directory"]; ok {
+			if dirStr, ok := dirVal.(string); ok {
+				configPath = dirStr
+			} else {
+				return fmt.Errorf("directory must be a string, got %T", dirVal)
+			}
+		} else if fileVal, ok := opts.Config["file"]; ok {
+			// Fall back to 'file' config (legacy)
+			if fileStr, ok := fileVal.(string); ok {
+				configPath = fileStr
+			} else {
+				return fmt.Errorf("file must be a string, got %T", fileVal)
+			}
+		} else {
+			return errors.New("file provider requires 'directory' or 'file' in config")
 		}
 	}
 
 	// Resolve to absolute path
-	absPath, err := filepath.Abs(filePath)
+	absPath, err := filepath.Abs(configPath)
 	if err != nil {
-		return fmt.Errorf("failed to resolve file to absolute path: %w", err)
+		return fmt.Errorf("failed to resolve path to absolute: %w", err)
 	}
 
-	// Verify file exists
+	// Check if it's a directory or file
 	info, err := os.Stat(absPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("file does not exist: %s", absPath)
+			return fmt.Errorf("path does not exist: %s", absPath)
 		}
-		return fmt.Errorf("failed to stat file: %w", err)
+		return fmt.Errorf("failed to stat path: %w", err)
 	}
 
 	if info.IsDir() {
-		return fmt.Errorf("file path points to a directory, not a file: %s", absPath)
+		// Directory mode - enumerate .csl files
+		return p.initDirectoryMode(absPath)
 	}
 
-	// Clean and store the file path
-	p.filePath = filepath.Clean(absPath)
+	// File mode - REJECT (no longer supported in v0.2.0+)
+	return fmt.Errorf("file mode is no longer supported; provider must point to a directory containing .csl files (got file: %s)", absPath)
+}
+
+// initDirectoryMode initializes the provider in directory mode.
+func (p *FileProvider) initDirectoryMode(absPath string) error {
+	entries, err := os.ReadDir(absPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", absPath, err)
+	}
+
+	// Build map of base names -> file paths
+	cslFiles := make(map[string]string)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		fileName := entry.Name()
+		if !strings.HasSuffix(fileName, ".csl") {
+			continue
+		}
+
+		baseName := strings.TrimSuffix(fileName, ".csl")
+
+		if _, exists := cslFiles[baseName]; exists {
+			return fmt.Errorf("duplicate file base name %q found in directory %s", baseName, absPath)
+		}
+
+		cslFiles[baseName] = filepath.Join(absPath, fileName)
+	}
+
+	if len(cslFiles) == 0 {
+		return fmt.Errorf("no .csl files found in directory: %s", absPath)
+	}
+
+	p.directory = absPath
+	p.cslFiles = cslFiles
 
 	return nil
 }
 
-// Fetch retrieves and parses the configured file, then navigates to the requested path.
-// The path components are used to navigate within the file's data structure.
-// Supports JSON (.json) and YAML (.yaml, .yml) formats.
+// Fetch retrieves content from the provider based on the path.
+// In v0.2.0+ directory mode, path[0] is the base name of the .csl file to fetch.
+// Returns the raw file content as a string.
 func (p *FileProvider) Fetch(ctx context.Context, path []string) (any, error) {
 	// Check for context cancellation
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	// Check context again before I/O
+	// Directory mode (v0.2.0+)
+	if p.directory != "" && p.cslFiles != nil {
+		return p.fetchFromDirectory(ctx, path)
+	}
+
+	// Legacy file mode - should not reach here in v0.2.0+
+	// Kept for backward compatibility during migration
+	return p.fetchLegacyFile(ctx, path)
+}
+
+// fetchFromDirectory fetches a .csl file by base name from the directory.
+func (p *FileProvider) fetchFromDirectory(ctx context.Context, path []string) (any, error) {
+	// Path must have at least one element (the base name)
+	if len(path) == 0 {
+		return nil, fmt.Errorf("path cannot be empty; specify file base name to fetch")
+	}
+
+	// Check for context cancellation before I/O
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	// First path component is the base name
+	baseName := path[0]
+
+	// Look up file path
+	filePath, exists := p.cslFiles[baseName]
+	if !exists {
+		return nil, fmt.Errorf("import file %q not found in provider %q", baseName, p.alias)
+	}
+
+	// Read the file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("file not found: %s", filePath)
+		}
+		return nil, fmt.Errorf("failed to read file %q: %w", filePath, err)
+	}
+
+	// Return raw file content as string
+	return string(data), nil
+}
+
+// fetchLegacyFile handles the legacy file-based fetch (deprecated in v0.2.0).
+func (p *FileProvider) fetchLegacyFile(ctx context.Context, path []string) (any, error) {
+	// Check context
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

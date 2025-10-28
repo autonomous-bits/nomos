@@ -1,14 +1,18 @@
 # File Provider
 
-The file provider resolves inline references from local files, supporting JSON and YAML formats. It enforces path traversal protection to prevent access outside the configured base directory.
+The file provider resolves imports from a folder containing `.csl` (Nomos configuration) files. It enables importing configuration snippets by name using the `import:{alias}:{name}` syntax.
 
 ## Features
 
-- ✅ **Local file resolution**: Fetch data from JSON and YAML files
-- ✅ **Path security**: Prevents path traversal attacks outside base directory
-- ✅ **Nested paths**: Supports multi-component paths (e.g., `["configs", "network", "vpc.json"]`)
+- ✅ **Folder-based resolution**: Points to a directory containing `.csl` files
+- ✅ **Named imports**: Use `import:{alias}:{name}` to reference files by base name
+- ✅ **Strict .csl support**: Only `.csl` files are recognized (other extensions ignored)
 - ✅ **Context-aware**: Respects context cancellation and timeouts
-- ✅ **Format validation**: Clear errors for unsupported file formats
+- ✅ **Duplicate detection**: Fails registration if duplicate base names exist
+
+## Breaking Changes
+
+**Version 0.2.0+**: The file provider now requires a **directory path** instead of a single file path. Only `.csl` files are supported. This is a breaking change from previous versions.
 
 ## Installation
 
@@ -22,7 +26,7 @@ go get github.com/autonomous-bits/nomos/libs/compiler
 
 ### Using RegisterFileProvider
 
-The simplest way to use the file provider:
+Register a file provider with a directory containing `.csl` files:
 
 ```go
 package main
@@ -39,15 +43,18 @@ func main() {
 	// Create provider registry
 	registry := compiler.NewProviderRegistry()
 
-	// Register file provider with alias "file" and base directory "./data"
-	if err := file.RegisterFileProvider(registry, "file", "./data"); err != nil {
+	// Register file provider with alias "configs" pointing to a directory
+	// The directory should contain .csl files like: network.csl, database.csl, etc.
+	if err := file.RegisterFileProvider(registry, "configs", "./config-files"); err != nil {
 		log.Fatal(err)
 	}
 
-	// Use in compilation
+	// Use in compilation - source files can now import using:
+	// import:configs:network  -> resolves to ./config-files/network.csl
+	// import:configs:database -> resolves to ./config-files/database.csl
 	ctx := context.Background()
 	opts := compiler.Options{
-		Path:             "./configs",
+		Path:             "./sources",
 		ProviderRegistry: registry,
 	}
 
@@ -61,84 +68,52 @@ func main() {
 }
 ```
 
-### Manual Provider Creation
-
-For more control, create the provider manually:
-
-```go
-package main
-
-import (
-	"context"
-	"log"
-
-	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/providers/file"
-)
-
-func main() {
-	// Create provider instance
-	provider := &file.FileProvider{}
-
-	// Initialize with configuration
-	opts := compiler.ProviderInitOptions{
-		Alias: "file",
-		Config: map[string]any{
-			"baseDir": "./data",
-		},
-	}
-
-	if err := provider.Init(context.Background(), opts); err != nil {
-		log.Fatal(err)
-	}
-
-	// Fetch a file
-	result, err := provider.Fetch(context.Background(), []string{"config.json"})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// result is parsed JSON/YAML as map[string]any
-	data, ok := result.(map[string]any)
-	if !ok {
-		log.Fatal("unexpected result type")
-	}
-
-	log.Printf("Loaded config: %+v\n", data)
 }
 ```
 
-## Supported File Formats
+## Import Syntax
 
-### JSON (.json)
+### Basic Import
 
-```json
-{
-  "database": {
-    "host": "localhost",
-    "port": 5432,
-    "name": "myapp"
-  }
+In your `.csl` source files, reference provider files using:
+
+```
+import:{alias}:{filename-without-extension}
+```
+
+**Example:**
+
+If you registered a provider with alias `configs` pointing to `./config-files/`, and that directory contains:
+- `network.csl`
+- `database.csl`
+- `secrets.csl`
+
+You can import them as:
+```
+import:configs:network
+import:configs:database
+import:configs:secrets
+```
+
+### How It Works
+
+1. Provider registration scans the directory for all `.csl` files
+2. Files are indexed by their base name (filename without `.csl` extension)
+3. Import statements resolve to the corresponding file content
+4. Non-`.csl` files in the directory are ignored
+
+## Supported File Format
+
+### CSL (.csl)
+
+Only `.csl` (Nomos configuration script language) files are supported. Other file types (`.json`, `.yaml`, `.txt`, etc.) in the provider directory are ignored.
+
+**Example `network.csl`:**
+```
+config network {
+  vpc_cidr = "10.0.0.0/16"
+  region = "us-west-2"
 }
-```
-
-### YAML (.yaml, .yml)
-
-```yaml
-database:
-  host: localhost
-  port: 5432
-  name: myapp
-```
-
-## Path Resolution
-
-Paths are resolved relative to the configured `baseDir`:
-
-```go
-// Given baseDir = "./data"
-// Fetch(["config.json"]) → reads ./data/config.json
-// Fetch(["configs", "network.yaml"]) → reads ./data/configs/network.yaml
 ```
 
 ### Security
@@ -190,45 +165,42 @@ if err == context.Canceled {
 
 ## Error Handling
 
-The provider returns descriptive errors:
+The provider returns descriptive errors for common failure scenarios:
 
 ```go
-result, err := provider.Fetch(ctx, []string{"nonexistent.json"})
-if err != nil {
-	// Error examples:
-	// - "file not found: nonexistent.json"
-	// - "unsupported file format \".txt\" for file \"data.txt\" (supported: .json, .yaml, .yml)"
-	// - "failed to parse JSON file \"bad.json\": invalid character '}' ..."
-	// - "path traversal attempt: component \"/etc/passwd\" is absolute"
-	log.Printf("Fetch error: %v\n", err)
-}
+// Example errors:
+// - "directory does not exist: /path/to/configs"
+// - "path is not a directory: /path/to/file.csl"
+// - "no .csl files found in directory: /path/to/empty"
+// - "duplicate file base name 'network' found in directory"
+// - "import file 'missing' not found in provider 'configs'"
 ```
 
 ## Configuration
 
 ### ProviderInitOptions
 
-When initializing manually or via constructor:
+When initializing via registry or manually:
 
 ```go
 type ProviderInitOptions struct {
-	Alias  string         // Provider alias (e.g., "file")
+	Alias  string         // Provider alias (e.g., "configs")
 	Config map[string]any // Configuration map
 }
 ```
 
 Required config keys:
-- `baseDir` (string): Base directory for file resolution (must exist)
+- `directory` (string): Directory containing `.csl` files (must exist and be a directory)
 
 ### RegisterFileProvider Parameters
 
 ```go
-func RegisterFileProvider(registry ProviderRegistry, alias string, baseDir string) error
+func RegisterFileProvider(registry ProviderRegistry, alias string, directory string) error
 ```
 
 - `registry`: The provider registry to register with
-- `alias`: The alias to register under (e.g., "file", "data", "configs")
-- `baseDir`: The base directory path (relative or absolute)
+- `alias`: The alias to register under (e.g., "configs", "base", "shared")
+- `directory`: The directory path containing `.csl` files (relative or absolute)
 
 ## Testing
 
@@ -261,105 +233,89 @@ go tool cover -html=coverage.out
 
 ## Examples
 
-### Example 1: Simple Configuration Loading
+### Example 1: Basic Provider Registration
 
-```go
-// data/app.json
-{
-  "name": "myapp",
-  "version": "1.0.0"
-}
+```
+config-files/
+├── network.csl
+├── database.csl
+└── security.csl
 ```
 
 ```go
 registry := compiler.NewProviderRegistry()
-file.RegisterFileProvider(registry, "file", "./data")
+file.RegisterFileProvider(registry, "configs", "./config-files")
 
-provider, _ := registry.GetProvider("file")
-result, _ := provider.Fetch(context.Background(), []string{"app.json"})
-
-config := result.(map[string]any)
-fmt.Println(config["name"])    // "myapp"
-fmt.Println(config["version"]) // "1.0.0"
+// In your source .csl files, you can now use:
+// import:configs:network
+// import:configs:database
+// import:configs:security
 ```
 
-### Example 2: Nested Directory Structure
-
-```
-data/
-├── configs/
-│   ├── database.yaml
-│   └── cache.json
-└── secrets/
-    └── api-keys.yaml
-```
+### Example 2: Multiple Provider Directories
 
 ```go
 registry := compiler.NewProviderRegistry()
-file.RegisterFileProvider(registry, "config", "./data/configs")
-file.RegisterFileProvider(registry, "secrets", "./data/secrets")
 
-configProvider, _ := registry.GetProvider("config")
-secretProvider, _ := registry.GetProvider("secrets")
+// Register different directories with different aliases
+file.RegisterFileProvider(registry, "base", "./base-configs")
+file.RegisterFileProvider(registry, "env", "./env-configs")
+file.RegisterFileProvider(registry, "secrets", "./secrets")
 
-// Fetch from configs
-dbConfig, _ := configProvider.Fetch(ctx, []string{"database.yaml"})
-
-// Fetch from secrets
-apiKeys, _ := secretProvider.Fetch(ctx, []string{"api-keys.yaml"})
+// Source files can import from any registered provider:
+// import:base:defaults
+// import:env:production
+// import:secrets:api-keys
 ```
 
-### Example 3: Multiple Environments
+### Example 3: Environment-Specific Configurations
 
 ```go
 env := os.Getenv("ENV") // "dev", "staging", "prod"
-baseDir := filepath.Join("./configs", env)
+configDir := filepath.Join("./configs", env)
 
 registry := compiler.NewProviderRegistry()
-file.RegisterFileProvider(registry, "file", baseDir)
+file.RegisterFileProvider(registry, "env-config", configDir)
 
-// Now Fetch reads from the environment-specific directory
+// Now imports resolve from the environment-specific directory
+// import:env-config:database  → resolves to ./configs/{env}/database.csl
 ```
 
 ## Best Practices
 
-1. **Use absolute or well-known relative paths for baseDir**
+1. **Organize .csl files by purpose**
+   ```
+   configs/
+   ├── network.csl        # Network configurations
+   ├── database.csl       # Database settings
+   ├── observability.csl  # Logging, metrics
+   └── security.csl       # Security policies
+   ```
+
+2. **Use descriptive provider aliases**
    ```go
-   // ✅ Good
-   file.RegisterFileProvider(registry, "file", "./data")
-   file.RegisterFileProvider(registry, "file", "/etc/myapp/configs")
+   // ✅ Good - clear and descriptive
+   file.RegisterFileProvider(registry, "base-configs", "./base")
+   file.RegisterFileProvider(registry, "env-overrides", "./environments/prod")
    
-   // ❌ Avoid
-   file.RegisterFileProvider(registry, "file", "../../data")
+   // ❌ Avoid - too generic
+   file.RegisterFileProvider(registry, "provider1", "./base")
+   file.RegisterFileProvider(registry, "data", "./environments/prod")
    ```
 
-2. **Validate baseDir exists before registration**
+3. **Validate directory existence before registration**
    ```go
-   baseDir := "./data"
-   if _, err := os.Stat(baseDir); os.IsNotExist(err) {
-       log.Fatalf("baseDir does not exist: %s", baseDir)
+   configDir := "./config-files"
+   if info, err := os.Stat(configDir); os.IsNotExist(err) || !info.IsDir() {
+       log.Fatalf("config directory does not exist or is not a directory: %s", configDir)
    }
-   file.RegisterFileProvider(registry, "file", baseDir)
+   file.RegisterFileProvider(registry, "configs", configDir)
    ```
 
-3. **Use descriptive aliases for multiple providers**
+4. **Handle registration errors**
    ```go
-   file.RegisterFileProvider(registry, "app-config", "./configs")
-   file.RegisterFileProvider(registry, "templates", "./templates")
-   file.RegisterFileProvider(registry, "schemas", "./schemas")
-   ```
-
-4. **Handle errors appropriately**
-   ```go
-   result, err := provider.Fetch(ctx, path)
-   if err != nil {
-       if os.IsNotExist(err) {
-           // Handle missing file
-       } else if errors.Is(err, context.DeadlineExceeded) {
-           // Handle timeout
-       } else {
-           // Handle other errors
-       }
+   if err := file.RegisterFileProvider(registry, "configs", "./config-files"); err != nil {
+       log.Fatalf("failed to register provider: %v", err)
    }
    ```
 
@@ -367,19 +323,17 @@ file.RegisterFileProvider(registry, "file", baseDir)
 
 ⚠️ **Important Security Considerations:**
 
-1. **baseDir Validation**: Always use trusted baseDir paths. Do not allow user input to determine baseDir.
+1. **Directory Validation**: Always use trusted directory paths. Do not allow user input to determine provider directories without validation.
 
-2. **Path Components**: The provider validates path components but does not perform additional access control. Ensure baseDir permissions are correctly configured at the OS level.
+2. **File Permissions**: The provider reads files with the process's permissions. Ensure sensitive `.csl` files have appropriate OS-level protections.
 
-3. **File Permissions**: The provider reads files with the process's permissions. Ensure sensitive files have appropriate OS-level protections.
+3. **No Network Access**: This provider only accesses local files. For remote configurations, use a different provider (e.g., HTTP provider).
 
-4. **No Network Access**: This provider only accesses local files. For remote files, use a different provider (e.g., HTTP provider).
-
-5. **Symbolic Links**: The current implementation does not specially handle symbolic links. Links are followed if they point within baseDir after canonicalization.
+4. **Symbolic Links**: The current implementation follows symbolic links within the directory. Ensure links do not point to sensitive locations outside the intended scope.
 
 ## Version
 
-Current version: **v0.1.0**
+Current version: **v0.2.0** (Breaking change: now requires directory, .csl only)
 
 ## License
 
@@ -388,10 +342,11 @@ See the root repository LICENSE file.
 ## Contributing
 
 Contributions are welcome! Please:
-1. Write tests for new functionality
-2. Follow Go coding standards
+1. Follow Test-Driven Development (TDD): write tests before implementation
+2. Follow Go coding standards (see `go-standards` in repository)
 3. Run `go fmt` and `golangci-lint`
 4. Update this README for API changes
+5. Update CHANGELOG.md following Keep a Changelog format
 
 ## Support
 

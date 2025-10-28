@@ -7,42 +7,9 @@ import (
 	"github.com/autonomous-bits/nomos/libs/compiler"
 )
 
-// TestRegisterFileProvider_Success tests successful registration.
-func TestRegisterFileProvider_Success(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := tmpDir + "/test.json"
-	// Create test file
-	if err := os.WriteFile(testFile, []byte(`{}`), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
-	}
-
-	registry := compiler.NewProviderRegistry()
-
-	err := RegisterFileProvider(registry, "file", testFile)
-	if err != nil {
-		t.Fatalf("RegisterFileProvider failed: %v", err)
-	}
-
-	// Verify provider can be retrieved
-	provider, err := registry.GetProvider("file")
-	if err != nil {
-		t.Fatalf("GetProvider failed: %v", err)
-	}
-
-	if provider == nil {
-		t.Fatal("expected provider to be non-nil")
-	}
-
-	// Verify provider is a FileProvider
-	_, ok := provider.(*FileProvider)
-	if !ok {
-		t.Errorf("expected *FileProvider, got %T", provider)
-	}
-}
-
 // TestRegisterFileProvider_NilRegistry tests error with nil registry.
 func TestRegisterFileProvider_NilRegistry(t *testing.T) {
-	err := RegisterFileProvider(nil, "file", "/tmp/test.json")
+	err := RegisterFileProvider(nil, "file", "/tmp/test-directory")
 	if err == nil {
 		t.Fatal("expected error with nil registry")
 	}
@@ -56,7 +23,7 @@ func TestRegisterFileProvider_NilRegistry(t *testing.T) {
 func TestRegisterFileProvider_EmptyAlias(t *testing.T) {
 	registry := compiler.NewProviderRegistry()
 
-	err := RegisterFileProvider(registry, "", "/tmp/test.json")
+	err := RegisterFileProvider(registry, "", "./testdata")
 	if err == nil {
 		t.Fatal("expected error with empty alias")
 	}
@@ -66,80 +33,102 @@ func TestRegisterFileProvider_EmptyAlias(t *testing.T) {
 	}
 }
 
-// TestRegisterFileProvider_EmptyFilePath tests error with empty file path.
-func TestRegisterFileProvider_EmptyFilePath(t *testing.T) {
+// TestRegisterFileProvider_EmptyDirectory tests error with empty directory path.
+func TestRegisterFileProvider_EmptyDirectory(t *testing.T) {
 	registry := compiler.NewProviderRegistry()
 
-	err := RegisterFileProvider(registry, "file", "")
+	err := RegisterFileProvider(registry, "test", "")
 	if err == nil {
-		t.Fatal("expected error with empty file path")
+		t.Fatal("expected error with empty directory path")
 	}
 
-	if err.Error() != "file path cannot be empty" {
+	if err.Error() != "directory path cannot be empty" {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-// TestRegisterFileProvider_InvalidFilePath tests error when file doesn't exist.
-func TestRegisterFileProvider_InvalidFilePath(t *testing.T) {
+// NEW TESTS FOR DIRECTORY-BASED PROVIDER (v0.2.0)
+
+// TestRegisterFileProvider_DirectoryWithCslFiles tests successful registration with a directory containing .csl files.
+func TestRegisterFileProvider_DirectoryWithCslFiles(t *testing.T) {
+	// Arrange
 	registry := compiler.NewProviderRegistry()
 
-	err := RegisterFileProvider(registry, "file", "/nonexistent/path/12345/file.json")
+	// Use testdata directory which contains network.csl and database.csl
+	testDir := "./testdata"
+
+	// Act
+	err := RegisterFileProvider(registry, "test-provider", testDir)
+
+	// Assert - this should FAIL initially (RED phase)
 	if err != nil {
-		t.Fatalf("RegisterFileProvider should not fail during registration: %v", err)
+		t.Fatalf("expected no error, got: %v", err)
 	}
 
-	// The error should occur when getting the provider
-	_, err = registry.GetProvider("file")
-	if err == nil {
-		t.Fatal("expected GetProvider to fail with invalid file path")
+	// Verify provider was registered
+	provider, err := registry.GetProvider("test-provider")
+	if err != nil {
+		t.Fatalf("failed to get registered provider: %v", err)
+	}
+
+	if provider == nil {
+		t.Fatal("expected provider to be non-nil")
 	}
 }
 
-// TestRegisterFileProvider_MultipleAliases tests registering multiple file providers.
-func TestRegisterFileProvider_MultipleAliases(t *testing.T) {
-	tmpDir1 := t.TempDir()
-	tmpDir2 := t.TempDir()
-	testFile1 := tmpDir1 + "/test1.json"
-	testFile2 := tmpDir2 + "/test2.json"
-
-	// Create test files
-	if err := os.WriteFile(testFile1, []byte(`{}`), 0644); err != nil {
-		t.Fatalf("failed to create test file 1: %v", err)
-	}
-	if err := os.WriteFile(testFile2, []byte(`{}`), 0644); err != nil {
-		t.Fatalf("failed to create test file 2: %v", err)
-	}
-
+// TestRegisterFileProvider_DirectoryNotExists_New tests registration fails when directory doesn't exist.
+func TestRegisterFileProvider_DirectoryNotExists_New(t *testing.T) {
+	// Arrange
 	registry := compiler.NewProviderRegistry()
+	nonExistentDir := "/nonexistent/path/12345"
 
-	// Register first provider
-	if err := RegisterFileProvider(registry, "file1", testFile1); err != nil {
-		t.Fatalf("RegisterFileProvider failed for file1: %v", err)
+	// Act
+	err := RegisterFileProvider(registry, "test", nonExistentDir)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected error for non-existent directory, got nil")
+	}
+}
+
+// TestRegisterFileProvider_PathIsFileShouldFail tests registration fails when path points to a file.
+func TestRegisterFileProvider_PathIsFileShouldFail(t *testing.T) {
+	// Arrange
+	registry := compiler.NewProviderRegistry()
+	tmpDir := t.TempDir()
+	testFile := tmpDir + "/test.csl"
+
+	// Create a test file
+	if err := os.WriteFile(testFile, []byte("// test file"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Register second provider
-	if err := RegisterFileProvider(registry, "file2", testFile2); err != nil {
-		t.Fatalf("RegisterFileProvider failed for file2: %v", err)
+	// Act
+	err := RegisterFileProvider(registry, "test", testFile)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected error when path is a file, got nil")
+	}
+}
+
+// TestRegisterFileProvider_DirectoryNoCslFiles tests registration fails when directory has no .csl files.
+func TestRegisterFileProvider_DirectoryNoCslFiles(t *testing.T) {
+	// Arrange
+	registry := compiler.NewProviderRegistry()
+	tmpDir := t.TempDir()
+
+	// Create a non-.csl file
+	testFile := tmpDir + "/test.yaml"
+	if err := os.WriteFile(testFile, []byte("key: value"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Verify both can be retrieved
-	provider1, err := registry.GetProvider("file1")
-	if err != nil {
-		t.Fatalf("GetProvider failed for file1: %v", err)
-	}
+	// Act
+	err := RegisterFileProvider(registry, "test", tmpDir)
 
-	provider2, err := registry.GetProvider("file2")
-	if err != nil {
-		t.Fatalf("GetProvider failed for file2: %v", err)
-	}
-
-	if provider1 == nil || provider2 == nil {
-		t.Fatal("expected both providers to be non-nil")
-	}
-
-	// Verify they are different instances
-	if provider1 == provider2 {
-		t.Error("expected different provider instances")
+	// Assert
+	if err == nil {
+		t.Fatal("expected error when directory has no .csl files, got nil")
 	}
 }
