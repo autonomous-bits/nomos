@@ -75,7 +75,7 @@ func main() {
 
 ### Basic Import
 
-In your `.csl` source files, reference provider files using:
+In your `.csl` source files, import entire files using:
 
 ```
 import:{alias}:{filename-without-extension}
@@ -95,12 +95,60 @@ import:configs:database
 import:configs:secrets
 ```
 
+### Reference Syntax with Path Navigation
+
+To access specific values within imported files, use the `reference:` syntax with dot-separated paths:
+
+```
+reference:{alias}:{filename}.{path.to.value}
+```
+
+**Example:**
+
+Given a file `storage.csl` in the `configs` provider:
+```
+storage:
+  type: 's3'
+  
+buckets:
+  primary: 'my-app-data'
+  backup: 'my-app-backup'
+  
+encryption:
+  enabled: true
+  algorithm: 'AES256'
+```
+
+You can access specific values using references:
+```
+source:
+  alias: 'configs'
+  type: 'file'
+  directory: './shared-configs'
+
+app:
+  # Access nested values using dot notation
+  storage_type: reference:configs:storage.storage.type        # Resolves to 's3'
+  primary_bucket: reference:configs:storage.buckets.primary   # Resolves to 'my-app-data'
+  encryption_algo: reference:configs:storage.encryption.algorithm  # Resolves to 'AES256'
+```
+
+**Path Navigation Rules:**
+- The first component after the alias is the filename (without `.csl` extension)
+- Subsequent components (separated by dots) navigate through the file's data structure
+- The file provider will:
+  1. Locate the file (e.g., `storage.csl`)
+  2. Parse the file's contents
+  3. Navigate to the requested path (e.g., `encryption.algorithm`)
+  4. Return the value at that path
+
 ### How It Works
 
 1. Provider registration scans the directory for all `.csl` files
 2. Files are indexed by their base name (filename without `.csl` extension)
 3. Import statements resolve to the corresponding file content
-4. Non-`.csl` files in the directory are ignored
+4. Reference statements can navigate into specific values within files
+5. Non-`.csl` files in the directory are ignored
 
 ## Supported File Format
 
@@ -266,9 +314,56 @@ file.RegisterFileProvider(registry, "secrets", "./secrets")
 // import:base:defaults
 // import:env:production
 // import:secrets:api-keys
+
+// Or reference specific values:
+// reference:base:defaults.timeout
+// reference:env:production.database.host
+// reference:secrets:api-keys.stripe.public_key
 ```
 
-### Example 3: Environment-Specific Configurations
+### Example 3: Path Navigation with References
+
+Given this file structure:
+```
+shared-configs/
+├── database.csl
+├── network.csl
+└── storage.csl
+```
+
+With `storage.csl` containing:
+```
+storage:
+  type: 's3'
+  region: 'us-west-2'
+  
+buckets:
+  primary: 'my-app-data'
+  backup: 'my-app-backup'
+  
+encryption:
+  enabled: true
+  algorithm: 'AES256'
+  kms_key: 'arn:aws:kms:us-west-2:123456789:key/abc-123'
+```
+
+You can reference specific values:
+```
+source:
+  alias: 'configs'
+  type: 'file'
+  directory: './shared-configs'
+
+app:
+  name: 'my-app'
+  storage:
+    type: reference:configs:storage.storage.type           # 's3'
+    region: reference:configs:storage.storage.region       # 'us-west-2'
+    bucket: reference:configs:storage.buckets.primary      # 'my-app-data'
+    encryption: reference:configs:storage.encryption.algorithm  # 'AES256'
+```
+
+### Example 4: Environment-Specific Configurations
 
 ```go
 env := os.Getenv("ENV") // "dev", "staging", "prod"

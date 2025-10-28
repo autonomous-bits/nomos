@@ -76,9 +76,19 @@ func (p *FileProvider) Init(ctx context.Context, opts compiler.ProviderInitOptio
 	}
 
 	// Resolve to absolute path
-	absPath, err := filepath.Abs(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to resolve path to absolute: %w", err)
+	// If the path is relative and we have a source file path, resolve relative to the source file's directory
+	var absPath string
+	if !filepath.IsAbs(configPath) && opts.SourceFilePath != "" {
+		// Resolve relative to the source file's directory
+		sourceDir := filepath.Dir(opts.SourceFilePath)
+		absPath = filepath.Join(sourceDir, configPath)
+	} else {
+		// Absolute path or no source file path - resolve from current directory
+		var err error
+		absPath, err = filepath.Abs(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to resolve path to absolute: %w", err)
+		}
 	}
 
 	// Check if it's a directory or file
@@ -158,6 +168,7 @@ func (p *FileProvider) Fetch(ctx context.Context, path []string) (any, error) {
 
 // fetchFromDirectory fetches a .csl file by base name from the directory.
 // For .csl files, it parses the file and returns structured data (map[string]any).
+// If additional path components are provided, navigates to that path within the file's data.
 func (p *FileProvider) fetchFromDirectory(ctx context.Context, path []string) (any, error) {
 	// Path must have at least one element (the base name)
 	if len(path) == 0 {
@@ -190,7 +201,30 @@ func (p *FileProvider) fetchFromDirectory(ctx context.Context, path []string) (a
 		return nil, fmt.Errorf("failed to convert AST to data for %q: %w", filePath, err)
 	}
 
-	return data, nil
+	// If no additional path components, return entire file data
+	if len(path) == 1 {
+		return data, nil
+	}
+
+	// Navigate to the requested path within the data
+	var current any = data
+	for i, key := range path[1:] {
+		// Current must be a map to navigate further
+		m, ok := current.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("cannot navigate to path %v in file %q: element at index %d is not a map (type: %T)", path, baseName, i+1, current)
+		}
+
+		// Get the value at this key
+		val, exists := m[key]
+		if !exists {
+			return nil, fmt.Errorf("path element %q not found in file %q (full path: %v)", key, baseName, path)
+		}
+
+		current = val
+	}
+
+	return current, nil
 }
 
 // fetchLegacyFile handles the legacy file-based fetch (deprecated in v0.2.0).

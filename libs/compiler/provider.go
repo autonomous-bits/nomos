@@ -165,4 +165,8 @@ type ProviderInitOptions struct {
 
 	// Config contains provider-specific configuration (from source declarations).
 	Config map[string]any
+
+	// SourceFilePath is the path to the .csl file containing the source declaration.
+	// This allows providers to resolve relative paths from the source file's directory.
+	SourceFilePath string
 }

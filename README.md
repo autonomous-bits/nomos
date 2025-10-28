@@ -15,24 +15,64 @@ The scripting language supports the following keywords:
 | Keyword | Description |
 | :-| :- |
 | `source` | A configurable source provider, at a minimum you should be able to provide an alias and the type of provider. |
-| `import` | Using an source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
-| `reference` | Using a source, load a specific value from the configuration. Syntax should be `reference:{alias}:{path_to_property}` |
+| `import` | Using a source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
+| `reference` | Using a source, load a specific value from the configuration. Syntax should be `reference:{alias}:{path.to.property}` where the path uses dot notation to navigate into nested structures. For file providers, the format is `reference:{alias}:{filename}.{nested.path}` |
+
+### Reference Syntax Details
+
+References allow you to access specific values from imported sources using dot-separated paths:
+
+**For file providers:**
+```
+reference:{alias}:{filename}.{path.to.value}
+```
+
+**Example:**
+
+Given a file `storage.csl` in a `configs` provider:
+```
+storage:
+  type: 's3'
+buckets:
+  primary: 'my-app-data'
+encryption:
+  algorithm: 'AES256'
+```
+
+You can reference specific values:
+```
+source:
+  alias: 'configs'
+  type: 'file'
+  directory: './shared-configs'
+
+app:
+  storage_type: reference:configs:storage.storage.type        # Resolves to 's3'
+  bucket: reference:configs:storage.buckets.primary           # Resolves to 'my-app-data'
+  encryption: reference:configs:storage.encryption.algorithm  # Resolves to 'AES256'
+```
 
 ### Source Provider Types
 
-- **Folder Source Provider**: The built in source provider that allows a user to import files from a folder.
-- **OpenTofu State Provider**: A provider that allows to reference output values from OpenTodu IaC. 
+- **File Source Provider**: The built-in source provider that allows a user to import and reference files from a directory containing `.csl` files. Supports path navigation to access nested values within files.
+- **OpenTofu State Provider**: A provider that allows to reference output values from OpenTofu IaC. 
 
 ### Example Config
 
 ```
 source:
-  alias: 'folder'
-  type:  'folder'
-  path:  `../config`
+  alias: 'configs'
+  type: 'file'
+  directory: './shared-configs'
 
-import:folder:filename
+import:configs:base
 
+app:
+  name: 'my-app'
+  # Reference specific values from files using dot notation
+  db_host: reference:configs:database.connection.host
+  storage_type: reference:configs:storage.type
+  
 config-section-name:
   key1: value1
   key2: value2

@@ -23,8 +23,9 @@ func (a *providerRegistryImportsAdapter) Register(alias string, constructor func
 	// Adapt the constructor
 	a.registry.Register(alias, func(opts ProviderInitOptions) (Provider, error) {
 		importOpts := imports.ProviderInitOptions{
-			Alias:  opts.Alias,
-			Config: opts.Config,
+			Alias:          opts.Alias,
+			Config:         opts.Config,
+			SourceFilePath: opts.SourceFilePath,
 		}
 		importProvider, err := constructor(importOpts)
 		if err != nil {
@@ -45,8 +46,9 @@ func (a *providerImportsAdapter) Fetch(ctx context.Context, path []string) (any,
 
 func (a *providerImportsAdapter) Init(ctx context.Context, opts imports.ProviderInitOptions) error {
 	compilerOpts := ProviderInitOptions{
-		Alias:  opts.Alias,
-		Config: opts.Config,
+		Alias:          opts.Alias,
+		Config:         opts.Config,
+		SourceFilePath: opts.SourceFilePath,
 	}
 	return a.provider.Init(ctx, compilerOpts)
 }
@@ -62,8 +64,9 @@ func (a *providerFromImportsAdapter) Fetch(ctx context.Context, path []string) (
 
 func (a *providerFromImportsAdapter) Init(ctx context.Context, opts ProviderInitOptions) error {
 	importOpts := imports.ProviderInitOptions{
-		Alias:  opts.Alias,
-		Config: opts.Config,
+		Alias:          opts.Alias,
+		Config:         opts.Config,
+		SourceFilePath: opts.SourceFilePath,
 	}
 	return a.provider.Init(ctx, importOpts)
 }

@@ -118,6 +118,67 @@ nomos build -p testdata/with-vars.csl --var region=eu-west --var env=production
 nomos build -p testdata/configs --strict
 ```
 
+### Using References with Path Navigation
+
+The CLI supports references to access specific values from provider sources using dot notation:
+
+**Syntax:** `reference:{alias}:{filename}.{path.to.value}`
+
+**Example source file with references:**
+
+```nomos
+source:
+  alias: 'configs'
+  type: 'file'
+  directory: './shared-configs'
+
+app:
+  name: 'my-app'
+  # Reference specific values using dot notation
+  storage_type: reference:configs:storage.storage.type
+  bucket: reference:configs:storage.buckets.primary
+  encryption: reference:configs:storage.encryption.algorithm
+```
+
+Given `shared-configs/storage.csl`:
+```nomos
+storage:
+  type: 's3'
+  region: 'us-west-2'
+  
+buckets:
+  primary: 'my-app-data'
+  backup: 'my-app-backup'
+  
+encryption:
+  enabled: true
+  algorithm: 'AES256'
+```
+
+When compiled, the references resolve to:
+```json
+{
+  "data": {
+    "app": {
+      "name": "my-app",
+      "storage_type": "s3",
+      "bucket": "my-app-data",
+      "encryption": "AES256"
+    }
+  }
+}
+```
+
+**Path Navigation Rules:**
+- First component after alias = filename (without `.csl` extension)
+- Remaining components = dot-separated path through nested data
+- Provider fetches the file, parses it, and navigates to the requested path
+
+See `libs/compiler/providers/file/README.md` for detailed provider documentation.
+
+````
+```
+
 **Exit Codes:**
 - `0` — Success
 - `1` — Compilation errors or runtime failure

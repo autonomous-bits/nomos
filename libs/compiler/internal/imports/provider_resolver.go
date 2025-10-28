@@ -18,8 +18,9 @@ type Provider interface {
 
 // ProviderInitOptions contains initialization parameters for a provider.
 type ProviderInitOptions struct {
-	Alias  string
-	Config map[string]any
+	Alias          string
+	Config         map[string]any
+	SourceFilePath string // Path to the .csl file containing the source declaration
 }
 
 // ProviderRegistry manages provider instances.
@@ -142,7 +143,7 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 
 	// Initialize providers from source declarations
 	for _, src := range extracted.Sources {
-		if err := initializeProvider(ctx, src, registry, typeRegistry); err != nil {
+		if err := initializeProvider(ctx, src, filePath, registry, typeRegistry); err != nil {
 			return nil, fmt.Errorf("failed to initialize provider %q: %w", src.Alias, err)
 		}
 	}
@@ -166,7 +167,7 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 }
 
 // initializeProvider initializes a provider from a source declaration.
-func initializeProvider(ctx context.Context, src SourceDecl, registry ProviderRegistry, typeRegistry ProviderTypeRegistry) error {
+func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath string, registry ProviderRegistry, typeRegistry ProviderTypeRegistry) error {
 	// Check if provider already exists
 	if _, err := registry.GetProvider(src.Alias); err == nil {
 		// Already initialized
@@ -186,8 +187,9 @@ func initializeProvider(ctx context.Context, src SourceDecl, registry ProviderRe
 
 	// Initialize the provider
 	opts := ProviderInitOptions{
-		Alias:  src.Alias,
-		Config: src.Config,
+		Alias:          src.Alias,
+		Config:         src.Config,
+		SourceFilePath: sourceFilePath,
 	}
 
 	if err := provider.Init(ctx, opts); err != nil {

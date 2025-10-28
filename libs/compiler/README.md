@@ -221,20 +221,44 @@ Implication for the compiler:
 
 The compiler resolves inline `reference:` expressions via the provider system. References are first-class values that can appear anywhere a value is expected.
 
+**Syntax:** `reference:{alias}:{path}`
+
+Where:
+- `{alias}` is the provider alias (from a `source:` declaration)
+- `{path}` is a dot-separated path to navigate into the provider's data
+
+For file providers, the path format is: `{filename}.{nested.path.to.value}`
+
 **Per-run caching:** Provider fetch results are cached for the duration of a single compilation run. Identical provider+path combinations result in a single provider call, with subsequent resolutions using the cached value.
 
 **Context-aware:** All provider fetch operations respect the provided context for cancellation and timeouts. Use `Options.Timeouts.PerProviderFetch` to set a default timeout.
 
 **Error handling:** By default, provider fetch failures are fatal and cause compilation to fail. Set `Options.AllowMissingProvider = true` to treat failures as non-fatal warnings recorded in `Snapshot.Metadata.Warnings`.
 
-Example:
+Example with path navigation:
 
 ```go
-// Configuration with reference
+// File provider pointing to ./configs directory containing storage.csl:
+// storage:
+//   type: 's3'
+//   region: 'us-west-2'
+// buckets:
+//   primary: 'my-app-data'
+// encryption:
+//   algorithm: 'AES256'
+
+// Configuration with references using path navigation
 config := `
-database:
-  host: reference:config:db.host
-  port: reference:config:db.port
+source:
+  alias: 'configs'
+  type: 'file'
+  directory: './configs'
+
+app:
+  storage_type: reference:configs:storage.storage.type        # Resolves to 's3'
+  region: reference:configs:storage.storage.region            # Resolves to 'us-west-2'
+  bucket: reference:configs:storage.buckets.primary           # Resolves to 'my-app-data'
+  encryption: reference:configs:storage.encryption.algorithm  # Resolves to 'AES256'
 `
 
 // Compile with provider
@@ -246,6 +270,8 @@ opts := compiler.Options{
 
 snapshot, err := compiler.Compile(ctx, opts)
 // References resolved to actual values from providers
+// snapshot.Data["app"]["storage_type"] == "s3"
+// snapshot.Data["app"]["bucket"] == "my-app-data"
 ```
 
 **Thread safety:** The internal cache uses read-write locks for safe concurrent access.
