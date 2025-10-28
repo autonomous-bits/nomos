@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/providers/file"
 )
 
 // BuildParams holds the parameters for building compiler.Options.
@@ -36,9 +37,17 @@ type BuildParams struct {
 }
 
 // NewProviderRegistries creates default provider and provider type registries.
-// Both registries are empty by default (no-network behavior).
+// Both registries are empty by default (no-network behavior), but the file
+// provider type is registered to support source declarations in .csl files.
 func NewProviderRegistries() (compiler.ProviderRegistry, compiler.ProviderTypeRegistry) {
-	return compiler.NewProviderRegistry(), compiler.NewProviderTypeRegistry()
+	providerRegistry := compiler.NewProviderRegistry()
+	providerTypeRegistry := compiler.NewProviderTypeRegistry()
+
+	// Register the file provider type to support source: type: 'file' declarations
+	// This is safe for offline-first behavior as file provider only reads local files
+	providerTypeRegistry.RegisterType("file", file.NewFileProviderFromConfig)
+
+	return providerRegistry, providerTypeRegistry
 }
 
 // BuildOptions constructs compiler.Options from BuildParams.

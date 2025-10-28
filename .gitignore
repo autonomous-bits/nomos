@@ -78,3 +78,6 @@ dist/
 
 # Documentation builds
 site/
+
+# Test directories
+test-cli-imports/

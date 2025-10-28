@@ -16,6 +16,8 @@ import (
 	"strings"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
 	"gopkg.in/yaml.v3"
 )
 
@@ -155,6 +157,7 @@ func (p *FileProvider) Fetch(ctx context.Context, path []string) (any, error) {
 }
 
 // fetchFromDirectory fetches a .csl file by base name from the directory.
+// For .csl files, it parses the file and returns structured data (map[string]any).
 func (p *FileProvider) fetchFromDirectory(ctx context.Context, path []string) (any, error) {
 	// Path must have at least one element (the base name)
 	if len(path) == 0 {
@@ -175,17 +178,19 @@ func (p *FileProvider) fetchFromDirectory(ctx context.Context, path []string) (a
 		return nil, fmt.Errorf("import file %q not found in provider %q", baseName, p.alias)
 	}
 
-	// Read the file
-	data, err := os.ReadFile(filePath)
+	// Parse the .csl file and return structured data
+	tree, _, err := parse.ParseFile(filePath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("file not found: %s", filePath)
-		}
-		return nil, fmt.Errorf("failed to read file %q: %w", filePath, err)
+		return nil, fmt.Errorf("failed to parse .csl file %q: %w", filePath, err)
 	}
 
-	// Return raw file content as string
-	return string(data), nil
+	// Convert AST to data
+	data, err := converter.ASTToData(tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert AST to data for %q: %w", filePath, err)
+	}
+
+	return data, nil
 }
 
 // fetchLegacyFile handles the legacy file-based fetch (deprecated in v0.2.0).
@@ -252,5 +257,5 @@ func (p *FileProvider) fetchLegacyFile(ctx context.Context, path []string) (any,
 
 // Info returns the provider's alias and version for metadata tracking.
 func (p *FileProvider) Info() (alias string, version string) {
-	return p.alias, "v0.1.0"
+	return p.alias, "v0.2.0"
 }

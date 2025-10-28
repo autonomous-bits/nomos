@@ -63,6 +63,15 @@ func ExtractImports(tree *ast.AST) ExtractedData {
 	var sources []SourceDecl
 	var imports []ImportDecl
 
+	// Handle nil tree
+	if tree == nil {
+		return ExtractedData{
+			Sources: sources,
+			Imports: imports,
+			Data:    make(map[string]any),
+		}
+	}
+
 	for _, stmt := range tree.Statements {
 		switch s := stmt.(type) {
 		case *ast.SourceDecl:
