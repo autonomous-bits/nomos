@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
@@ -32,12 +33,27 @@ type ProviderTypeRegistry interface {
 type providerTypeRegistry struct {
 	mu           sync.RWMutex
 	constructors map[string]ProviderTypeConstructor
+	resolver     ProviderResolver // optional: resolves types to binary paths
+	manager      ProviderManager  // optional: manages provider subprocesses
 }
 
 // NewProviderTypeRegistry creates a new ProviderTypeRegistry.
 func NewProviderTypeRegistry() ProviderTypeRegistry {
 	return &providerTypeRegistry{
 		constructors: make(map[string]ProviderTypeConstructor),
+	}
+}
+
+// NewProviderTypeRegistryWithResolver creates a ProviderTypeRegistry that can resolve
+// and instantiate remote (external) providers via a lockfile resolver and process manager.
+// When a provider type is requested, the registry first checks for a registered in-process
+// constructor. If none is found and a resolver+manager are available, it attempts to
+// locate and start an external provider binary.
+func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager ProviderManager) ProviderTypeRegistry {
+	return &providerTypeRegistry{
+		constructors: make(map[string]ProviderTypeConstructor),
+		resolver:     resolver,
+		manager:      manager,
 	}
 }
 
@@ -51,21 +67,45 @@ func (r *providerTypeRegistry) RegisterType(typeName string, constructor Provide
 
 // CreateProvider implements ProviderTypeRegistry.CreateProvider.
 func (r *providerTypeRegistry) CreateProvider(typeName string, config map[string]any) (Provider, error) {
+	// First, check for in-process constructor
 	r.mu.RLock()
-	constructor, ok := r.constructors[typeName]
+	constructor, hasConstructor := r.constructors[typeName]
+	hasResolver := r.resolver != nil && r.manager != nil
 	r.mu.RUnlock()
 
-	if !ok {
-		return nil, fmt.Errorf("provider type %q not registered", typeName)
+	// Prefer in-process constructor if available
+	if hasConstructor {
+		provider, err := constructor(config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create provider of type %q: %w", typeName, err)
+		}
+		return provider, nil
 	}
 
-	// Create provider instance
-	provider, err := constructor(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create provider of type %q: %w", typeName, err)
+	// Fall back to remote provider if resolver+manager available
+	if hasResolver {
+		ctx := context.Background() // TODO: Accept context from caller
+		binaryPath, err := r.resolver.ResolveBinaryPath(ctx, typeName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve provider type %q: %w", typeName, err)
+		}
+
+		// Use the provider type as the alias for now (can be refined later)
+		opts := ProviderInitOptions{
+			Alias:  typeName,
+			Config: config,
+		}
+
+		provider, err := r.manager.GetProvider(ctx, typeName, binaryPath, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to start remote provider %q: %w", typeName, err)
+		}
+
+		return provider, nil
 	}
 
-	return provider, nil
+	// No constructor or resolver available
+	return nil, fmt.Errorf("provider type %q not registered", typeName)
 }
 
 // IsTypeRegistered implements ProviderTypeRegistry.IsTypeRegistered.

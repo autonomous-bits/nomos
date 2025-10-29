@@ -426,6 +426,49 @@ func (p *CachingProvider) Fetch(ctx context.Context, path []string) (any, error)
 }
 ```
 
+## Remote (External) Providers
+
+Starting with the external provider support, providers can be run as separate executables that communicate with the compiler via gRPC. This enables:
+- Provider implementations in any language
+- Process isolation and resource management
+- Independent provider lifecycle and versioning
+
+### Architecture
+
+Remote providers are managed by the `ProviderTypeRegistry` when configured with a `ProviderResolver` and `ProviderManager`:
+
+```go
+// Create resolver (maps provider types to binary paths)
+resolver := NewLockfileResolver("/path/to/.nomos/providers.lock.json")
+
+// Create manager (starts and manages provider subprocesses)
+manager := providerproc.NewManager()
+defer manager.Shutdown(context.Background())
+
+// Create type registry with remote support
+typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
+
+// Provider creation now supports both in-process and remote providers
+provider, err := typeRegistry.CreateProvider("file", map[string]any{
+    "directory": "./configs",
+})
+```
+
+### Resolution Order
+
+When `CreateProvider` is called, the registry:
+1. **First** checks for a registered in-process constructor
+2. **If not found** and a resolver+manager are available, resolves the provider type to a binary path
+3. **Starts** the provider subprocess via the manager (or reuses if already running)
+4. **Returns** a gRPC client that implements the `Provider` interface
+
+### Implementing Remote Providers
+
+Remote providers must implement the `nomos.provider.v1.Provider` gRPC service defined in `libs/provider-proto`. See:
+- `libs/compiler/internal/providerproc` — Provider subprocess management
+- `libs/provider-proto` — gRPC service contract
+- External provider repositories (e.g., `autonomous-bits/nomos-provider-file`)
+
 ## Summary
 
 1. **Implement** the `Provider` interface (`Init` and `Fetch`)
@@ -435,6 +478,7 @@ func (p *CachingProvider) Fetch(ctx context.Context, path []string) (any, error)
 5. **Document** your provider's path format and configuration
 
 For more examples, see:
-- `libs/compiler/providers/file` — File system provider
+- `libs/compiler/providers/file` — File system provider (in-process)
+- `libs/compiler/internal/providerproc` — Remote provider management
 - `libs/compiler/test/fakes` — Fake provider for testing
 - Integration tests in `libs/compiler/*_integration_test.go`

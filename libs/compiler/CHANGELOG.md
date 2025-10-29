@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Graceful shutdown with process termination
   - Support for subprocess stderr capture for debugging
   - Thread-safe concurrent provider access
+- **Remote Provider Resolution**: New `ProviderResolver` interface and `ProviderManager` interface for resolving provider types to binary paths
+  - `NewProviderTypeRegistryWithResolver` constructor accepts resolver and manager for remote provider support
+  - `ProviderTypeRegistry.CreateProvider` now supports remote (external) providers via lockfile resolution
+  - Automatic fallback to in-process constructors when resolver is not configured
+  - Integration tests demonstrating remote provider instantiation via resolver + manager
 
 ## [0.2.0] - 2025-01-21
 
