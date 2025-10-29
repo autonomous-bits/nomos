@@ -20,12 +20,12 @@ You are in planning mode and acting as a senior software engineer. Your task is 
    - If no sub‑issues exist, attempt discovery via linked issues (e.g., tracked‑by/parent relations) or structured checklists in the feature issue. If discovery isn’t possible, ask the user to provide the specific user story id(s).
 5. **Append Task Breakdowns to Each Story**:
    - For each discovered sub‑issue (story):
-     - Fetch the current issue body (`github/get_issue`).
+     - Fetch the current issue body (`github/issue_read`).
      - Generate a "Task breakdown" section in Markdown that includes:
        - A list of concrete tasks needed to complete the story.
        - Any dependencies or prerequisites.
      - Append the "Task breakdown" at the end of the issue body. If a "Task breakdown" section already exists, append updates under the existing header instead of duplicating it.
-     - Update the issue on GitHub with the modified body (`github/update_issue`).
+     - Update the issue on GitHub with the modified body (`github/issue_write`).
 6. **Non‑destructive Updates**: Do not remove or alter existing content in any issue. Only append the task breakdown content as described.
   
  IMPORTANT: Do not create, edit, or commit Markdown (.md) files in the repository. Instead, produce the PRD and user stories as Markdown-formatted text to be used in GitHub Issue bodies, and create or update GitHub Issues/Discussions as described above. Agents must not write files into the codebase; use the GitHub API or issue creation tools to publish content.

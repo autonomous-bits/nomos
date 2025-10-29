@@ -1,0 +1,14 @@
+# Generated files
+gen/
+*.pb.go
+*_grpc.pb.go
+
+# Test artifacts
+coverage.out
+coverage.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

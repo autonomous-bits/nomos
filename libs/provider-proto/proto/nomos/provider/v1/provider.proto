@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package nomos.provider.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go/nomos/provider/v1;providerv1";
+
+// ProviderService defines the gRPC service contract for Nomos external providers.
+// Provider implementations communicate with the Nomos compiler via this interface
+// to supply configuration data from various sources (files, APIs, databases, etc.).
+service ProviderService {
+  // Init initializes the provider with configuration and context.
+  // This method must be called before any Fetch operations.
+  // Returns an error if initialization fails (invalid config, unreachable resource, etc.).
+  rpc Init(InitRequest) returns (InitResponse);
+
+  // Fetch retrieves data at the specified path within the provider's data source.
+  // The path is interpreted according to the provider's implementation.
+  // Returns structured data as a google.protobuf.Struct (equivalent to map[string]any).
+  // Returns NotFound error if the path doesn't exist.
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+
+  // Info returns metadata about the provider instance.
+  // Can be called at any time, including before Init.
+  rpc Info(InfoRequest) returns (InfoResponse);
+
+  // Health checks the provider's current operational status.
+  // Used for preflight checks and monitoring.
+  rpc Health(HealthRequest) returns (HealthResponse);
+
+  // Shutdown gracefully shuts down the provider.
+  // This is a best-effort call; providers should cleanup resources.
+  // The compiler may terminate the process if shutdown takes too long.
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+}
+
+// InitRequest contains provider initialization parameters.
+message InitRequest {
+  // alias is the provider instance name as declared in the Nomos source file.
+  // Example: "configs" from "source file as configs { ... }"
+  string alias = 1;
+
+  // config contains provider-specific configuration as a free-form structure.
+  // The structure depends on the provider type.
+  // Example for file provider: { "directory": "./configs" }
+  google.protobuf.Struct config = 2;
+
+  // source_file_path is the absolute path to the .csl source file
+  // that declared this provider. Useful for resolving relative paths.
+  string source_file_path = 3;
+}
+
+// InitResponse indicates successful provider initialization.
+// Currently empty but reserved for future extension.
+message InitResponse {}
+
+// FetchRequest specifies the data path to retrieve.
+message FetchRequest {
+  // path is a sequence of path segments identifying the data to fetch.
+  // Interpretation is provider-specific.
+  // Example for file provider: ["database", "prod"] might map to database/prod.csl
+  // Example for HTTP provider: ["api", "v1", "config"] might map to /api/v1/config
+  repeated string path = 1;
+}
+
+// FetchResponse contains the fetched data.
+message FetchResponse {
+  // value is the structured data returned by the provider.
+  // Typically represents a map-like structure that can be merged
+  // into the Nomos configuration tree.
+  // Must be compatible with Nomos value types (strings, numbers, bools, maps, lists).
+  google.protobuf.Struct value = 1;
+}
+
+// InfoRequest requests provider metadata.
+// Currently empty but reserved for future parameters.
+message InfoRequest {}
+
+// InfoResponse contains provider metadata.
+message InfoResponse {
+  // alias is the provider instance name (same as InitRequest.alias after Init).
+  string alias = 1;
+
+  // version is the provider implementation version (e.g., "1.0.0").
+  string version = 2;
+
+  // type is the provider type identifier (e.g., "file", "http", "vault").
+  string type = 3;
+}
+
+// HealthRequest requests provider health status.
+// Currently empty but reserved for future parameters.
+message HealthRequest {}
+
+// HealthResponse indicates provider operational status.
+message HealthResponse {
+  // Status represents the health state of the provider.
+  enum Status {
+    // STATUS_UNSPECIFIED indicates health status could not be determined.
+    STATUS_UNSPECIFIED = 0;
+
+    // STATUS_OK indicates the provider is healthy and ready to serve requests.
+    STATUS_OK = 1;
+
+    // STATUS_DEGRADED indicates the provider is operational but experiencing issues.
+    // Fetch operations may succeed but with reduced performance or reliability.
+    STATUS_DEGRADED = 2;
+  }
+
+  // status is the current health state.
+  Status status = 1;
+
+  // message provides additional context about the health status.
+  // Should contain actionable information for degraded states.
+  string message = 2;
+}
+
+// ShutdownRequest requests graceful provider shutdown.
+// Currently empty but reserved for future parameters (e.g., timeout).
+message ShutdownRequest {}
+
+// ShutdownResponse indicates shutdown completion.
+// Currently empty but reserved for future extension.
+message ShutdownResponse {}
