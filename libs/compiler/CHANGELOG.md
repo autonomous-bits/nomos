@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **External Provider Support**: New `internal/providerproc` package for managing external provider subprocesses via gRPC
+  - `Manager` type for starting, caching, and shutting down provider processes
+  - `Client` type that implements `compiler.Provider` interface by delegating to gRPC calls
+  - Per-alias process caching with lazy initialization
+  - Health check verification on connection establishment
+  - Graceful shutdown with process termination
+  - Support for subprocess stderr capture for debugging
+  - Thread-safe concurrent provider access
+
 ## [0.2.0] - 2025-01-21
 
 ### ⚠️ BREAKING CHANGES
