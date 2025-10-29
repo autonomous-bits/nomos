@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ProviderTypeRegistry.CreateProvider` now supports remote (external) providers via lockfile resolution
   - Automatic fallback to in-process constructors when resolver is not configured
   - Integration tests demonstrating remote provider instantiation via resolver + manager
+- **[Config] Provider Configuration Management**: New `internal/config` package for lockfile and manifest handling
+  - Lockfile schema (`Lockfile`, `Provider`) with JSON serialization for recording exact provider binaries with versions, paths, and checksums
+  - Manifest schema (`Manifest`, `ManifestProvider`) with YAML serialization for declarative provider configuration with source hints
+  - `Resolver` API for querying provider locations with proper precedence rules (lockfile authoritative for versions/paths, manifest provides hints/config)
+  - Comprehensive validation rules for both lockfile and manifest formats
+  - Path helpers for standard provider binary installation layout (`.nomos/providers/{type}/{version}/{os}-{arch}/provider`)
+  - Complete documentation of formats, precedence rules, and usage examples
 
 ## [0.2.0] - 2025-01-21
 
