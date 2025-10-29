@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Test Infrastructure**: New reusable fake provider gRPC server for testing
+  - `test/fakes/FakeProviderServer` implementing complete `nomos.provider.v1` gRPC interface
+  - Configurable responses, errors, and state tracking for all RPC methods (Init, Fetch, Info, Health, Shutdown)
+  - Contract tests verifying gRPC protocol compliance and `google.protobuf.Struct` ↔ Go map conversion
+  - Thread-safe call tracking for test assertions
+  - In-process server startup helper `StartFakeProviderServer` for integration testing
+  - Comprehensive test coverage for complex data types, nested structures, arrays, and error handling
 - **External Provider Support**: New `internal/providerproc` package for managing external provider subprocesses via gRPC
   - `Manager` type for starting, caching, and shutting down provider processes
   - `Client` type that implements `compiler.Provider` interface by delegating to gRPC calls
@@ -28,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive validation rules for both lockfile and manifest formats
   - Path helpers for standard provider binary installation layout (`.nomos/providers/{type}/{version}/{os}-{arch}/provider`)
   - Complete documentation of formats, precedence rules, and usage examples
+
+### Changed
+- **Test Quality**: Refactored `internal/providerproc/client_test.go` to use new reusable `FakeProviderServer`
+  - Removed inline test server implementation in favor of centralized fake in `test/fakes`
+  - Improved test maintainability and consistency across providerproc tests
+  - Enhanced assertions to verify server-side state changes
 
 ## [0.2.0] - 2025-01-21
 
