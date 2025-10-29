@@ -66,9 +66,14 @@ This design ensures deterministic, hermetic builds by default.
 
 ## CLI commands & flags
 
-The primary command provided by the CLI is:
+The primary commands provided by the CLI are:
 
 - `build` — compile a file or directory of Nomos scripts into a snapshot
+- `init` — discover and install provider dependencies
+
+### `nomos build`
+
+Compile Nomos scripts into configuration snapshots.
 
 Relevant flags:
 
@@ -77,6 +82,39 @@ Relevant flags:
 - `--allow-missing-provider`: allow missing provider fetches (compiler.Options.AllowMissingProvider)
 - `--timeout-per-provider`: duration string (e.g., `5s`) used for per-provider fetch timeout
 - `--max-concurrent-providers`: integer limit for concurrent provider fetches
+
+### `nomos init`
+
+Discover provider requirements from `.csl` files and install provider binaries.
+
+Usage:
+
+```bash
+nomos init [flags] <file.csl> [<file2.csl> ...]
+```
+
+Relevant flags:
+
+- `--from alias=path`: specify local provider binary path (can be repeated for multiple providers)
+- `--dry-run`: preview actions without installing
+- `--force`: overwrite existing providers/lockfile
+- `--os`: override target OS (default: runtime OS)
+- `--arch`: override target architecture (default: runtime arch)
+- `--upgrade`: force upgrade to latest versions
+
+Example:
+
+```bash
+# Install provider from local binary
+nomos init --from configs=/path/to/nomos-provider-file config.csl
+
+# Preview what would be installed
+nomos init --dry-run config.csl
+```
+
+The init command creates:
+- `.nomos/providers/{type}/{version}/{os-arch}/provider` — installed binaries
+- `.nomos/providers.lock.json` — lock file with resolved versions and paths
 
 ## Commands
 

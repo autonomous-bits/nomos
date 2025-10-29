@@ -31,6 +31,8 @@ func run(args []string) error {
 	switch command {
 	case "build":
 		return runBuild(commandArgs)
+	case "init":
+		return runInit(commandArgs)
 	case "help", "--help", "-h":
 		printHelp()
 		return nil

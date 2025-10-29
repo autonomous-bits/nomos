@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [CLI] `nomos init` command for discovering and installing provider dependencies (#46)
+  - Scans `.csl` files to discover provider requirements (alias, type, version)
+  - Validates that all providers have required `version` field in source declarations
+  - Installs provider binaries from local paths using `--from alias=path` flag
+  - Creates `.nomos/providers/{type}/{version}/{os-arch}/provider` directory structure
+  - Writes `.nomos/providers.lock.json` with resolved versions, sources, and paths
+  - Supports `--dry-run` flag to preview actions without installing
+  - Supports `--force` flag to overwrite existing providers/lockfile
+  - Supports `--os` and `--arch` flags to override target platform
+  - Supports `--upgrade` flag for future version upgrade functionality
+  - Sets executable permissions (0755) on installed provider binaries
+  - Clear error messages for missing version, invalid paths, and installation failures
+  - Comprehensive unit and integration test coverage
 - [CLI] Initial implementation of `nomos build` command for compiling .csl files to configuration snapshots
 - [CLI] Flag parsing support for `--path/-p`, `--format/-f`, `--out/-o`, `--var`, `--strict`, `--allow-missing-provider`, `--timeout-per-provider`, `--max-concurrent-providers`, and `--verbose`
 - [CLI] JSON output format support (default) with canonical serialization for deterministic output (#39)
