@@ -1,3 +1,4 @@
+---
 description: 'Implement production-quality code from GitHub user stories end-to-end in the Nomos monorepo, following best practices for Go monorepos, testing, documentation, and changelogs.'
 tools: ['edit', 'search', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos']
 ---
