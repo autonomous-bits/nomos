@@ -32,7 +32,7 @@ func buildCommand(args []string) error {
 		os.Exit(exitUsageErr)
 	}
 
-	// Create provider registries (no-network by default)
+	// Create provider registries (supports external providers via lockfile)
 	providerRegistry, providerTypeRegistry := options.NewProviderRegistries()
 
 	// Build compiler options using the new options package

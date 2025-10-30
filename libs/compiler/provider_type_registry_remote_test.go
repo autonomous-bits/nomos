@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/internal/providerproc"
 )
 
 // TestProviderTypeRegistry_CreateRemoteProvider tests creating providers via resolver + manager.
@@ -18,8 +17,8 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 			},
 		}
 
-		// Setup fake manager (for now, we'll use a nil manager since we're testing the registry logic)
-		manager := providerproc.NewManager()
+		// Setup fake manager
+		manager := compiler.NewManager()
 		defer manager.Shutdown(context.Background())
 
 		// Create registry with resolver and manager

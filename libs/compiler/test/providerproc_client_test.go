@@ -1,16 +1,17 @@
-package providerproc
+package test
+
+import "github.com/autonomous-bits/nomos/libs/compiler"
 
 import (
 	"context"
 	"testing"
 
-	"github.com/autonomous-bits/nomos/libs/compiler"
 	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// TestClient_Fetch tests that the Client correctly delegates Fetch calls to the gRPC service.
+// TestClient_Fetch tests that the compiler.Client correctly delegates Fetch calls to the gRPC service.
 func TestClient_Fetch(t *testing.T) {
 	// Arrange: Start a fake provider server
 	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
@@ -23,13 +24,13 @@ func TestClient_Fetch(t *testing.T) {
 	defer server.Stop()
 
 	// Connect to the server
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := compiler.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
 
-	client := NewClient(conn, "test-alias")
+	client := compiler.NewClient(conn, "test-alias")
 
 	// Act: Call Fetch
 	ctx := context.Background()
@@ -50,7 +51,7 @@ func TestClient_Fetch(t *testing.T) {
 	}
 }
 
-// TestClient_Fetch_NotFound tests that Client returns appropriate error for NotFound.
+// TestClient_Fetch_NotFound tests that compiler.Client returns appropriate error for NotFound.
 func TestClient_Fetch_NotFound(t *testing.T) {
 	// Arrange: Start a fake provider server (no responses configured)
 	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
@@ -61,13 +62,13 @@ func TestClient_Fetch_NotFound(t *testing.T) {
 	}
 	defer server.Stop()
 
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := compiler.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
 
-	client := NewClient(conn, "test-alias")
+	client := compiler.NewClient(conn, "test-alias")
 
 	// Act: Call Fetch with path that doesn't exist
 	ctx := context.Background()
@@ -84,7 +85,7 @@ func TestClient_Fetch_NotFound(t *testing.T) {
 	}
 }
 
-// TestClient_Init tests that Client delegates Init correctly.
+// TestClient_Init tests that compiler.Client delegates Init correctly.
 func TestClient_Init(t *testing.T) {
 	// Arrange
 	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
@@ -95,13 +96,13 @@ func TestClient_Init(t *testing.T) {
 	}
 	defer server.Stop()
 
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := compiler.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
 
-	client := NewClient(conn, "test-alias")
+	client := compiler.NewClient(conn, "test-alias")
 
 	// Act
 	ctx := context.Background()
@@ -122,7 +123,7 @@ func TestClient_Init(t *testing.T) {
 	}
 }
 
-// TestClient_Info tests that Client implements ProviderWithInfo.
+// TestClient_Info tests that compiler.Client implements ProviderWithInfo.
 func TestClient_Info(t *testing.T) {
 	// Arrange
 	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
@@ -133,13 +134,13 @@ func TestClient_Info(t *testing.T) {
 	}
 	defer server.Stop()
 
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := compiler.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
 
-	client := NewClient(conn, "test-alias")
+	client := compiler.NewClient(conn, "test-alias")
 
 	// Act
 	alias, version := client.Info()

@@ -1,8 +1,8 @@
 // Package providerproc manages external provider subprocesses and gRPC communication.
 //
 // This package provides a Manager that can start provider executables,
-// establish gRPC connections, and expose them via the compiler.Provider interface.
-package providerproc
+// establish gRPC connections, and expose them via the Provider interface.
+package compiler
 
 import (
 	"bufio"
@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/autonomous-bits/nomos/libs/compiler"
 	providerv1 "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go/nomos/provider/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -55,7 +54,7 @@ func NewManager() *Manager {
 // Returns:
 //   - Provider instance that delegates to the gRPC service
 //   - Error if the subprocess cannot be started or connection fails
-func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, opts ProviderInitOptions) (Provider, error) {
 	// Check if process already exists (fast path)
 	m.mu.RLock()
 	if proc, ok := m.processes[alias]; ok {
