@@ -57,6 +57,25 @@ func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager Prov
 	}
 }
 
+// NewProviderTypeRegistryWithLockfile creates a ProviderTypeRegistry that uses
+// a lockfile resolver to locate and start external provider subprocesses.
+// This is a convenience function that creates the provider manager internally.
+//
+// The provider manager lifecycle is handled automatically - subprocesses will be
+// cleaned up by the OS when the parent process exits.
+func NewProviderTypeRegistryWithLockfile(resolver ProviderResolver) ProviderTypeRegistry {
+	// Create the provider manager internally
+	manager := NewManager()
+	
+	return &providerTypeRegistry{
+		constructors: make(map[string]ProviderTypeConstructor),
+		resolver:     resolver,
+		manager:      manager,
+	}
+}
+
+
+
 // RegisterType implements ProviderTypeRegistry.RegisterType.
 func (r *providerTypeRegistry) RegisterType(typeName string, constructor ProviderTypeConstructor) {
 	r.mu.Lock()
@@ -129,3 +148,5 @@ func (r *providerTypeRegistry) RegisteredTypes() []string {
 
 	return types
 }
+
+

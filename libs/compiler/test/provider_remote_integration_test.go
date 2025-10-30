@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/internal/providerproc"
 	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
 )
 
@@ -33,7 +32,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 			},
 		}
 
-		manager := providerproc.NewManager()
+		manager := compiler.NewManager()
 		defer manager.Shutdown(context.Background())
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
@@ -57,7 +56,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 			},
 		}
 
-		manager := providerproc.NewManager()
+		manager := compiler.NewManager()
 		defer manager.Shutdown(context.Background())
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
@@ -97,7 +96,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 			entries: map[string]string{},
 		}
 
-		manager := providerproc.NewManager()
+		manager := compiler.NewManager()
 		defer manager.Shutdown(context.Background())
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)

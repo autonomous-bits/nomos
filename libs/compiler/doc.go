@@ -60,4 +60,4 @@
 //
 // The Manager is safe for concurrent use. Multiple goroutines can call GetProvider
 // simultaneously; the Manager ensures only one subprocess is started per alias.
-package providerproc
+package compiler

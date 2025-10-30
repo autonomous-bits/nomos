@@ -1,10 +1,9 @@
-package providerproc
+package compiler
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/autonomous-bits/nomos/libs/compiler"
 	providerv1 "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go/nomos/provider/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -12,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// Client implements the compiler.Provider interface by delegating to a gRPC provider service.
+// Client implements the Provider interface by delegating to a gRPC provider service.
 // It wraps a gRPC client connection and translates between the local Provider interface
 // and the remote gRPC calls.
 type Client struct {
@@ -31,7 +30,7 @@ func NewClient(conn *grpc.ClientConn, alias string) *Client {
 }
 
 // Init initializes the provider via the gRPC Init RPC.
-func (c *Client) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (c *Client) Init(ctx context.Context, opts ProviderInitOptions) error {
 	// Convert config map to protobuf Struct
 	configStruct, err := structpb.NewStruct(opts.Config)
 	if err != nil {
