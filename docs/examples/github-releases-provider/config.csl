@@ -1,0 +1,37 @@
+// Declare the file provider from GitHub Releases
+source file as configs {
+  version = "1.0.0"
+  
+  // Optional: Specify GitHub source explicitly
+  // If omitted, nomos will use default source for known providers
+  source = {
+    github = {
+      owner = "autonomous-bits"
+      repo = "nomos-provider-file"
+    }
+  }
+  
+  config = {
+    directory = "./data"
+  }
+}
+
+// Import multiple configurations
+prod_db = import configs["database"]["prod"]
+staging_db = import configs["database"]["staging"]
+
+// Compose final configuration
+config = {
+  environments = {
+    production = {
+      database = prod_db
+      replicas = 3
+    }
+    staging = {
+      database = staging_db
+      replicas = 1
+    }
+  }
+  app_name = "github-releases-example"
+  version = "1.0.0"
+}

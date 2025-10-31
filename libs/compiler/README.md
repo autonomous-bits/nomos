@@ -511,6 +511,73 @@ func main() {
 - Unit tests for merge semantics, reference resolution and provider behavior (use fakes/mocks for providers).
 - Integration tests compile fixtures in `testdata/` and assert snapshots. Keep tests deterministic and avoid external network calls.
 
+## External Providers
+
+The compiler supports external providers as separate executables that communicate via gRPC. This is the recommended approach for production use.
+
+### Overview
+
+External providers:
+- Run as subprocesses managed by the compiler
+- Implement the gRPC service contract defined in `libs/provider-proto`
+- Are distributed via GitHub Releases or local paths
+- Provide isolation, independent versioning, and language flexibility
+
+### Using External Providers
+
+The compiler's `internal/providerproc` package manages external provider processes:
+
+```go
+import (
+	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/providerproc"
+)
+
+// Create provider process manager
+manager := providerproc.NewManager()
+defer manager.Shutdown(context.Background())
+
+// Get provider (starts subprocess if not already running)
+provider, err := manager.GetProvider(
+	ctx,
+	"configs",                                    // alias
+	".nomos/providers/file/1.0.0/darwin-arm64/provider", // binary path
+	compiler.ProviderInitOptions{
+		Alias:  "configs",
+		Config: map[string]any{"directory": "./data"},
+	},
+)
+if err != nil {
+	return err
+}
+
+// Use provider through standard interface
+data, err := provider.Fetch(ctx, []string{"database", "prod"})
+```
+
+### Provider Discovery and Installation
+
+Users install providers with the `nomos init` CLI command:
+
+```bash
+# From GitHub Releases (default)
+nomos init config.csl
+
+# From local binary
+nomos init --from configs=/path/to/provider config.csl
+```
+
+This creates:
+- `.nomos/providers/` - Installed provider binaries
+- `.nomos/providers.lock.json` - Version and checksum lock file
+
+### Documentation
+
+- **For users**: See [docs/examples](../../docs/examples/) for usage examples
+- **For provider authors**: See [docs/guides/provider-authoring-guide.md](../../docs/guides/provider-authoring-guide.md)
+- **Architecture**: See [docs/architecture/nomos-external-providers-feature-breakdown.md](../../docs/architecture/nomos-external-providers-feature-breakdown.md)
+- **gRPC contract**: See [libs/provider-proto](../provider-proto/README.md)
+
 ## Versioning
 
 - Tag releases as `libs/compiler/vX.Y.Z` and follow semantic versioning. Breaking API changes require a major version bump.

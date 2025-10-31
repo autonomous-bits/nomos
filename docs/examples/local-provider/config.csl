@@ -1,0 +1,17 @@
+// Declare the file provider with local installation
+source file as configs {
+  version = "1.0.0"
+  config = {
+    directory = "./data"
+  }
+}
+
+// Import configuration from the provider
+database_config = import configs["database"]["prod"]
+
+// Use the imported configuration
+config = {
+  database = database_config
+  app_name = "example-app"
+  environment = "local-development"
+}

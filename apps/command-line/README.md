@@ -799,6 +799,103 @@ Features:
 
 Use `--strict` to treat warnings as errors (causes exit code 1).
 
+## External Providers
+
+Nomos uses external providers as separate executables for fetching configuration data. This is the recommended approach for production use.
+
+### Overview
+
+External providers:
+- Are standalone executables distributed via GitHub Releases or local paths
+- Communicate with the compiler via gRPC
+- Support any language with gRPC support (Go, Python, Node.js, etc.)
+- Provide isolation, independent versioning, and security boundaries
+
+### Installing Providers
+
+Use `nomos init` to install providers before building:
+
+```bash
+# Install from GitHub Releases (automatic download)
+nomos init config.csl
+
+# Install from local binary
+nomos init --from configs=/path/to/provider config.csl
+
+# Install with custom OS/arch
+nomos init --os linux --arch amd64 config.csl
+```
+
+This creates:
+- `.nomos/providers/` — Installed provider binaries
+- `.nomos/providers.lock.json` — Lock file with versions and checksums
+
+### Building with Providers
+
+Once providers are installed, use `nomos build` as normal:
+
+```bash
+nomos build config.csl
+```
+
+The compiler will:
+1. Read the lock file to locate provider binaries
+2. Start provider subprocesses as needed
+3. Call provider RPCs to fetch data
+4. Shut down providers after compilation
+
+### Workflow Example
+
+Complete workflow from scratch:
+
+```bash
+# 1. Create configuration using providers
+cat > config.csl << 'EOF'
+source file as configs {
+  version = "1.0.0"
+  config = {
+    directory = "./data"
+  }
+}
+
+config = import configs["database"]["prod"]
+EOF
+
+# 2. Initialize providers
+nomos init config.csl
+# → Downloads nomos-provider-file from GitHub
+# → Creates .nomos/providers/ and lock file
+
+# 3. Build configuration
+nomos build config.csl -o output.json
+# → Starts file provider subprocess
+# → Fetches data via gRPC
+# → Compiles to output.json
+
+# 4. Subsequent builds use cached provider
+nomos build config.csl
+# → Reuses already-installed provider (fast)
+```
+
+### Upgrading Providers
+
+To upgrade to newer provider versions:
+
+```bash
+# Update version in config.csl
+sed -i 's/version = "1.0.0"/version = "1.1.0"/' config.csl
+
+# Re-initialize with --upgrade flag
+nomos init --upgrade config.csl
+```
+
+### Documentation and Examples
+
+- **Usage examples**: See [docs/examples](../../docs/examples/) for step-by-step guides
+- **Provider authoring**: See [docs/guides/provider-authoring-guide.md](../../docs/guides/provider-authoring-guide.md)
+- **Migration guide**: See [docs/guides/external-providers-migration.md](../../docs/guides/external-providers-migration.md)
+- **Architecture**: See [docs/architecture/nomos-external-providers-feature-breakdown.md](../../docs/architecture/nomos-external-providers-feature-breakdown.md)
+
 ## Development notes
 
 - Use the Go workspace at the repo root for local development: `go work use ./apps/command-line ./libs/compiler ./libs/parser`.

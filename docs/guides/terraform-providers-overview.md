@@ -80,6 +80,90 @@ While this document is an overview, the following links are the canonical refere
 
 ---
 
+## Nomos External Providers
+
+Nomos implements a similar external provider model inspired by Terraform's architecture, adapted for configuration compilation rather than infrastructure management.
+
+### Key Similarities
+
+- **Subprocess model**: Nomos compiler starts provider executables as separate processes
+- **gRPC communication**: Providers communicate via gRPC (like modern Terraform providers)
+- **Discovery and installation**: `nomos init` discovers and installs provider binaries (similar to `terraform init`)
+- **Lock file**: `.nomos/providers.lock.json` ensures reproducible builds (similar to `.terraform.lock.hcl`)
+- **Version constraints**: Providers are versioned and constraints are enforced
+
+### Key Differences
+
+- **Purpose**: Nomos providers fetch configuration data for compilation, not manage infrastructure lifecycle
+- **Operations**: Providers implement `Init`, `Fetch`, `Info`, `Health`, and `Shutdown` (not CRUD operations)
+- **No central registry**: Providers are distributed via GitHub Releases or local paths, not a centralized registry
+- **Simpler contract**: Nomos providers have a focused contract for data retrieval
+
+### For Nomos Users
+
+If you're using Nomos providers:
+
+1. **Declare providers in `.csl` files**:
+   ```csl
+   source file as configs {
+     version = "1.0.0"
+     config = {
+       directory = "./configs"
+     }
+   }
+   
+   config = import configs["database"]["prod"]
+   ```
+
+2. **Install providers with `nomos init`**:
+   ```bash
+   # From GitHub Releases (default)
+   nomos init config.csl
+   
+   # From local path
+   nomos init --from configs=/path/to/provider config.csl
+   ```
+
+3. **Build configurations**:
+   ```bash
+   nomos build config.csl
+   ```
+
+**Learn more**: See [External Providers Migration Guide](./external-providers-migration.md) for detailed usage instructions.
+
+### For Provider Authors
+
+If you're building a Nomos provider:
+
+1. **Implement the gRPC contract** defined in `libs/provider-proto`
+2. **Follow naming conventions**: `nomos-provider-{type}-{version}-{os}-{arch}`
+3. **Publish to GitHub Releases** with checksums
+4. **Document configuration** requirements and usage
+
+**Learn more**: See [Provider Authoring Guide](./provider-authoring-guide.md) for complete implementation instructions.
+
+### Comparison Table
+
+| Aspect | Terraform | Nomos |
+|--------|-----------|-------|
+| **Purpose** | Infrastructure management | Configuration compilation |
+| **Communication** | gRPC | gRPC |
+| **Process model** | Subprocess per provider | Subprocess per provider alias |
+| **Operations** | CRUD + Read | Init + Fetch |
+| **Distribution** | Terraform Registry | GitHub Releases + local |
+| **Discovery** | `terraform init` | `nomos init` |
+| **Lock file** | `.terraform.lock.hcl` | `.nomos/providers.lock.json` |
+| **Version constraints** | HCL syntax | Semver in source declarations |
+
+### Additional Resources
+
+- [External Providers Architecture](../architecture/nomos-external-providers-feature-breakdown.md) - Technical specification
+- [Provider Authoring Guide](./provider-authoring-guide.md) - Complete guide for building providers
+- [External Providers Migration Guide](./external-providers-migration.md) - Migration from in-process providers
+- [Provider Proto Documentation](../../libs/provider-proto/README.md) - gRPC contract reference
+
+---
+
 Sources
 - How Terraform Works With Plugins (HashiCorp)
 - Additional links from HashiCorp docs: Plugin Protocol, Framework/SDKv2, Testing, Logging, Publishing, Mux
