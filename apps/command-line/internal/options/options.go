@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/providers/file"
 )
 
 // BuildParams holds the parameters for building compiler.Options.
@@ -39,14 +38,16 @@ type BuildParams struct {
 }
 
 // NewProviderRegistries creates default provider and provider type registries.
-// It checks for a lockfile (.nomos/providers.lock.json) and if found, wires up
-// support for external provider subprocesses. Otherwise, it registers the
-// in-process file provider for backward compatibility.
+// BREAKING CHANGE: As of v0.3.0, only external providers are supported.
+// In-process providers have been removed. Users must run 'nomos init' to install
+// provider binaries before running 'nomos build'.
 //
-// When a lockfile is present:
-//   - Creates a ProviderResolver that locates provider binaries
-//   - Creates a ProviderTypeRegistry with resolver and manager support
-//   - External provider processes will be managed by the compiler
+// This function requires a lockfile (.nomos/providers.lock.json) to be present.
+// If the lockfile is missing or malformed, an empty registry is returned and
+// compilation will fail with a clear error message instructing users to run
+// 'nomos init'.
+//
+// Migration guide: https://github.com/autonomous-bits/nomos/blob/main/docs/guides/external-providers-migration.md
 //
 // Returns provider registry and provider type registry.
 func NewProviderRegistries() (compiler.ProviderRegistry, compiler.ProviderTypeRegistry) {
@@ -57,36 +58,31 @@ func NewProviderRegistries() (compiler.ProviderRegistry, compiler.ProviderTypeRe
 	manifestPath := ".nomos/providers.yaml"
 
 	// Check if lockfile exists
-	if _, err := os.Stat(lockfilePath); err == nil {
-		// Lockfile exists - use external providers via providerproc
-		baseDirFunc := func() string {
-			// Get absolute path to .nomos/providers directory
-			wd, _ := os.Getwd()
-			return filepath.Join(wd, ".nomos", "providers")
-		}
-
-		// Create lockfile-based resolver
-		resolver, err := compiler.NewLockfileProviderResolver(lockfilePath, manifestPath, baseDirFunc)
-		if err != nil {
-			// If resolver creation fails, fall back to in-process providers
-			// This allows build to work even with a malformed lockfile
-			// (compile will fail later with clear errors if providers are needed)
-			providerTypeRegistry := compiler.NewProviderTypeRegistry()
-			providerTypeRegistry.RegisterType("file", file.NewFileProviderFromConfig)
-			return providerRegistry, providerTypeRegistry
-		}
-
-		// Create provider type registry with lockfile resolver
-		// The registry will internally create and manage the provider process manager
-		// Provider subprocesses will be cleaned up by the OS when the CLI process exits
-		providerTypeRegistry := compiler.NewProviderTypeRegistryWithLockfile(resolver)
-
-		return providerRegistry, providerTypeRegistry
+	if _, err := os.Stat(lockfilePath); err != nil {
+		// BREAKING CHANGE: No fallback to in-process providers
+		// Return empty registry - compiler will fail with clear error
+		return providerRegistry, compiler.NewProviderTypeRegistry()
 	}
 
-	// No lockfile - use in-process providers (backward compatibility)
-	providerTypeRegistry := compiler.NewProviderTypeRegistry()
-	providerTypeRegistry.RegisterType("file", file.NewFileProviderFromConfig)
+	// Lockfile exists - use external providers via providerproc
+	baseDirFunc := func() string {
+		// Get absolute path to .nomos/providers directory
+		wd, _ := os.Getwd()
+		return filepath.Join(wd, ".nomos", "providers")
+	}
+
+	// Create lockfile-based resolver
+	resolver, err := compiler.NewLockfileProviderResolver(lockfilePath, manifestPath, baseDirFunc)
+	if err != nil {
+		// BREAKING CHANGE: No fallback to in-process providers
+		// Return empty registry - compiler will fail with clear error about malformed lockfile
+		return providerRegistry, compiler.NewProviderTypeRegistry()
+	}
+
+	// Create provider type registry with lockfile resolver
+	// The registry will internally create and manage the provider process manager
+	// Provider subprocesses will be cleaned up by the OS when the CLI process exits
+	providerTypeRegistry := compiler.NewProviderTypeRegistryWithLockfile(resolver)
 
 	return providerRegistry, providerTypeRegistry
 }

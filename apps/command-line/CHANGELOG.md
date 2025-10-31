@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+- **In-process providers removed** (#51): External providers now required
+  - `NewProviderRegistries()` no longer registers in-process `file` provider as fallback
+  - Missing or malformed lockfile (`.nomos/providers.lock.json`) returns empty registry
+  - Build fails with clear error message directing users to run `nomos init`
+  - Example error: "provider type 'file' not found: external providers are required (in-process providers removed in v0.3.0). Run 'nomos init' to install provider binaries."
+  - Removed import of `github.com/autonomous-bits/nomos/libs/compiler/providers/file`
+  - Migration guide: `docs/guides/external-providers-migration.md`
+  - CI/CD pipelines must add `nomos init` step before `nomos build`
+
 ### Added
 - [CLI] `nomos init` command for discovering and installing provider dependencies (#46)
   - Scans `.csl` files to discover provider requirements (alias, type, version)

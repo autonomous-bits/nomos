@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+- **In-process providers removed** (#51): All providers must now be external executables
+  - Removed `libs/compiler/providers/file` package and all in-process provider support
+  - `RegisterType("file", file.NewFileProviderFromConfig)` no longer available
+  - Users must run `nomos init` to install provider binaries before `nomos build`
+  - Clear error messages guide users to migration steps when providers are missing
+  - Error message format: "provider type {type} not found: external providers are required (in-process providers removed in v0.3.0). Run 'nomos init' to install provider binaries. See migration guide: https://github.com/autonomous-bits/nomos/blob/main/docs/guides/external-providers-migration.md"
+  - Migration guide available at `docs/guides/external-providers-migration.md`
+  - File provider now distributed separately at `github.com/autonomous-bits/nomos-provider-file`
+
 ### Added
 - **Test Infrastructure**: New reusable fake provider gRPC server for testing
   - `test/fakes/FakeProviderServer` implementing complete `nomos.provider.v1` gRPC interface

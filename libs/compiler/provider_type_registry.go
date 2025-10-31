@@ -66,15 +66,13 @@ func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager Prov
 func NewProviderTypeRegistryWithLockfile(resolver ProviderResolver) ProviderTypeRegistry {
 	// Create the provider manager internally
 	manager := NewManager()
-	
+
 	return &providerTypeRegistry{
 		constructors: make(map[string]ProviderTypeConstructor),
 		resolver:     resolver,
 		manager:      manager,
 	}
 }
-
-
 
 // RegisterType implements ProviderTypeRegistry.RegisterType.
 func (r *providerTypeRegistry) RegisterType(typeName string, constructor ProviderTypeConstructor) {
@@ -124,7 +122,11 @@ func (r *providerTypeRegistry) CreateProvider(typeName string, config map[string
 	}
 
 	// No constructor or resolver available
-	return nil, fmt.Errorf("provider type %q not registered", typeName)
+	// BREAKING CHANGE (v0.3.0): In-process providers have been removed.
+	// Provide clear migration guidance to users.
+	return nil, fmt.Errorf("provider type %q not found: external providers are required (in-process providers removed in v0.3.0). "+
+		"Run 'nomos init' to install provider binaries. "+
+		"See migration guide: https://github.com/autonomous-bits/nomos/blob/main/docs/guides/external-providers-migration.md", typeName)
 }
 
 // IsTypeRegistered implements ProviderTypeRegistry.IsTypeRegistered.
@@ -148,5 +150,3 @@ func (r *providerTypeRegistry) RegisteredTypes() []string {
 
 	return types
 }
-
-
