@@ -139,6 +139,8 @@ jobs:
         run: |
           mkdir -p ../../bin
           go build -o ../../bin/nomos ./cmd/nomos
+          # Also create binary with test name for integration tests
+          cp ../../bin/nomos ../../bin/nomos-test
           ../../bin/nomos build --help
       
       - name: Run integration tests
