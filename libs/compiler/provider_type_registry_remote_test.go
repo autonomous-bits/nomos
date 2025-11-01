@@ -19,7 +19,9 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 
 		// Setup fake manager
 		manager := compiler.NewManager()
-		defer manager.Shutdown(context.Background())
+		defer func() {
+			_ = manager.Shutdown(context.Background())
+		}()
 
 		// Create registry with resolver and manager
 		registry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)

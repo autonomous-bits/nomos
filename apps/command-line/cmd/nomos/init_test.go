@@ -67,7 +67,9 @@ func TestInitCommand_LocalProviderCopy(t *testing.T) {
 
 	// Change to project directory for init
 	oldWd, _ := os.Getwd()
-	defer os.Chdir(oldWd)
+	defer func() {
+		_ = os.Chdir(oldWd)
+	}()
 	if err := os.Chdir(projectDir); err != nil {
 		t.Fatalf("failed to chdir: %v", err)
 	}
@@ -111,7 +113,9 @@ func TestInitCommand_DryRun(t *testing.T) {
 
 	// Change to project directory
 	oldWd, _ := os.Getwd()
-	defer os.Chdir(oldWd)
+	defer func() {
+		_ = os.Chdir(oldWd)
+	}()
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatalf("failed to chdir: %v", err)
 	}

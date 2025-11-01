@@ -232,9 +232,9 @@ func TestFakeProvider_Reset(t *testing.T) {
 	fake.FetchResponses["key"] = "value"
 
 	// Perform some operations
-	fake.Init(ctx, opts)
-	fake.Fetch(ctx, []string{"key"})
-	fake.Fetch(ctx, []string{"key"})
+	_ = fake.Init(ctx, opts)
+	_, _ = fake.Fetch(ctx, []string{"key"})
+	_, _ = fake.Fetch(ctx, []string{"key"})
 
 	if fake.InitCount != 1 || fake.FetchCount != 2 {
 		t.Fatalf("setup failed: InitCount=%d, FetchCount=%d", fake.InitCount, fake.FetchCount)

@@ -1,0 +1,55 @@
+name: 'Setup Go Environment'
+description: 'Sets up Go with the correct version and workspace configuration for the Nomos monorepo'
+inputs:
+  go-version:
+    description: 'Go version to use'
+    required: false
+    default: '1.25.3'
+  cache-dependency-path:
+    description: 'Path to go.sum files for caching'
+    required: false
+    default: |
+      apps/command-line/go.sum
+      libs/compiler/go.sum
+      libs/parser/go.sum
+      libs/provider-proto/go.sum
+      go.work.sum
+  working-directory:
+    description: 'Working directory for workspace verification'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache: true
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+    
+    - name: Verify Go workspace
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "=== Go Environment ==="
+        go version
+        echo ""
+        
+        if [ ! -f go.work ]; then
+          echo "::warning::go.work not found in $(pwd), creating it..."
+          go work init
+          go work use ./libs/parser || true
+          go work use ./libs/compiler || true
+          go work use ./libs/provider-proto || true
+          go work use ./apps/command-line || true
+          go work sync
+        else
+          echo "go.work found, syncing workspace..."
+          go work sync
+        fi
+        
+        echo ""
+        echo "=== Workspace Modules ==="
+        go work edit -json | grep -A 1 "Use" || true

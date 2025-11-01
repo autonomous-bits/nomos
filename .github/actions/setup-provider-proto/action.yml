@@ -1,0 +1,23 @@
+name: 'Setup Provider Proto'
+description: 'Installs buf and generates Go code from protobuf definitions for the provider-proto library'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install buf
+      shell: bash
+      run: |
+        echo "Installing buf..."
+        go install github.com/bufbuild/buf/cmd/buf@v1.47.2
+        echo "$HOME/go/bin" >> $GITHUB_PATH
+    
+    - name: Generate protobuf code
+      shell: bash
+      working-directory: libs/provider-proto
+      run: |
+        echo "Generating Go code from protobuf definitions..."
+        buf generate
+        
+        echo ""
+        echo "=== Generated Files ==="
+        find gen -type f -name "*.go" | head -10 || echo "No files generated"

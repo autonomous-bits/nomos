@@ -33,7 +33,9 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		}
 
 		manager := compiler.NewManager()
-		defer manager.Shutdown(context.Background())
+		defer func() {
+			_ = manager.Shutdown(context.Background())
+		}()
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
@@ -57,7 +59,9 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		}
 
 		manager := compiler.NewManager()
-		defer manager.Shutdown(context.Background())
+		defer func() {
+			_ = manager.Shutdown(context.Background())
+		}()
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
@@ -97,7 +101,9 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		}
 
 		manager := compiler.NewManager()
-		defer manager.Shutdown(context.Background())
+		defer func() {
+			_ = manager.Shutdown(context.Background())
+		}()
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
