@@ -232,7 +232,7 @@ func TestFakeProvider_Reset(t *testing.T) {
 	fake.FetchResponses["key"] = "value"
 
 	// Perform some operations
-	_, _ = fake.Init(ctx, opts)
+	_ = fake.Init(ctx, opts)
 	_, _ = fake.Fetch(ctx, []string{"key"})
 	_, _ = fake.Fetch(ctx, []string{"key"})
 
