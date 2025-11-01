@@ -129,7 +129,7 @@ func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath stri
 	_, err = healthClient.Health(ctx, &providerv1.HealthRequest{})
 	if err != nil {
 		conn.Close()
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		return nil, fmt.Errorf("provider health check failed: %w", err)
 	}
 
