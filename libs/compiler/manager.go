@@ -101,7 +101,7 @@ func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath stri
 			portStr := strings.TrimPrefix(line, "PROVIDER_PORT=")
 			port, err = strconv.Atoi(portStr)
 			if err != nil {
-				cmd.Process.Kill()
+				_ = cmd.Process.Kill()
 				return nil, fmt.Errorf("invalid port format: %s", portStr)
 			}
 			break
@@ -109,7 +109,7 @@ func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath stri
 	}
 
 	if port == 0 {
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		return nil, fmt.Errorf("provider did not report port")
 	}
 
@@ -120,7 +120,7 @@ func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath stri
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		return nil, fmt.Errorf("failed to connect to provider: %w", err)
 	}
 

@@ -24,7 +24,9 @@ func TestREADMEExamples(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
-	defer os.Chdir(origDir)
+	defer func() {
+		_ = os.Chdir(origDir)
+	}()
 
 	cliDir := filepath.Dir(origDir) // One level up from test/ to apps/command-line/
 	if err := os.Chdir(cliDir); err != nil {
