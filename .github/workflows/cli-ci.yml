@@ -134,17 +134,18 @@ jobs:
         working-directory: apps/command-line
         run: go mod download
       
+      - name: Build CLI binary
+        working-directory: apps/command-line
+        run: |
+          mkdir -p ../../bin
+          go build -o ../../bin/nomos ./cmd/nomos
+          ../../bin/nomos build --help
+      
       - name: Run integration tests
         working-directory: apps/command-line
         run: |
           # Run integration tests from test/ directory
           go test -v -timeout 10m ./test/...
-      
-      - name: Build CLI binary for validation
-        working-directory: apps/command-line
-        run: |
-          go build -o ../../bin/nomos ./cmd/nomos
-          ../../bin/nomos build --help
 
   # Determinism test - runs same build multiple times to verify byte-for-byte stability
   determinism:
