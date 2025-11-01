@@ -64,12 +64,17 @@ jobs:
         working-directory: apps/command-line
         run: go mod download
       
-      - name: Run unit tests
+      - name: Run unit tests with race detector
         working-directory: apps/command-line
         run: |
-          # Run unit tests only (exclude integration tests in test/ directory)
-          go test -v -race -coverprofile=coverage.out -covermode=atomic \
-            ./internal/... ./cmd/...
+          # Run unit tests with race detector (exclude integration tests in test/ directory)
+          go test -v -race ./internal/... ./cmd/...
+      
+      - name: Run unit tests with coverage
+        working-directory: apps/command-line
+        run: |
+          # Run unit tests with coverage (exclude integration tests in test/ directory)
+          go test -v -coverprofile=coverage.out -covermode=atomic ./internal/... ./cmd/...
       
       - name: Calculate coverage
         working-directory: apps/command-line
