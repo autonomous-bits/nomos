@@ -218,9 +218,9 @@ jobs:
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
       
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          working-directory: apps/command-line
-          args: --timeout=5m
+        working-directory: apps/command-line
+        run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
