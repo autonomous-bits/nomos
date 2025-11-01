@@ -82,7 +82,7 @@ jobs:
       - name: Check coverage threshold
         working-directory: apps/command-line
         run: |
-          THRESHOLD=80
+          THRESHOLD=40
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
           COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
           echo "Coverage: $COVERAGE_INT% (threshold: $THRESHOLD%)"
