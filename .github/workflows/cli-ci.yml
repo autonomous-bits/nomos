@@ -7,16 +7,20 @@ on:
       - 'apps/command-line/**'
       - 'libs/compiler/**'
       - 'libs/parser/**'
+      - 'libs/provider-proto/**'
       - 'go.work'
       - '.github/workflows/cli-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'apps/command-line/**'
       - 'libs/compiler/**'
       - 'libs/parser/**'
+      - 'libs/provider-proto/**'
       - 'go.work'
       - '.github/workflows/cli-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
 
 jobs:
   # Fast unit tests - should complete in ~2 minutes
@@ -38,6 +42,9 @@ jobs:
             libs/compiler/go.sum
             libs/parser/go.sum
             go.work.sum
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
       
       - name: Verify Go workspace
         run: |
@@ -113,6 +120,9 @@ jobs:
             libs/parser/go.sum
             go.work.sum
       
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -163,6 +173,9 @@ jobs:
             libs/parser/go.sum
             go.work.sum
       
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -201,6 +214,9 @@ jobs:
         with:
           go-version: '1.22'
           cache: true
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
       
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4

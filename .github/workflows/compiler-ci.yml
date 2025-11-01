@@ -5,14 +5,18 @@ on:
     branches: [ main ]
     paths:
       - 'libs/compiler/**'
+      - 'libs/provider-proto/**'
       - 'go.work'
       - '.github/workflows/compiler-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'libs/compiler/**'
+      - 'libs/provider-proto/**'
       - 'go.work'
       - '.github/workflows/compiler-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
 
 jobs:
   test:
@@ -32,6 +36,9 @@ jobs:
             libs/compiler/go.sum
             libs/parser/go.sum
             go.work.sum
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
       
       - name: Verify Go workspace
         run: |
@@ -98,6 +105,9 @@ jobs:
           go-version: '1.22'
           cache: true
       
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
@@ -118,6 +128,9 @@ jobs:
         with:
           go-version: '1.22'
           cache: true
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
       
       - name: Verify Go workspace
         run: |
