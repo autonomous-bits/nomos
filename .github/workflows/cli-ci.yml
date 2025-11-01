@@ -184,6 +184,15 @@ jobs:
         working-directory: apps/command-line
         run: go mod download
       
+      - name: Build CLI binary
+        working-directory: apps/command-line
+        run: |
+          mkdir -p ../../bin
+          go build -o ../../bin/nomos ./cmd/nomos
+          # Also create binary with test name for integration tests
+          cp ../../bin/nomos ../../bin/nomos-test
+          ../../bin/nomos build --help
+      
       - name: Run determinism test
         working-directory: apps/command-line
         run: |
