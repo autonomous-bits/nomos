@@ -18,7 +18,9 @@ func TestScannerReadValue(t *testing.T) {
 	fmt.Printf("Key: %q\n", key)
 
 	// Expect ':'
-	s.Expect(':')
+	if err := s.Expect(':'); err != nil {
+		t.Fatalf("expected ':', got error: %v", err)
+	}
 
 	// Skip whitespace
 	s.SkipWhitespace()
