@@ -1,0 +1,20 @@
+source:
+  alias: 'configs'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+environments:
+  production_full: reference:configs:prod.database
+  staging_full: reference:configs:staging.database
+  production_db_name: reference:configs:prod.database.name
+  staging_db_name: reference:configs:staging.database.name
+  production:
+    database_name: reference:configs:prod.database.name
+    host: reference:configs:prod.database.host
+  staging:
+    database_name: reference:configs:staging.database.name
+    host: reference:configs:staging.database.host
+
+app:
+  name: 'example-app'

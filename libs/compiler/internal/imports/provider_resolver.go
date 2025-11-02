@@ -179,30 +179,47 @@ func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath stri
 		return fmt.Errorf("cannot create provider %q: type registry not provided", src.Alias)
 	}
 
-	// Create provider from type
+	// Create and initialize the provider once
 	provider, err := typeRegistry.CreateProvider(src.Type, src.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create provider %q of type %q: %w", src.Alias, src.Type, err)
 	}
 
-	// Initialize the provider
-	opts := ProviderInitOptions{
+	// Initialize the provider with the config from source declaration
+	initOpts := ProviderInitOptions{
 		Alias:          src.Alias,
 		Config:         src.Config,
 		SourceFilePath: sourceFilePath,
 	}
 
-	if err := provider.Init(ctx, opts); err != nil {
+	if err := provider.Init(ctx, initOpts); err != nil {
 		return fmt.Errorf("failed to initialize provider %q: %w", src.Alias, err)
 	}
 
-	// Register the initialized provider instance
-	// We need to wrap it in a constructor for the registry
+	// Register a constructor that returns the already-initialized provider instance
+	// This avoids double-initialization when the registry's GetProvider is called
 	registry.Register(src.Alias, func(opts ProviderInitOptions) (Provider, error) {
-		return provider, nil
+		// Return the cached, already-initialized provider
+		// The registry will call Init on it, but we'll wrap it to make Init a no-op
+		return &alreadyInitializedProvider{provider: provider}, nil
 	})
 
 	return nil
+}
+
+// alreadyInitializedProvider wraps a provider that's already initialized
+// and makes the Init method a no-op to prevent double-initialization errors.
+type alreadyInitializedProvider struct {
+	provider Provider
+}
+
+func (p *alreadyInitializedProvider) Init(ctx context.Context, opts ProviderInitOptions) error {
+	// No-op: provider is already initialized
+	return nil
+}
+
+func (p *alreadyInitializedProvider) Fetch(ctx context.Context, path []string) (any, error) {
+	return p.provider.Fetch(ctx, path)
 }
 
 // resolveImport resolves a single import using the provider.

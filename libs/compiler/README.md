@@ -239,26 +239,28 @@ Example with path navigation:
 
 ```go
 // File provider pointing to ./configs directory containing storage.csl:
-// storage:
-//   type: 's3'
-//   region: 'us-west-2'
-// buckets:
-//   primary: 'my-app-data'
-// encryption:
-//   algorithm: 'AES256'
+// config:
+//   storage:
+//     type: 's3'
+//     region: 'us-west-2'
+//   buckets:
+//     primary: 'my-app-data'
+//   encryption:
+//     algorithm: 'AES256'
 
 // Configuration with references using path navigation
 config := `
 source:
   alias: 'configs'
-  type: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
   directory: './configs'
 
 app:
-  storage_type: reference:configs:storage.storage.type        # Resolves to 's3'
-  region: reference:configs:storage.storage.region            # Resolves to 'us-west-2'
-  bucket: reference:configs:storage.buckets.primary           # Resolves to 'my-app-data'
-  encryption: reference:configs:storage.encryption.algorithm  # Resolves to 'AES256'
+  storage_type: reference:configs:storage.config.storage.type        # Resolves to 's3'
+  region: reference:configs:storage.config.storage.region            # Resolves to 'us-west-2'
+  bucket: reference:configs:storage.config.buckets.primary           # Resolves to 'my-app-data'
+  encryption: reference:configs:storage.config.encryption.algorithm  # Resolves to 'AES256'
 `
 
 // Compile with provider
@@ -563,8 +565,8 @@ Users install providers with the `nomos init` CLI command:
 # From GitHub Releases (default)
 nomos init config.csl
 
-# From local binary
-nomos init --from configs=/path/to/provider config.csl
+# For local/testing scenarios: copy the provider binary into the `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider`
+# layout and then run `nomos init` to record it in the lockfile (see docs/examples/local-provider for details).
 ```
 
 This creates:

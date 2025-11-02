@@ -35,25 +35,27 @@ reference:{alias}:{filename}.{path.to.value}
 
 Given a file `storage.csl` in a `configs` provider:
 ```
-storage:
-  type: 's3'
-buckets:
-  primary: 'my-app-data'
-encryption:
-  algorithm: 'AES256'
+config:
+  storage:
+    type: 's3'
+  buckets:
+    primary: 'my-app-data'
+  encryption:
+    algorithm: 'AES256'
 ```
 
 You can reference specific values:
 ```
 source:
   alias: 'configs'
-  type: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
   directory: './shared-configs'
 
 app:
-  storage_type: reference:configs:storage.storage.type        # Resolves to 's3'
-  bucket: reference:configs:storage.buckets.primary           # Resolves to 'my-app-data'
-  encryption: reference:configs:storage.encryption.algorithm  # Resolves to 'AES256'
+  storage_type: reference:configs:storage.config.storage.type        # Resolves to 's3'
+  bucket: reference:configs:storage.config.buckets.primary           # Resolves to 'my-app-data'
+  encryption: reference:configs:storage.config.encryption.algorithm  # Resolves to 'AES256'
 ```
 
 ### Source Provider Types
@@ -66,16 +68,18 @@ app:
 ```
 source:
   alias: 'configs'
-  type: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
   directory: './shared-configs'
 
 import:configs:base
 
 app:
   name: 'my-app'
-  # Reference specific values from files using dot notation
-  db_host: reference:configs:database.connection.host
-  storage_type: reference:configs:storage.type
+  database:
+    host: reference:configs:database.connection.host
+  storage:
+    type: reference:configs:storage.config.type
   
 config-section-name:
   key1: value1

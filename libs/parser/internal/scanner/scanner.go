@@ -115,6 +115,32 @@ func (s *Scanner) IsIndented() bool {
 	return s.col > 1 && s.pos > s.lineStart
 }
 
+// GetIndentLevel returns the indentation level (number of leading spaces/tabs) of the current line.
+// Must be called at the start of a line. Tabs count as 1 indent level each.
+func (s *Scanner) GetIndentLevel() int {
+	savedPos := s.pos
+	savedLine := s.line
+	savedCol := s.col
+
+	level := 0
+	for !s.IsEOF() {
+		ch := s.PeekChar()
+		if ch == ' ' || ch == '\t' {
+			level++
+			s.Advance()
+		} else {
+			break
+		}
+	}
+
+	// Restore position
+	s.pos = savedPos
+	s.line = savedLine
+	s.col = savedCol
+
+	return level
+}
+
 // PeekToken peeks at the next identifier token without consuming it.
 func (s *Scanner) PeekToken() string {
 	savedPos := s.pos

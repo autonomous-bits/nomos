@@ -11,40 +11,27 @@ import (
 	"testing"
 )
 
-// TestInitCommand_Integration_LocalProvider tests the full init workflow
-// with a local provider binary.
-func TestInitCommand_Integration_LocalProvider(t *testing.T) {
+// TestInitCommand_Integration_GitHubProvider tests the full init workflow
+// with a GitHub Releases provider. Requires NOMOS_RUN_NETWORK_INTEGRATION=1.
+func TestInitCommand_Integration_GitHubProvider(t *testing.T) {
+	// Skip unless network integration is explicitly enabled
+	if os.Getenv("NOMOS_RUN_NETWORK_INTEGRATION") != "1" {
+		t.Skip("Skipping network integration test. Set NOMOS_RUN_NETWORK_INTEGRATION=1 to run.")
+	}
+
 	// Build the nomos binary
 	nomosPath := buildNomosForTest(t)
 
-	// Create temp directories
-	tmpDir := t.TempDir()
-	providerDir := filepath.Join(tmpDir, "provider-binary")
-	projectDir := filepath.Join(tmpDir, "project")
+	// Create temp project directory
+	projectDir := t.TempDir()
 
-	if err := os.MkdirAll(providerDir, 0755); err != nil {
-		t.Fatalf("failed to create provider dir: %v", err)
-	}
-	if err := os.MkdirAll(projectDir, 0755); err != nil {
-		t.Fatalf("failed to create project dir: %v", err)
-	}
-
-	// Create a fake provider binary
-	providerBinary := filepath.Join(providerDir, "nomos-provider-file")
-	providerContent := `#!/bin/sh
-echo 'fake provider'
-`
-	if err := os.WriteFile(providerBinary, []byte(providerContent), 0755); err != nil {
-		t.Fatalf("failed to create provider binary: %v", err)
-	}
-
-	// Create .csl file with version and proper source declaration
+	// Create .csl file with owner/repo format
 	cslPath := filepath.Join(projectDir, "config.csl")
 	cslContent := `source:
 	alias: 'configs'
-	type: 'file'
-	version: '0.2.0'
-	directory: './configs'
+	type: 'autonomous-bits/nomos-provider-file'
+	version: '1.0.0'
+	directory: './data'
 
 app:
 	name: 'test-app'
@@ -54,8 +41,8 @@ app:
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
-	// Run nomos init with --from flag
-	cmd := exec.Command(nomosPath, "init", "--from", "configs="+providerBinary, cslPath)
+	// Run nomos init
+	cmd := exec.Command(nomosPath, "init", cslPath)
 	cmd.Dir = projectDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -77,12 +64,14 @@ app:
 	// Parse and validate lock file structure
 	var lockFile struct {
 		Providers []struct {
-			Alias   string `json:"alias"`
-			Type    string `json:"type"`
-			Version string `json:"version"`
-			OS      string `json:"os"`
-			Arch    string `json:"arch"`
-			Path    string `json:"path"`
+			Alias    string                 `json:"alias"`
+			Type     string                 `json:"type"`
+			Version  string                 `json:"version"`
+			OS       string                 `json:"os"`
+			Arch     string                 `json:"arch"`
+			Path     string                 `json:"path"`
+			Checksum string                 `json:"checksum"`
+			Source   map[string]interface{} `json:"source"`
 		} `json:"providers"`
 	}
 	if err := json.Unmarshal(lockData, &lockFile); err != nil {
@@ -97,11 +86,40 @@ app:
 	if provider.Alias != "configs" {
 		t.Errorf("expected alias 'configs', got '%s'", provider.Alias)
 	}
-	if provider.Type != "file" {
-		t.Errorf("expected type 'file', got '%s'", provider.Type)
+	if provider.Type != "autonomous-bits/nomos-provider-file" {
+		t.Errorf("expected type 'autonomous-bits/nomos-provider-file', got '%s'", provider.Type)
 	}
-	if provider.Version != "0.2.0" {
-		t.Errorf("expected version '0.2.0', got '%s'", provider.Version)
+	if provider.Version != "1.0.0" {
+		t.Errorf("expected version '1.0.0', got '%s'", provider.Version)
+	}
+
+	// Verify GitHub source metadata
+	github, ok := provider.Source["github"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected github metadata in source, got %T", provider.Source["github"])
+	}
+	if github["owner"] != "autonomous-bits" {
+		t.Errorf("expected owner 'autonomous-bits', got %v", github["owner"])
+	}
+	if github["repo"] != "nomos-provider-file" {
+		t.Errorf("expected repo 'nomos-provider-file', got %v", github["repo"])
+	}
+
+	// Verify release_tag is present (should be "v1.0.0" or "1.0.0")
+	releaseTag, ok := github["release_tag"].(string)
+	if !ok || releaseTag == "" {
+		t.Errorf("expected non-empty release_tag, got %v", github["release_tag"])
+	}
+
+	// Verify asset name is present
+	asset, ok := github["asset"].(string)
+	if !ok || asset == "" {
+		t.Errorf("expected non-empty asset name, got %v", github["asset"])
+	}
+
+	// Verify checksum is present
+	if provider.Checksum == "" {
+		t.Error("expected non-empty checksum")
 	}
 
 	// Verify binary installed at correct path
@@ -155,13 +173,13 @@ func TestInitCommand_Integration_DryRun(t *testing.T) {
 	nomosPath := buildNomosForTest(t)
 	tmpDir := t.TempDir()
 
-	// Create .csl file with version
+	// Create .csl file with owner/repo format
 	cslPath := filepath.Join(tmpDir, "config.csl")
 	cslContent := `source:
 	alias: 'configs'
-	type: 'file'
-	version: '0.2.0'
-	directory: './configs'
+	type: 'autonomous-bits/nomos-provider-file'
+	version: '1.0.0'
+	directory: './data'
 `
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)

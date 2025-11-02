@@ -1,0 +1,26 @@
+databases:
+  primary:
+    host: 'primary-db.example.com'
+    port: 5432
+    database: 'production'
+    connection:
+      max_pool_size: 20
+      timeout_ms: 5000
+  replica:
+    host: 'replica-db.example.com'
+    port: 5433
+    database: 'production'
+    connection:
+      max_pool_size: 10
+      timeout_ms: 3000
+  analytics:
+    host: 'analytics-db.example.com'
+    port: 5434
+    database: 'analytics'
+    connection:
+      max_pool_size: 5
+      timeout_ms: 10000
+
+app:
+  name: 'test-nested-app'
+  version: '1.0.0'

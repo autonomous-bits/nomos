@@ -13,9 +13,10 @@ type ProviderTypeConstructor func(config map[string]any) (Provider, error)
 
 // ProviderTypeRegistry manages provider type constructors.
 // This allows creating providers dynamically from source declarations in .csl files.
+// Provider types use owner/repo format for proper namespacing (e.g., "autonomous-bits/nomos-provider-file").
 type ProviderTypeRegistry interface {
 	// RegisterType registers a provider type constructor.
-	// Example: RegisterType("file", NewFileProvider)
+	// Example: RegisterType("autonomous-bits/nomos-provider-file", NewFileProvider)
 	RegisterType(typeName string, constructor ProviderTypeConstructor)
 
 	// CreateProvider creates a provider instance of the given type with the provided config.

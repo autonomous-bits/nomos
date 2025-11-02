@@ -25,7 +25,8 @@ type ManifestProvider struct {
 	// Alias is the provider alias used in .csl source declarations.
 	Alias string `yaml:"alias"`
 
-	// Type is the provider implementation type (e.g., "file", "http").
+	// Type is the provider type in owner/repo format (e.g., "autonomous-bits/nomos-provider-file").
+	// This provides proper namespacing and avoids conflicts between providers with similar names.
 	Type string `yaml:"type"`
 
 	// Source provides hints for where to obtain the provider binary.

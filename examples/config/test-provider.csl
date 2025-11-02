@@ -1,0 +1,10 @@
+source:
+  alias: 'configs'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+test:
+  whole_prod: reference:configs:prod
+  prod_database: reference:configs:prod.database
+  prod_database_name: reference:configs:prod.database.name

@@ -21,6 +21,7 @@ import (
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/resolver"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/validator"
+	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 ) // Options configures a compilation run.
 type Options struct {
 	// Path specifies the input file or directory to compile.
@@ -197,6 +198,15 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 			// so last-wins behavior is deterministic
 			data = DeepMergeWithProvenance(data, "", fileData, filePath, provenance)
 		}
+
+		// Initialize providers from source declarations in all input files
+		// This is necessary for inline references to work, even without import statements
+		// Only do this if we didn't already resolve via imports path
+		if opts.ProviderTypeRegistry != nil {
+			if err := initializeProvidersFromSources(ctx, inputFiles, opts); err != nil {
+				return Snapshot{}, fmt.Errorf("failed to initialize providers: %w", err)
+			}
+		}
 	}
 
 	// Perform semantic validation before reference resolution
@@ -315,6 +325,78 @@ func discoverInputFiles(path string) ([]string, error) {
 	sort.Strings(files)
 
 	return files, nil
+}
+
+// initializeProvidersFromSources parses input files, extracts source declarations,
+// and initializes providers in the registry. This ensures providers are available
+// for inline reference resolution, even without import statements.
+func initializeProvidersFromSources(ctx context.Context, inputFiles []string, opts Options) error {
+	for _, filePath := range inputFiles {
+		// Parse the file
+		tree, _, err := parse.ParseFile(filePath)
+		if err != nil {
+			// Skip files that can't be parsed - they'll fail in the main compilation flow
+			continue
+		}
+
+		// Extract source declarations
+		for _, stmt := range tree.Statements {
+			sourceDecl, ok := stmt.(*ast.SourceDecl)
+			if !ok {
+				continue
+			}
+
+			// Check if provider is already registered
+			if _, err := opts.ProviderRegistry.GetProvider(sourceDecl.Alias); err == nil {
+				// Already registered, skip
+				continue
+			}
+
+			// Convert config expressions to values
+			config := make(map[string]any)
+			for k, expr := range sourceDecl.Config {
+				config[k] = exprToConfigValue(expr)
+			}
+
+			// Create provider from type using the type registry
+			provider, err := opts.ProviderTypeRegistry.CreateProvider(sourceDecl.Type, config)
+			if err != nil {
+				return fmt.Errorf("failed to create provider %q of type %q: %w", sourceDecl.Alias, sourceDecl.Type, err)
+			}
+
+			// Initialize the provider
+			initOpts := ProviderInitOptions{
+				Alias:          sourceDecl.Alias,
+				Config:         config,
+				SourceFilePath: filePath,
+			}
+
+			if err := provider.Init(ctx, initOpts); err != nil {
+				return fmt.Errorf("failed to initialize provider %q: %w", sourceDecl.Alias, err)
+			}
+
+			// Register the provider
+			opts.ProviderRegistry.Register(sourceDecl.Alias, func(opts ProviderInitOptions) (Provider, error) {
+				return provider, nil
+			})
+		}
+	}
+
+	return nil
+}
+
+// exprToConfigValue converts an AST expression to a configuration value.
+func exprToConfigValue(expr ast.Expr) any {
+	switch e := expr.(type) {
+	case *ast.StringLiteral:
+		return e.Value
+	case *ast.ReferenceExpr:
+		// References in config are kept as-is for now
+		// Providers should handle them if needed
+		return e
+	default:
+		return nil
+	}
 }
 
 // resolveReferences resolves all ReferenceExpr nodes in the data using the resolver.

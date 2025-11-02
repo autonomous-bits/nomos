@@ -95,116 +95,54 @@
     },
     {
       "entries": {
-        "app_tag": {
-          "alias": "app",
-          "path": [
-            "tags",
-            "environment"
-          ],
-          "source_span": {
-            "end_col": 41,
-            "end_line": 26,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 12,
-            "start_line": 26
-          }
-        },
-        "backup1": {
-          "alias": "network",
-          "path": [
-            "backup1",
-            "host"
-          ],
-          "source_span": {
-            "end_col": 41,
-            "end_line": 14,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 12,
-            "start_line": 14
-          }
-        },
-        "backup2": {
-          "alias": "network",
-          "path": [
-            "backup2",
-            "host"
-          ],
-          "source_span": {
-            "end_col": 41,
-            "end_line": 16,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 12,
-            "start_line": 16
-          }
-        },
         "backup_hosts": {
+          "entries": {
+            "backup1": {
+              "alias": "network",
+              "path": [
+                "backup1",
+                "host"
+              ],
+              "source_span": {
+                "end_col": 41,
+                "end_line": 14,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 12,
+                "start_line": 14
+              }
+            },
+            "backup2": {
+              "alias": "network",
+              "path": [
+                "backup2",
+                "host"
+              ],
+              "source_span": {
+                "end_col": 41,
+                "end_line": 16,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 12,
+                "start_line": 16
+              }
+            },
+            "static_backup": {
+              "source_span": {
+                "end_col": 42,
+                "end_line": 15,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 18,
+                "start_line": 15
+              },
+              "value": "static-backup.example.com"
+            }
+          },
           "source_span": {
-            "end_col": 15,
-            "end_line": 13,
+            "end_col": 1,
+            "end_line": 17,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 15,
+            "start_col": 2,
             "start_line": 13
-          },
-          "value": ""
-        },
-        "deep_ref": {
-          "alias": "network",
-          "path": [
-            "deep",
-            "nested",
-            "value"
-          ],
-          "source_span": {
-            "end_col": 48,
-            "end_line": 22,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 14,
-            "start_line": 22
           }
-        },
-        "endpoint": {
-          "alias": "app",
-          "path": [
-            "api",
-            "endpoint"
-          ],
-          "source_span": {
-            "end_col": 38,
-            "end_line": 20,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 13,
-            "start_line": 20
-          }
-        },
-        "env": {
-          "source_span": {
-            "end_col": 17,
-            "end_line": 25,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 8,
-            "start_line": 25
-          },
-          "value": "production"
-        },
-        "literal": {
-          "source_span": {
-            "end_col": 25,
-            "end_line": 23,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 13,
-            "start_line": 23
-          },
-          "value": "literal-value"
-        },
-        "nested": {
-          "source_span": {
-            "end_col": 10,
-            "end_line": 21,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 10,
-            "start_line": 21
-          },
-          "value": ""
         },
         "primary_host": {
           "alias": "network",
@@ -220,65 +158,131 @@
             "start_line": 12
           }
         },
-        "region": {
-          "source_span": {
-            "end_col": 19,
-            "end_line": 27,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 11,
-            "start_line": 27
-          },
-          "value": "us-west-2"
-        },
-        "retry_count": {
-          "source_span": {
-            "end_col": 16,
-            "end_line": 19,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 16,
-            "start_line": 19
-          },
-          "value": "3"
-        },
         "settings": {
-          "source_span": {
-            "end_col": 11,
-            "end_line": 17,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 11,
-            "start_line": 17
+          "entries": {
+            "endpoint": {
+              "alias": "app",
+              "path": [
+                "api",
+                "endpoint"
+              ],
+              "source_span": {
+                "end_col": 38,
+                "end_line": 20,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 13,
+                "start_line": 20
+              }
+            },
+            "nested": {
+              "entries": {
+                "deep_ref": {
+                  "alias": "network",
+                  "path": [
+                    "deep",
+                    "nested",
+                    "value"
+                  ],
+                  "source_span": {
+                    "end_col": 48,
+                    "end_line": 22,
+                    "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                    "start_col": 14,
+                    "start_line": 22
+                  }
+                },
+                "literal": {
+                  "source_span": {
+                    "end_col": 25,
+                    "end_line": 23,
+                    "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                    "start_col": 13,
+                    "start_line": 23
+                  },
+                  "value": "literal-value"
+                }
+              },
+              "source_span": {
+                "end_col": 1,
+                "end_line": 24,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 3,
+                "start_line": 21
+              }
+            },
+            "retry_count": {
+              "source_span": {
+                "end_col": 16,
+                "end_line": 19,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 16,
+                "start_line": 19
+              },
+              "value": "3"
+            },
+            "timeout": {
+              "source_span": {
+                "end_col": 14,
+                "end_line": 18,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 12,
+                "start_line": 18
+              },
+              "value": "30s"
+            }
           },
-          "value": ""
-        },
-        "static_backup": {
           "source_span": {
-            "end_col": 42,
-            "end_line": 15,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 18,
-            "start_line": 15
-          },
-          "value": "static-backup.example.com"
-        },
-        "tags": {
-          "source_span": {
-            "end_col": 7,
+            "end_col": 1,
             "end_line": 24,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 7,
-            "start_line": 24
-          },
-          "value": ""
+            "start_col": 2,
+            "start_line": 17
+          }
         },
-        "timeout": {
-          "source_span": {
-            "end_col": 14,
-            "end_line": 18,
-            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-            "start_col": 12,
-            "start_line": 18
+        "tags": {
+          "entries": {
+            "app_tag": {
+              "alias": "app",
+              "path": [
+                "tags",
+                "environment"
+              ],
+              "source_span": {
+                "end_col": 41,
+                "end_line": 26,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 12,
+                "start_line": 26
+              }
+            },
+            "env": {
+              "source_span": {
+                "end_col": 17,
+                "end_line": 25,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 8,
+                "start_line": 25
+              },
+              "value": "production"
+            },
+            "region": {
+              "source_span": {
+                "end_col": 19,
+                "end_line": 27,
+                "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_col": 11,
+                "start_line": 27
+              },
+              "value": "us-west-2"
+            }
           },
-          "value": "30s"
+          "source_span": {
+            "end_col": 1,
+            "end_line": 28,
+            "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_col": 2,
+            "start_line": 24
+          }
         }
       },
       "name": "config",

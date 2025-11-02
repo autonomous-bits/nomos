@@ -119,9 +119,9 @@ If you're using Nomos providers:
    ```bash
    # From GitHub Releases (default)
    nomos init config.csl
-   
-   # From local path
-   nomos init --from configs=/path/to/provider config.csl
+
+   # For local/testing scenarios, copy the provider binary into the .nomos/providers layout and
+   # then run `nomos init` to record it in the lockfile (see docs/examples/local-provider for details).
    ```
 
 3. **Build configurations**:
