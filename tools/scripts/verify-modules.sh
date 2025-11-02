@@ -59,10 +59,12 @@ for module in "${MODULES[@]}"; do
   
   # Run go build
   echo "Running: go build ./..."
-  if go build ./... 2>&1; then
+  if go build ./... &>/dev/null; then
     echo -e "${GREEN}✓ Build successful${NC}"
   else
     echo -e "${RED}✗ Build failed${NC}"
+    echo "Build output:"
+    go build ./... 2>&1 | sed 's/^/  /'
     FAILED_MODULES+=("${module}")
     cd "${REPO_ROOT}"
     echo ""
@@ -71,10 +73,12 @@ for module in "${MODULES[@]}"; do
   
   # Run go test
   echo "Running: go test ./..."
-  if go test ./... 2>&1; then
+  if go test ./... &>/dev/null; then
     echo -e "${GREEN}✓ Tests passed${NC}"
   else
     echo -e "${RED}✗ Tests failed${NC}"
+    echo "Test output:"
+    go test ./... 2>&1 | sed 's/^/  /'
     FAILED_MODULES+=("${module}")
   fi
   
@@ -88,10 +92,12 @@ echo -e "${YELLOW}Verifying go.work${NC}"
 echo "--------------------------------------"
 if [ -f "go.work" ]; then
   echo "Running: go work sync"
-  if go work sync 2>&1; then
+  if go work sync &>/dev/null; then
     echo -e "${GREEN}✓ go.work sync successful${NC}"
   else
     echo -e "${RED}✗ go.work sync failed${NC}"
+    echo "Sync output:"
+    go work sync 2>&1 | sed 's/^/  /'
     FAILED_MODULES+=("go.work")
   fi
 else
