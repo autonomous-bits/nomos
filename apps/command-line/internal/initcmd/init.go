@@ -2,23 +2,23 @@
 package initcmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/autonomous-bits/nomos/libs/parser"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
+	downloader "github.com/autonomous-bits/nomos/libs/provider-downloader"
 )
 
 // Options holds configuration for the init command.
 type Options struct {
 	// Paths are the input .csl file paths to scan
 	Paths []string
-
-	// FromPaths maps provider alias to local binary path
-	FromPaths map[string]string
 
 	// DryRun previews actions without executing
 	DryRun bool
@@ -38,6 +38,8 @@ type Options struct {
 
 // LockFile represents the .nomos/providers.lock.json structure.
 type LockFile struct {
+	// Timestamp records when the lockfile was last written (RFC3339 format).
+	Timestamp string          `json:"timestamp,omitempty"`
 	Providers []ProviderEntry `json:"providers"`
 }
 
@@ -50,6 +52,7 @@ type ProviderEntry struct {
 	Arch     string                 `json:"arch"`
 	Source   map[string]interface{} `json:"source"`
 	Checksum string                 `json:"checksum,omitempty"`
+	Size     int64                  `json:"size,omitempty"`
 	Path     string                 `json:"path"`
 }
 
@@ -97,9 +100,24 @@ func Run(opts Options) error {
 		return nil
 	}
 
+	// Read existing lockfile if present (unless --force)
+	existingLock := readLockFile()
+
 	// Install providers
 	lockEntries := []ProviderEntry{}
+	skipped := 0
 	for _, p := range providers {
+		// Check if provider already exists in lockfile with matching version
+		if !opts.Force && existingLock != nil {
+			if existing := findProviderInLock(existingLock, p.Alias, p.Type, p.Version, opts.OS, opts.Arch); existing != nil {
+				// Provider already installed with matching version
+				fmt.Printf("Provider %q already installed (version %s), skipping\n", p.Alias, p.Version)
+				lockEntries = append(lockEntries, *existing)
+				skipped++
+				continue
+			}
+		}
+
 		entry, err := installProvider(p, opts)
 		if err != nil {
 			return fmt.Errorf("failed to install provider %q: %w", p.Alias, err)
@@ -113,7 +131,12 @@ func Run(opts Options) error {
 		return fmt.Errorf("failed to write lock file: %w", err)
 	}
 
-	fmt.Printf("Successfully installed %d provider(s)\n", len(lockEntries))
+	installed := len(lockEntries) - skipped
+	if skipped > 0 {
+		fmt.Printf("Successfully installed %d provider(s), skipped %d already installed\n", installed, skipped)
+	} else {
+		fmt.Printf("Successfully installed %d provider(s)\n", installed)
+	}
 	return nil
 }
 
@@ -127,7 +150,7 @@ func discoverProviders(paths []string) ([]DiscoveredProvider, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open %s: %w", path, err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		tree, err := parser.Parse(file, path)
 		if err != nil {
@@ -187,72 +210,122 @@ func exprToValue(expr ast.Expr) any {
 	}
 }
 
-// installProvider installs a provider binary and returns its lock entry.
+// installProvider installs a provider binary from GitHub Releases and returns its lock entry.
 func installProvider(p DiscoveredProvider, opts Options) (ProviderEntry, error) {
-	// Check if we have a local --from override
-	if localPath, ok := opts.FromPaths[p.Alias]; ok {
-		return installFromLocal(p, localPath, opts)
-	}
-
-	// For now, without network support, we can only handle --from paths
-	return ProviderEntry{}, fmt.Errorf("provider %q requires --from flag (network download not yet implemented)", p.Alias)
-}
-
-// installFromLocal copies a provider binary from a local path.
-func installFromLocal(p DiscoveredProvider, sourcePath string, opts Options) (ProviderEntry, error) {
-	// Validate source exists
-	info, err := os.Stat(sourcePath)
+	// Parse owner/repo from type (e.g., "autonomous-bits/nomos-provider-file")
+	owner, repo, err := parseOwnerRepo(p.Type)
 	if err != nil {
-		return ProviderEntry{}, fmt.Errorf("source path does not exist: %s", sourcePath)
-	}
-	if info.IsDir() {
-		return ProviderEntry{}, fmt.Errorf("source path must be a file, not a directory: %s", sourcePath)
+		return ProviderEntry{}, fmt.Errorf("provider %q: %w", p.Alias, err)
 	}
 
-	// Determine installation path
-	targetDir := filepath.Join(".nomos", "providers", p.Type, p.Version, fmt.Sprintf("%s-%s", opts.OS, opts.Arch))
-	targetPath := filepath.Join(targetDir, "provider")
+	// Create context for download operations
+	ctx := context.Background()
 
-	// Create target directory
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return ProviderEntry{}, fmt.Errorf("failed to create directory %s: %w", targetDir, err)
-	}
+	// Create downloader client
+	// Check for GitHub token in environment for higher rate limits
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	client := downloader.NewClient(ctx, &downloader.ClientOptions{
+		GitHubToken: githubToken,
+	})
 
-	// Copy binary
-	sourceData, err := os.ReadFile(sourcePath)
-	if err != nil {
-		return ProviderEntry{}, fmt.Errorf("failed to read source: %w", err)
-	}
-
-	if err := os.WriteFile(targetPath, sourceData, 0755); err != nil {
-		return ProviderEntry{}, fmt.Errorf("failed to write target: %w", err)
-	}
-
-	// Create lock entry
-	entry := ProviderEntry{
-		Alias:   p.Alias,
-		Type:    p.Type,
+	// Build ProviderSpec
+	spec := &downloader.ProviderSpec{
+		Owner:   owner,
+		Repo:    repo,
 		Version: p.Version,
 		OS:      opts.OS,
 		Arch:    opts.Arch,
+	}
+
+	// Resolve asset from GitHub Releases
+	asset, err := client.ResolveAsset(ctx, spec)
+	if err != nil {
+		return ProviderEntry{}, fmt.Errorf("failed to resolve provider %q from GitHub: %w", p.Alias, err)
+	}
+
+	// Determine installation directory
+	// Pattern: .nomos/providers/{owner}/{repo}/{version}/{os-arch}/
+	destDir := filepath.Join(".nomos", "providers", owner, repo, p.Version, fmt.Sprintf("%s-%s", opts.OS, opts.Arch))
+
+	// Download and install binary
+	result, err := client.DownloadAndInstall(ctx, asset, destDir)
+	if err != nil {
+		return ProviderEntry{}, fmt.Errorf("failed to download provider %q: %w", p.Alias, err)
+	}
+
+	// Normalize version format (add 'v' prefix if resolver normalized it)
+	releaseTag := p.Version
+	if len(p.Version) > 0 && p.Version[0] != 'v' {
+		releaseTag = "v" + p.Version
+	}
+
+	// Build ProviderEntry with GitHub metadata
+	// Store path relative to destDir for portability
+	// The resolver will join this with the base directory at runtime
+	relativePath := filepath.Join(owner, repo, p.Version, fmt.Sprintf("%s-%s", opts.OS, opts.Arch), "provider")
+
+	entry := ProviderEntry{
+		Alias:    p.Alias,
+		Type:     p.Type,
+		Version:  p.Version,
+		OS:       opts.OS,
+		Arch:     opts.Arch,
+		Checksum: result.Checksum,
+		Size:     result.Size,
+		Path:     relativePath,
 		Source: map[string]interface{}{
-			"local": map[string]string{
-				"path": sourcePath,
+			"github": map[string]interface{}{
+				"owner":       owner,
+				"repo":        repo,
+				"release_tag": releaseTag,
+				"asset":       asset.Name,
 			},
 		},
-		Path: targetPath,
 	}
 
 	return entry, nil
 }
 
-// writeLockFile writes the lock file to .nomos/providers.lock.json.
+// parseOwnerRepo splits a provider type string in "owner/repo" format.
+func parseOwnerRepo(providerType string) (owner, repo string, err error) {
+	slashIdx := -1
+	for i, c := range providerType {
+		if c == '/' {
+			if slashIdx != -1 {
+				return "", "", fmt.Errorf("type %q contains multiple slashes", providerType)
+			}
+			slashIdx = i
+		}
+	}
+
+	if slashIdx == -1 {
+		return "", "", fmt.Errorf("type %q must be in 'owner/repo' format", providerType)
+	}
+
+	owner = providerType[:slashIdx]
+	repo = providerType[slashIdx+1:]
+
+	if owner == "" || repo == "" {
+		return "", "", fmt.Errorf("type %q must be in 'owner/repo' format with non-empty owner and repo", providerType)
+	}
+
+	return owner, repo, nil
+}
+
+// writeLockFile writes the lock file to .nomos/providers.lock.json atomically.
+// Uses temp file + rename pattern for crash safety.
 func writeLockFile(lock LockFile) error {
 	lockPath := filepath.Join(".nomos", "providers.lock.json")
 
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(lockPath), 0755); err != nil {
+	lockDir := filepath.Dir(lockPath)
+	if err := os.MkdirAll(lockDir, 0755); err != nil {
 		return err
+	}
+
+	// Set timestamp if not already set
+	if lock.Timestamp == "" {
+		lock.Timestamp = timeNowRFC3339()
 	}
 
 	// Marshal to JSON
@@ -261,6 +334,83 @@ func writeLockFile(lock LockFile) error {
 		return err
 	}
 
-	// Write file
-	return os.WriteFile(lockPath, data, 0644)
+	// Write to temp file in same directory for atomic rename
+	tmpFile, err := os.CreateTemp(lockDir, ".providers.lock.*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	// Clean up temp file on error
+	defer func() {
+		if tmpFile != nil {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	// Write data to temp file
+	if _, err := tmpFile.Write(data); err != nil {
+		return fmt.Errorf("failed to write temp file: %w", err)
+	}
+
+	// Sync to disk
+	if err := tmpFile.Sync(); err != nil {
+		return fmt.Errorf("failed to sync temp file: %w", err)
+	}
+
+	// Close temp file before rename
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+	tmpFile = nil // Prevent cleanup in defer
+
+	// Atomic rename
+	if err := os.Rename(tmpPath, lockPath); err != nil {
+		_ = os.Remove(tmpPath) // Clean up on rename failure
+		return fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	return nil
+}
+
+// readLockFile reads the existing lockfile, returns nil if not found or invalid.
+func readLockFile() *LockFile {
+	lockPath := filepath.Join(".nomos", "providers.lock.json")
+
+	data, err := os.ReadFile(lockPath)
+	if err != nil {
+		return nil // File doesn't exist or can't be read
+	}
+
+	var lock LockFile
+	if err := json.Unmarshal(data, &lock); err != nil {
+		return nil // Invalid JSON
+	}
+
+	return &lock
+}
+
+// findProviderInLock searches for a provider in the lockfile that matches
+// the given criteria. Returns nil if not found.
+func findProviderInLock(lock *LockFile, alias, providerType, version, os, arch string) *ProviderEntry {
+	for _, entry := range lock.Providers {
+		if entry.Alias == alias &&
+			entry.Type == providerType &&
+			entry.Version == version &&
+			entry.OS == os &&
+			entry.Arch == arch {
+			return &entry
+		}
+	}
+	return nil
+}
+
+// timeNowRFC3339 returns the current time in RFC3339 format.
+// Can be overridden in tests via NOMOS_TEST_TIMESTAMP env var.
+func timeNowRFC3339() string {
+	if testTime := os.Getenv("NOMOS_TEST_TIMESTAMP"); testTime != "" {
+		return testTime
+	}
+	return time.Now().UTC().Format(time.RFC3339)
 }

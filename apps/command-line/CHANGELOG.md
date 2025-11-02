@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### BREAKING CHANGES
+- **`--from` flag removed from `nomos init`** (#72): Providers now installed from GitHub Releases
+  - The `--from alias=path` flag has been removed in favor of automatic downloads from GitHub Releases
+  - Provider `type` field in `.csl` source declarations must now use `owner/repo` format (e.g., `autonomous-bits/nomos-provider-file`)
+  - Providers are automatically downloaded from GitHub Releases based on `owner/repo` and `version`
+  - Installation path changed to `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider`
+  - Lockfile entries now include GitHub metadata (owner, repo, release_tag, asset) and SHA256 checksum
+  - For local development, use GitHub Releases or manually install providers to the expected path
+  - Migration: Update `.csl` files to use `type: 'owner/repo'` format instead of simple names like `type: 'file'`
+  - Set `GITHUB_TOKEN` environment variable for higher rate limits and private repository access
 - **In-process providers removed** (#51): External providers now required
   - `NewProviderRegistries()` no longer registers in-process `file` provider as fallback
   - Missing or malformed lockfile (`.nomos/providers.lock.json`) returns empty registry
@@ -18,19 +27,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CI/CD pipelines must add `nomos init` step before `nomos build`
 
 ### Added
-- [CLI] `nomos init` command for discovering and installing provider dependencies (#46)
+- [CLI] `nomos init` command for discovering and installing provider dependencies (#46, #72)
   - Scans `.csl` files to discover provider requirements (alias, type, version)
   - Validates that all providers have required `version` field in source declarations
-  - Installs provider binaries from local paths using `--from alias=path` flag
-  - Creates `.nomos/providers/{type}/{version}/{os-arch}/provider` directory structure
-  - Writes `.nomos/providers.lock.json` with resolved versions, sources, and paths
+  - Downloads and installs provider binaries from GitHub Releases based on `owner/repo` type format
+  - Creates `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider` directory structure
+  - Writes `.nomos/providers.lock.json` with resolved versions, GitHub metadata, SHA256 checksums, and paths
   - Supports `--dry-run` flag to preview actions without installing
   - Supports `--force` flag to overwrite existing providers/lockfile
-  - Supports `--os` and `--arch` flags to override target platform
+  - Supports `--os` and `--arch` flags to override target platform (auto-detected from runtime by default)
   - Supports `--upgrade` flag for future version upgrade functionality
   - Sets executable permissions (0755) on installed provider binaries
-  - Clear error messages for missing version, invalid paths, and installation failures
-  - Comprehensive unit and integration test coverage
+  - Automatic asset resolution based on OS/architecture from GitHub Releases
+  - Streaming downloads with retry logic and SHA256 verification
+  - Clear error messages for missing version, network failures, asset not found, and checksum mismatches
+  - Comprehensive unit and integration test coverage (including hermetic httptest mocks)
+  - Hermetic httptest-based tests for init flow that mock GitHub API and asset servers (init_hermetic_test.go)
+  - Enhanced gated network integration test with complete GitHub metadata validation (release_tag, asset fields)
+  - Lockfile entries now include complete GitHub metadata (owner, repo, release_tag, asset) and binary size (#73)
+  - Lockfile includes RFC3339 timestamp recording when providers were installed
+  - Atomic lockfile writes using temp file + rename pattern for crash safety
+  - Skip-download optimization: providers matching lockfile entries by version/checksum are not re-downloaded unless `--force` is used
+  - Comprehensive unit tests verify lockfile schema, atomic writes, and skip logic
 - [CLI] Initial implementation of `nomos build` command for compiling .csl files to configuration snapshots
 - [CLI] Flag parsing support for `--path/-p`, `--format/-f`, `--out/-o`, `--var`, `--strict`, `--allow-missing-provider`, `--timeout-per-provider`, `--max-concurrent-providers`, and `--verbose`
 - [CLI] JSON output format support (default) with canonical serialization for deterministic output (#39)

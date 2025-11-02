@@ -9,46 +9,6 @@
   "statements": [
     {
       "entries": {
-        "Environment": {
-          "source_span": {
-            "end_col": 25,
-            "end_line": 12,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 16,
-            "start_line": 12
-          },
-          "value": "production"
-        },
-        "Project": {
-          "source_span": {
-            "end_col": 16,
-            "end_line": 13,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 12,
-            "start_line": 13
-          },
-          "value": "nomos"
-        },
-        "az1": {
-          "source_span": {
-            "end_col": 20,
-            "end_line": 9,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 9,
-            "start_line": 9
-          },
-          "value": "10.0.10.0/24"
-        },
-        "az2": {
-          "source_span": {
-            "end_col": 20,
-            "end_line": 10,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 9,
-            "start_line": 10
-          },
-          "value": "10.0.20.0/24"
-        },
         "cidr": {
           "source_span": {
             "end_col": 18,
@@ -69,45 +29,109 @@
           },
           "value": "main-vpc"
         },
-        "private": {
-          "source_span": {
-            "end_col": 11,
-            "end_line": 8,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 11,
-            "start_line": 8
-          },
-          "value": ""
-        },
-        "public": {
-          "source_span": {
-            "end_col": 10,
-            "end_line": 5,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 10,
-            "start_line": 5
-          },
-          "value": ""
-        },
         "subnets": {
-          "source_span": {
-            "end_col": 10,
-            "end_line": 4,
-            "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 10,
-            "start_line": 4
+          "entries": {
+            "private": {
+              "entries": {
+                "az1": {
+                  "source_span": {
+                    "end_col": 20,
+                    "end_line": 9,
+                    "filename": "../testdata/fixtures/mapping_nested.csl",
+                    "start_col": 9,
+                    "start_line": 9
+                  },
+                  "value": "10.0.10.0/24"
+                },
+                "az2": {
+                  "source_span": {
+                    "end_col": 20,
+                    "end_line": 10,
+                    "filename": "../testdata/fixtures/mapping_nested.csl",
+                    "start_col": 9,
+                    "start_line": 10
+                  },
+                  "value": "10.0.20.0/24"
+                }
+              },
+              "source_span": {
+                "end_col": 1,
+                "end_line": 11,
+                "filename": "../testdata/fixtures/mapping_nested.csl",
+                "start_col": 3,
+                "start_line": 8
+              }
+            },
+            "public": {
+              "entries": {
+                "az1": {
+                  "source_span": {
+                    "end_col": 19,
+                    "end_line": 6,
+                    "filename": "../testdata/fixtures/mapping_nested.csl",
+                    "start_col": 9,
+                    "start_line": 6
+                  },
+                  "value": "10.0.1.0/24"
+                },
+                "az2": {
+                  "source_span": {
+                    "end_col": 19,
+                    "end_line": 7,
+                    "filename": "../testdata/fixtures/mapping_nested.csl",
+                    "start_col": 9,
+                    "start_line": 7
+                  },
+                  "value": "10.0.2.0/24"
+                }
+              },
+              "source_span": {
+                "end_col": 1,
+                "end_line": 8,
+                "filename": "../testdata/fixtures/mapping_nested.csl",
+                "start_col": 3,
+                "start_line": 5
+              }
+            }
           },
-          "value": ""
-        },
-        "tags": {
           "source_span": {
-            "end_col": 7,
+            "end_col": 1,
             "end_line": 11,
             "filename": "../testdata/fixtures/mapping_nested.csl",
-            "start_col": 7,
-            "start_line": 11
+            "start_col": 2,
+            "start_line": 4
+          }
+        },
+        "tags": {
+          "entries": {
+            "Environment": {
+              "source_span": {
+                "end_col": 25,
+                "end_line": 12,
+                "filename": "../testdata/fixtures/mapping_nested.csl",
+                "start_col": 16,
+                "start_line": 12
+              },
+              "value": "production"
+            },
+            "Project": {
+              "source_span": {
+                "end_col": 16,
+                "end_line": 13,
+                "filename": "../testdata/fixtures/mapping_nested.csl",
+                "start_col": 12,
+                "start_line": 13
+              },
+              "value": "nomos"
+            }
           },
-          "value": ""
+          "source_span": {
+            "end_col": 1,
+            "end_line": 14,
+            "filename": "../testdata/fixtures/mapping_nested.csl",
+            "start_col": 2,
+            "start_line": 11
+          }
         }
       },
       "name": "vpc",

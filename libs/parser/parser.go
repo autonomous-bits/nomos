@@ -325,15 +325,28 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int, s
 }
 
 // parseConfigBlock parses an indented block of key-value pairs.
+// It can now handle nested map structures.
 func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, error) {
 	config := make(map[string]ast.Expr)
 
 	s.SkipToNextLine()
 
+	// Get the base indentation level for this block
+	var baseIndent int
+	if !s.IsEOF() && s.IsIndented() {
+		baseIndent = s.GetIndentLevel()
+	}
+
 	// Parse indented key-value pairs
 	for !s.IsEOF() {
-		// Check if line is indented
+		// Check if line is indented at the expected level
 		if !s.IsIndented() {
+			break
+		}
+
+		currentIndent := s.GetIndentLevel()
+		if currentIndent < baseIndent {
+			// Less indented - end of this block
 			break
 		}
 
@@ -343,6 +356,7 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 			break
 		}
 
+		keyStartLine := s.Line()
 		keyStart := s.Column()
 		key := s.ReadIdentifier()
 
@@ -359,14 +373,6 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 				fmt.Sprintf("invalid syntax: invalid character '%c' in key", ch))
 		}
 
-		// TODO: Duplicate key detection needs to be scope-aware for nested structures
-		// Currently disabled to allow nested sections with same key names
-		// Check for duplicate keys
-		//if _, exists := config[key]; exists {
-		//	return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), keyStart,
-		//		fmt.Sprintf("invalid syntax: duplicate key '%s'", key))
-		//}
-
 		s.SkipWhitespace()
 		if err := s.Expect(':'); err != nil {
 			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
@@ -374,7 +380,53 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 		}
 		s.SkipWhitespace()
 
-		// Parse value expression (can be StringLiteral or ReferenceExpr)
+		// Check if this is a nested map or a value
+		// A nested map is indicated by: key: \n with more indentation following
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			// Newline after colon - might be a nested map
+			s.SkipToNextLine()
+
+			// Check if next line is more indented
+			if !s.IsEOF() && s.IsIndented() {
+				nextIndent := s.GetIndentLevel()
+				if nextIndent > currentIndent {
+					// This is a nested map
+					nestedEntries, err := p.parseNestedMap(s, nextIndent)
+					if err != nil {
+						return nil, err
+					}
+
+					// Create MapExpr
+					endLine, endCol := s.Line(), s.Column()
+					config[key] = &ast.MapExpr{
+						Entries: nestedEntries,
+						SourceSpan: ast.SourceSpan{
+							Filename:  s.Filename(),
+							StartLine: keyStartLine,
+							StartCol:  keyStart,
+							EndLine:   endLine,
+							EndCol:    endCol,
+						},
+					}
+					continue
+				}
+			}
+
+			// Empty value (newline but no nested content)
+			config[key] = &ast.StringLiteral{
+				Value: "",
+				SourceSpan: ast.SourceSpan{
+					Filename:  s.Filename(),
+					StartLine: keyStartLine,
+					StartCol:  keyStart,
+					EndLine:   keyStartLine,
+					EndCol:    keyStart + len(key) + 1,
+				},
+			}
+			continue
+		}
+
+		// Parse value expression (can be StringLiteral, ReferenceExpr, or nested map)
 		valueStartLine, valueStartCol := s.Line(), s.Column()
 		valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
 		if err != nil {
@@ -386,6 +438,113 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 	}
 
 	return config, nil
+}
+
+// parseNestedMap parses a nested map at a specific indentation level.
+func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[string]ast.Expr, error) {
+	entries := make(map[string]ast.Expr)
+
+	for !s.IsEOF() {
+		// Check if we're still at the correct indentation level
+		if !s.IsIndented() {
+			break
+		}
+
+		currentIndent := s.GetIndentLevel()
+		if currentIndent < expectedIndent {
+			// Less indented - end of nested map
+			break
+		}
+
+		if currentIndent > expectedIndent {
+			// More indented than expected - skip this line (might be part of a deeper nesting)
+			s.SkipToNextLine()
+			continue
+		}
+
+		s.SkipWhitespace()
+
+		if s.IsEOF() || s.PeekChar() == '\n' {
+			s.SkipToNextLine()
+			continue
+		}
+
+		keyStartLine := s.Line()
+		keyStart := s.Column()
+		key := s.ReadIdentifier()
+
+		if key == "" {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), keyStart,
+				"invalid syntax: expected identifier for key in nested map")
+		}
+
+		ch := s.PeekChar()
+		if ch != ':' && ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' && !s.IsEOF() {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				fmt.Sprintf("invalid syntax: invalid character '%c' in key", ch))
+		}
+
+		s.SkipWhitespace()
+		if err := s.Expect(':'); err != nil {
+			return nil, NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				"invalid syntax: expected ':' after key")
+		}
+		s.SkipWhitespace()
+
+		// Check for nested map
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+
+			if !s.IsEOF() && s.IsIndented() {
+				nextIndent := s.GetIndentLevel()
+				if nextIndent > currentIndent {
+					// Recursively parse nested map
+					nestedEntries, err := p.parseNestedMap(s, nextIndent)
+					if err != nil {
+						return nil, err
+					}
+
+					endLine, endCol := s.Line(), s.Column()
+					entries[key] = &ast.MapExpr{
+						Entries: nestedEntries,
+						SourceSpan: ast.SourceSpan{
+							Filename:  s.Filename(),
+							StartLine: keyStartLine,
+							StartCol:  keyStart,
+							EndLine:   endLine,
+							EndCol:    endCol,
+						},
+					}
+					continue
+				}
+			}
+
+			// Empty value
+			entries[key] = &ast.StringLiteral{
+				Value: "",
+				SourceSpan: ast.SourceSpan{
+					Filename:  s.Filename(),
+					StartLine: keyStartLine,
+					StartCol:  keyStart,
+					EndLine:   keyStartLine,
+					EndCol:    keyStart + len(key) + 1,
+				},
+			}
+			continue
+		}
+
+		// Parse scalar value
+		valueStartLine, valueStartCol := s.Line(), s.Column()
+		valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
+		if err != nil {
+			return nil, err
+		}
+
+		entries[key] = valueExpr
+		s.SkipToNextLine()
+	}
+
+	return entries, nil
 }
 
 // parseValueExpr parses a value expression, which can be either a string literal

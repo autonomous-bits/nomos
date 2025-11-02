@@ -1,0 +1,6 @@
+source:
+  alias: 'test'
+  type: 'test-type'
+
+app:
+  name: 'test'

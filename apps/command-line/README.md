@@ -95,7 +95,6 @@ nomos init [flags] <file.csl> [<file2.csl> ...]
 
 Relevant flags:
 
-- `--from alias=path`: specify local provider binary path (can be repeated for multiple providers)
 - `--dry-run`: preview actions without installing
 - `--force`: overwrite existing providers/lockfile
 - `--os`: override target OS (default: runtime OS)
@@ -105,8 +104,8 @@ Relevant flags:
 Example:
 
 ```bash
-# Install provider from local binary
-nomos init --from configs=/path/to/nomos-provider-file config.csl
+# Install providers automatically from GitHub Releases (recommended)
+nomos init config.csl
 
 # Preview what would be installed
 nomos init --dry-run config.csl
@@ -167,30 +166,30 @@ The CLI supports references to access specific values from provider sources usin
 ```nomos
 source:
   alias: 'configs'
-  type: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
   directory: './shared-configs'
 
 app:
   name: 'my-app'
-  # Reference specific values using dot notation
-  storage_type: reference:configs:storage.storage.type
-  bucket: reference:configs:storage.buckets.primary
-  encryption: reference:configs:storage.encryption.algorithm
+  storage:
+    type: reference:configs:storage.config.storage.type
+    bucket: reference:configs:storage.config.buckets.primary
+    encryption: reference:configs:storage.config.encryption.algorithm
 ```
 
 Given `shared-configs/storage.csl`:
 ```nomos
-storage:
-  type: 's3'
-  region: 'us-west-2'
-  
-buckets:
-  primary: 'my-app-data'
-  backup: 'my-app-backup'
-  
-encryption:
-  enabled: true
-  algorithm: 'AES256'
+config:
+  storage:
+    type: 's3'
+    region: 'us-west-2'
+  buckets:
+    primary: 'my-app-data'
+    backup: 'my-app-backup'
+  encryption:
+    enabled: true
+    algorithm: 'AES256'
 ```
 
 When compiled, the references resolve to:
@@ -819,8 +818,10 @@ Use `nomos init` to install providers before building:
 # Install from GitHub Releases (automatic download)
 nomos init config.csl
 
-# Install from local binary
-nomos init --from configs=/path/to/provider config.csl
+# (Local/testing) If you already have a provider binary, copy it into the `.nomos/providers` layout
+# and then run `nomos init` to record it in the lockfile. Example:
+# mkdir -p .nomos/providers/OWNER/REPO/1.0.0/darwin-arm64 && cp /path/to/provider .nomos/providers/OWNER/REPO/1.0.0/darwin-arm64/provider
+# nomos init config.csl
 
 # Install with custom OS/arch
 nomos init --os linux --arch amd64 config.csl

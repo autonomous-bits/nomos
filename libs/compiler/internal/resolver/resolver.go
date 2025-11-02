@@ -113,6 +113,14 @@ func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr)
 		return nil, r.handleFetchError(ref, err)
 	}
 
+	// Unwrap single-key "value" objects that some providers return for scalars
+	// This is a workaround for provider implementations that wrap scalar values
+	if m, ok := val.(map[string]any); ok && len(m) == 1 {
+		if unwrapped, exists := m["value"]; exists {
+			val = unwrapped
+		}
+	}
+
 	// Cache result
 	r.cache.set(cacheKey, val)
 

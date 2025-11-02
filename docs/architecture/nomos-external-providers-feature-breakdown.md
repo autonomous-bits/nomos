@@ -33,9 +33,9 @@ References:
 
 - New command: `nomos init`
   - Scans project sources to identify required providers and versions.
-  - Resolves and installs providers either from GitHub Releases or from a local path into `.nomos/providers/...`.
+  - Resolves and installs providers from GitHub Releases into `.nomos/providers/...` (or records pre-installed local binaries).
   - Writes a lock file `.nomos/providers.lock.json` with resolved versions, sources, OS/arch, and checksums.
-  - Flags: `--upgrade`, `--from <alias=path>`, `--os`, `--arch`, `--dry-run`, `--force`.
+  - Flags: `--upgrade`, `--os`, `--arch`, `--dry-run`, `--force`.
 
 - Build remains `nomos build`, with behavior changes:
   - Compiler starts provider subprocesses on first use and communicates over gRPC.
@@ -201,7 +201,7 @@ If none found: fail with actionable error and suggest running `nomos init`.
   - Implement scanning (parse `.csl` via existing AST to collect `SourceDecl` alias/type/config).
   - Merge with optional `.nomos/providers.yaml` (versions from `.csl` only; manifest provides source hints).
   - Resolve sources, download from GitHub Releases (with `Accept: application/octet-stream`), validate checksum, install layout, write lock file.
-  - Support `--from alias=/local/path/to/provider` to copy or symlink into the layout.
+  - Support manual pre-install of local provider binaries into the `.nomos/providers` layout (copy/symlink), which `nomos init` will record in the lockfile.
 
 - Phase 3: Build integration
   - Wire compiler `ProviderRegistry` to construct a gRPC-backed provider client when an alias is requested.
@@ -237,7 +237,7 @@ Acceptance:
   - For each provider: choose version/source, compute asset name, download or copy from local path.
   - Verify checksum (if available), set execute perms, write to `.nomos/providers/...`.
   - Update `.nomos/providers.lock.json` (create if missing). Lock file reflects versions from `.csl`.
-- Flags: `--upgrade`, `--from alias=path`, `--dry-run`, `--force`.
+  - Flags: `--upgrade`, `--dry-run`, `--force`.
 
 Acceptance:
 - Integration test: given a manifest and a local path, `init` installs to expected location and writes lock file.

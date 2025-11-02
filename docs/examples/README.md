@@ -6,7 +6,9 @@ This directory contains examples demonstrating how to use Nomos with external pr
 
 ### [Local Provider Installation](./local-provider/)
 
-Demonstrates installing and using a provider from a local binary file using `nomos init --from`.
+Demonstrates installing and using a provider from a local binary file. The CLI now prefers
+auto-downloading providers from GitHub Releases; for local/testing scenarios the README shows how
+to place a binary into the `.nomos/providers` layout and then run `nomos init` to record it.
 
 **Use case**: Testing providers during development or using custom/internal providers not published to GitHub.
 

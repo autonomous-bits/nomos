@@ -33,65 +33,46 @@ func TestInitCommand_MissingVersion(t *testing.T) {
 	}
 }
 
-// TestInitCommand_LocalProviderCopy tests --from flag for local provider installation.
-func TestInitCommand_LocalProviderCopy(t *testing.T) {
-	// Arrange: create temporary directories
+// TestInitCommand_ParsesOwnerRepoFormat tests that init correctly parses owner/repo format in type field.
+func TestInitCommand_ParsesOwnerRepoFormat(t *testing.T) {
+	// Arrange: create temporary directory with .csl file using owner/repo format
 	tmpDir := t.TempDir()
-	providerDir := filepath.Join(tmpDir, "provider-binary")
-	projectDir := filepath.Join(tmpDir, "project")
+	cslPath := filepath.Join(tmpDir, "test.csl")
 
-	if err := os.MkdirAll(providerDir, 0755); err != nil {
-		t.Fatalf("failed to create provider dir: %v", err)
-	}
-	if err := os.MkdirAll(projectDir, 0755); err != nil {
-		t.Fatalf("failed to create project dir: %v", err)
-	}
-
-	// Create a fake provider binary
-	providerBinary := filepath.Join(providerDir, "provider")
-	if err := os.WriteFile(providerBinary, []byte("#!/bin/sh\necho 'fake provider'"), 0755); err != nil {
-		t.Fatalf("failed to create provider binary: %v", err)
-	}
-
-	// Create .csl file with version
-	cslPath := filepath.Join(projectDir, "test.csl")
+	// Use owner/repo format for provider type
 	cslContent := `source:
 	alias: 'configs'
-	type: 'file'
-	version: '0.2.0'
-	directory: './configs'
+	type: 'autonomous-bits/nomos-provider-file'
+	version: '1.0.0'
+	directory: './data'
 `
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
-		t.Fatalf("failed to create csl file: %v", err)
+		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Change to project directory for init
+	// Change to temp directory
 	oldWd, _ := os.Getwd()
 	defer func() {
 		_ = os.Chdir(oldWd)
 	}()
-	if err := os.Chdir(projectDir); err != nil {
+	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatalf("failed to chdir: %v", err)
 	}
 
-	// Act: run init with --from flag
-	err := runInit([]string{"--from", "configs=" + providerBinary, cslPath})
+	// Act: run init (will fail to download without network, but should parse correctly)
+	// For this test, we just verify the error message indicates it tried to download
+	err := runInit([]string{cslPath})
 
-	// Assert: no error
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
+	// Assert: error mentions GitHub or network (indicates it parsed owner/repo correctly)
+	// We expect an error because we don't have a mock GitHub server in unit tests
+	if err == nil {
+		t.Fatal("expected error for missing GitHub access, got nil")
 	}
 
-	// Assert: lock file created
-	lockPath := filepath.Join(projectDir, ".nomos", "providers.lock.json")
-	if _, err := os.Stat(lockPath); os.IsNotExist(err) {
-		t.Errorf("lock file not created at %s", lockPath)
-	}
-
-	// Assert: binary installed
-	installedPath := filepath.Join(projectDir, ".nomos", "providers", "file", "0.2.0")
-	if _, err := os.Stat(installedPath); os.IsNotExist(err) {
-		t.Errorf("provider not installed at %s", installedPath)
+	// The error should mention GitHub or network, indicating it tried to use the downloader
+	errStr := err.Error()
+	if !containsString(errStr, "GitHub") && !containsString(errStr, "github") && !containsString(errStr, "resolve") {
+		t.Errorf("expected error to mention GitHub or resolve, got: %v", err)
 	}
 }
 
@@ -101,11 +82,12 @@ func TestInitCommand_DryRun(t *testing.T) {
 	tmpDir := t.TempDir()
 	cslPath := filepath.Join(tmpDir, "test.csl")
 
+	// Use owner/repo format
 	cslContent := `source:
 	alias: 'configs'
-	type: 'file'
-	version: '0.2.0'
-	directory: './configs'
+	type: 'autonomous-bits/nomos-provider-file'
+	version: '1.0.0'
+	directory: './data'
 `
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)

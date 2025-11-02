@@ -155,3 +155,23 @@ type ReferenceExpr struct {
 func (r *ReferenceExpr) Span() SourceSpan { return r.SourceSpan }
 func (r *ReferenceExpr) node()            {}
 func (r *ReferenceExpr) expr()            {}
+
+// MapExpr represents a nested map/object literal.
+// Example:
+//
+//	databases:
+//	  primary:
+//	    host: 'localhost'
+//	    port: '5432'
+//
+// MapExpr enables nested configuration structures where values can themselves
+// be maps, allowing for arbitrary depth nesting.
+type MapExpr struct {
+	Entries    map[string]Expr `json:"entries"`     // Nested key-value pairs
+	SourceSpan SourceSpan      `json:"source_span"` // Precise source location
+}
+
+// Span implements Node for MapExpr.
+func (m *MapExpr) Span() SourceSpan { return m.SourceSpan }
+func (m *MapExpr) node()            {}
+func (m *MapExpr) expr()            {}

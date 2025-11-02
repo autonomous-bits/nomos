@@ -64,6 +64,19 @@ func exprToValue(expr ast.Expr) (any, error) {
 		// The resolver will handle these
 		return e, nil
 
+	case *ast.MapExpr:
+		// MapExpr represents a nested map structure
+		// Recursively convert all nested entries
+		result := make(map[string]any, len(e.Entries))
+		for k, v := range e.Entries {
+			val, err := exprToValue(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert nested key %q: %w", k, err)
+			}
+			result[k] = val
+		}
+		return result, nil
+
 	case *ast.PathExpr:
 		// PathExpr might represent a structured value
 		// For now, convert to string representation

@@ -1,0 +1,8 @@
+environments:
+  production:
+    database: 'production_value'
+  staging:
+    database: 'staging_value'
+
+app:
+  name: 'example-app'
