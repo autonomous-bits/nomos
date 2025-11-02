@@ -146,12 +146,16 @@ func newMockGitHubAPIServer(t *testing.T, owner, repo, tag string, assetNames []
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(release)
+			if err := json.NewEncoder(w).Encode(release); err != nil {
+				t.Errorf("failed to encode release response: %v", err)
+			}
 			return
 		}
 
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"}); err != nil {
+			t.Errorf("failed to encode not found response: %v", err)
+		}
 	}))
 }
 
@@ -162,6 +166,8 @@ func newMockAssetServer(t *testing.T, content []byte) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.WriteHeader(http.StatusOK)
-		w.Write(content)
+		if _, err := w.Write(content); err != nil {
+			t.Errorf("failed to write asset content: %v", err)
+		}
 	}))
 }
