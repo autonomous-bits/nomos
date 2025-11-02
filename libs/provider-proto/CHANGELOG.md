@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-11-02
+
 ### Fixed
 - Include generated protobuf Go code (`gen/` directory) in repository - files were incorrectly excluded by `.gitignore`, causing module to be unusable
 
@@ -24,5 +26,6 @@ Initial release of the Provider Proto module.
 - Contract validation tests with mock provider implementation
 - Comprehensive README and AGENTS.md documentation
 
-[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/provider-proto/v0.1.0...HEAD
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/provider-proto/v0.1.1...HEAD
+[0.1.1]: https://github.com/autonomous-bits/nomos/compare/libs/provider-proto/v0.1.0...libs/provider-proto/v0.1.1
 [0.1.0]: https://github.com/autonomous-bits/nomos/releases/tag/libs/provider-proto/v0.1.0
