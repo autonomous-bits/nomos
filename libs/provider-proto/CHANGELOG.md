@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Include generated protobuf Go code (`gen/` directory) in repository - files were incorrectly excluded by `.gitignore`, causing module to be unusable
+
 ## [0.1.0] - 2025-11-02
 
 Initial release of the Provider Proto module.
