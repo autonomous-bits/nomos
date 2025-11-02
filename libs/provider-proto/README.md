@@ -162,10 +162,27 @@ After modifying `proto/nomos/provider/v1/provider.proto`:
 make generate
 ```
 
-Or manually:
+Or manually with buf:
 
 ```bash
 buf generate
+```
+
+If buf is not available, use protoc directly:
+
+```bash
+make generate-protoc
+```
+
+This requires `protoc`, `protoc-gen-go`, and `protoc-gen-go-grpc` to be installed:
+
+```bash
+# Install protoc (example for Ubuntu/Debian)
+sudo apt-get install protobuf-compiler
+
+# Install Go plugins
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```
 
 ### Running Tests
