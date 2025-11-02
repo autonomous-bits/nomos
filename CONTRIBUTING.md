@@ -5,7 +5,7 @@ Thanks for your interest in contributing! This monorepo hosts the Nomos CLI and 
 > Standards first: This project follows the Development Standards Constitution from the general-standards space (quality gates, code review, testing). Conventional Commits with gitmoji are required.
 
 ## Prerequisites
-- Go 1.22+
+- Go 1.25+
 - Git
 - macOS, Linux, or Windows
 - Optional: golangci-lint (for `make lint`)
