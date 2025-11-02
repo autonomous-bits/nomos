@@ -1,12 +1,16 @@
 # Nomos
 
-Nomos is a configuration scripting language aimed to reduce configuration toil by promoting re-use and cascading overrides. Nomos aims to:
+Nomos is a configuration scripting language that reduces configuration toil through composition, reuse, and cascading overrides. It lets you:
 
-- Allow users to compose configuration by importing configuration layers, where each layer would replace any conflicting configuration values.
-- Allow users to group configuration into cohesive environments.
-- Allow users to reference configuration across configuration groups (environments)
+- Compose configuration by importing layered sources with last-write-wins semantics
+- Group configuration into cohesive environments
+- Cross-reference values across configuration groups (environments)
 
-These configuration scripts will be compiled producing a versioned snapshot that will be used as inputs for infrastructure as code.
+Nomos scripts compile into a versioned snapshot that becomes input for your infrastructure-as-code tools.
+
+• CLI: `apps/command-line`  • Compiler library: `libs/compiler`  • Parser: `libs/parser`  • Provider contracts: `libs/provider-proto`
+
+Jump to: [Language](#scripting-language) · [Providers](#source-provider-types) · [Examples](#example-config) · [Development](#development) · [Contributing](#contributing)
 
 ## Scripting Language
 
@@ -80,91 +84,44 @@ config-section-name:
 
 ## File Extension
 
-The file extension for the file type are ".csl" which is short for configuration scripting langauge. 
+Use the `.csl` extension (Configuration Scripting Language).
 
 ## Tooling
 
-A command line interface (CLI) will be provided where a script or set of scripts could be provided as inputs and then compiled. The compilation will produce a snapshot of the configuration as the output.
+The Nomos CLI compiles scripts into a snapshot artifact.
 
-The CLI has one command called `build` which accepts a `--path, -p` argument to a file or folder and a `--format, -f` argument that specifies the output format `JSON, YAML, HCL`.
+- Command: `build`
+- Flags:
+  - `--path, -p` Path to a `.csl` file or folder
+  - `--format, -f` Output format: `json`, `yaml`, or `hcl`
+
+Quick start (local):
+
+```bash
+make build-cli
+./bin/nomos --help
+```
 
 ## Development
 
-This repository is organized as a Go monorepo with multiple independent modules:
+This repository is a Go workspace (monorepo) containing multiple independent modules. Run `make help` for available tasks.
 
-- `apps/command-line` - Nomos CLI application
-- `libs/compiler` - Nomos compiler library
-- `libs/parser` - Nomos parser library
-- `libs/provider-proto` - Provider protocol definitions (protobuf)
-
-### Local Development Setup
-
-This repository uses Go workspaces for local development:
+Common tasks:
 
 ```bash
-# Clone the repository
-git clone https://github.com/autonomous-bits/nomos.git
-cd nomos
-
-# The go.work file is already configured with all modules
-# Sync workspace dependencies
-go work sync
-
-# Build all applications
-make build
-
-# Run tests across all modules
-make test
-
-# Run tests with race detector
-make test-race
-
-# Build the CLI application
+# Sync workspace and build the CLI
+make work-sync
 make build-cli
 
-# Build or test a specific module
-make build-module MODULE=libs/compiler
-make test-module MODULE=libs/parser
+# Build everything and run tests
+make build
+make test
 ```
 
-### Available Make Targets
-
-Run `make help` to see all available targets:
-
-- `build` - Build all applications
-- `build-cli` - Build the CLI application
-- `build-module MODULE=<path>` - Build a specific module
-- `test` - Run all tests across all modules
-- `test-race` - Run tests with race detector
-- `test-module MODULE=<path>` - Test a specific module
-- `lint` - Run linters across all modules
-- `work-sync` - Sync Go workspace dependencies
-- `clean` - Clean build artifacts
-
-### CI Verification
-
-A verification script is available to validate workspace integrity and run tests:
-
-```bash
-./scripts/verify-ci-modules.sh
-```
-
-This script:
-1. Verifies `go.work` exists and is properly configured
-2. Syncs workspace dependencies
-3. Verifies all required modules are present
-4. Runs tests for each module
-5. Reports success or failure with clear output
-
-### Module Structure
-
-Each module maintains its own:
-- `go.mod` and `go.sum` for dependency management
-- `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/)
-- `README.md` with module-specific documentation
-- `Makefile` with module-level build targets
-
-For detailed architecture guidelines, see [Go Monorepo Structure](docs/architecture/go-monorepo-structure.md)
+- Module docs and architecture guidance: see [docs/architecture/go-monorepo-structure.md](docs/architecture/go-monorepo-structure.md)
+- CI helper: `./scripts/verify-ci-modules.sh` validates workspace and runs tests
+  
+Each module maintains its own `go.mod`, `README.md`, and `CHANGELOG.md`.
 
 ### Using Nomos Libraries in External Projects
 
@@ -210,4 +167,12 @@ func main() {
 
 For a complete working example, see [examples/consumer/](examples/consumer/README.md).
 
-**Note for local development**: When working within this monorepo, the `go.work` file handles module resolution automatically—no `replace` directives are needed in individual `go.mod` files 
+**Note for local development**: When working within this monorepo, the `go.work` file handles module resolution automatically—no `replace` directives are needed in individual `go.mod` files.
+
+## Contributing
+
+Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for branching, commit message, testing, and PR guidelines.
+
+## License
+
+See [LICENSE](LICENSE).
