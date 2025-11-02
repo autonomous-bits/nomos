@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [Build] Makefile target `generate-protoc` as fallback for protobuf code generation when buf is unavailable (#56)
+- [Build] gRPC dependency added to go.mod to support generated service code (#56)
+- [Docs] Protobuf code generation instructions in README covering both buf and protoc workflows (#56)
 - Initial protobuf schema for Provider gRPC service contract
 - Service definition with Init, Fetch, Info, Health, and Shutdown RPCs
 - Request/response message types using `google.protobuf.Struct` for flexible data exchange
