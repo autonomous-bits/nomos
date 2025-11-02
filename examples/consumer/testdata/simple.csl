@@ -1,0 +1,3 @@
+app:
+  name: 'simple-example'
+  environment: 'test'

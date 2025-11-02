@@ -7,19 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-11-02
+
+Initial release of the Provider Proto module.
+
 ### Added
-- [Build] Makefile target `generate-protoc` as fallback for protobuf code generation when buf is unavailable (#56)
-- [Build] gRPC dependency added to go.mod to support generated service code (#56)
-- [Docs] Protobuf code generation instructions in README covering both buf and protoc workflows (#56)
-- Initial protobuf schema for Provider gRPC service contract
-- Service definition with Init, Fetch, Info, Health, and Shutdown RPCs
+- Provider gRPC service contract with Init, Fetch, Info, Health, and Shutdown RPCs
 - Request/response message types using `google.protobuf.Struct` for flexible data exchange
 - HealthResponse.Status enum (UNKNOWN, OK, DEGRADED)
 - Generated Go stubs for service and messages
 - Buf configuration for code generation and linting
+- Makefile with `generate-protoc` fallback target for protobuf generation
 - Contract validation tests with mock provider implementation
-- Comprehensive README with usage examples
-- AGENTS.md with development workflow documentation
-- Makefile for common development tasks
+- Comprehensive README and AGENTS.md documentation
 
-[Unreleased]: https://github.com/autonomous-bits/nomos/compare/HEAD...HEAD
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/provider-proto/v0.1.0...HEAD
+[0.1.0]: https://github.com/autonomous-bits/nomos/releases/tag/libs/provider-proto/v0.1.0

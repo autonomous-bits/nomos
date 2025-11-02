@@ -86,4 +86,128 @@ The file extension for the file type are ".csl" which is short for configuration
 
 A command line interface (CLI) will be provided where a script or set of scripts could be provided as inputs and then compiled. The compilation will produce a snapshot of the configuration as the output.
 
-The CLI has one command called `build` which accepts a `--path, -p` argument to a file or folder and a `--format, -f` argument that specifies the output format `JSON, YAML, HCL` 
+The CLI has one command called `build` which accepts a `--path, -p` argument to a file or folder and a `--format, -f` argument that specifies the output format `JSON, YAML, HCL`.
+
+## Development
+
+This repository is organized as a Go monorepo with multiple independent modules:
+
+- `apps/command-line` - Nomos CLI application
+- `libs/compiler` - Nomos compiler library
+- `libs/parser` - Nomos parser library
+- `libs/provider-proto` - Provider protocol definitions (protobuf)
+
+### Local Development Setup
+
+This repository uses Go workspaces for local development:
+
+```bash
+# Clone the repository
+git clone https://github.com/autonomous-bits/nomos.git
+cd nomos
+
+# The go.work file is already configured with all modules
+# Sync workspace dependencies
+go work sync
+
+# Build all applications
+make build
+
+# Run tests across all modules
+make test
+
+# Run tests with race detector
+make test-race
+
+# Build the CLI application
+make build-cli
+
+# Build or test a specific module
+make build-module MODULE=libs/compiler
+make test-module MODULE=libs/parser
+```
+
+### Available Make Targets
+
+Run `make help` to see all available targets:
+
+- `build` - Build all applications
+- `build-cli` - Build the CLI application
+- `build-module MODULE=<path>` - Build a specific module
+- `test` - Run all tests across all modules
+- `test-race` - Run tests with race detector
+- `test-module MODULE=<path>` - Test a specific module
+- `lint` - Run linters across all modules
+- `work-sync` - Sync Go workspace dependencies
+- `clean` - Clean build artifacts
+
+### CI Verification
+
+A verification script is available to validate workspace integrity and run tests:
+
+```bash
+./scripts/verify-ci-modules.sh
+```
+
+This script:
+1. Verifies `go.work` exists and is properly configured
+2. Syncs workspace dependencies
+3. Verifies all required modules are present
+4. Runs tests for each module
+5. Reports success or failure with clear output
+
+### Module Structure
+
+Each module maintains its own:
+- `go.mod` and `go.sum` for dependency management
+- `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/)
+- `README.md` with module-specific documentation
+- `Makefile` with module-level build targets
+
+For detailed architecture guidelines, see [Go Monorepo Structure](docs/architecture/go-monorepo-structure.md)
+
+### Using Nomos Libraries in External Projects
+
+Nomos libraries are published as independent Go modules and can be imported into external projects:
+
+```go
+// In your project's go.mod
+module github.com/example/my-project
+
+go 1.22
+
+require (
+    github.com/autonomous-bits/nomos/libs/compiler v0.1.0
+    github.com/autonomous-bits/nomos/libs/parser v0.1.0
+    github.com/autonomous-bits/nomos/libs/provider-proto v0.1.0
+)
+```
+
+Example usage:
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/autonomous-bits/nomos/libs/compiler"
+)
+
+func main() {
+    opts := compiler.Options{
+        Path: "config.csl",
+        // Configure other options...
+    }
+    
+    snapshot, err := compiler.Compile(context.Background(), opts)
+    if err != nil {
+        // Handle error
+    }
+    
+    // Use compiled snapshot
+}
+```
+
+For a complete working example, see [examples/consumer/](examples/consumer/README.md).
+
+**Note for local development**: When working within this monorepo, the `go.work` file handles module resolution automatically—no `replace` directives are needed in individual `go.mod` files 
