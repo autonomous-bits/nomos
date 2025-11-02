@@ -138,14 +138,7 @@ func TestLockFile_IncludesTimestamp(t *testing.T) {
 func TestWriteLockFile_AtomicWrite(t *testing.T) {
 	// Arrange: Setup temp directory
 	tempDir := t.TempDir()
-	originalDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(tempDir); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Chdir(originalDir) }()
+	t.Chdir(tempDir)
 
 	lockFile := LockFile{
 		Providers: []ProviderEntry{
@@ -161,7 +154,7 @@ func TestWriteLockFile_AtomicWrite(t *testing.T) {
 	}
 
 	// Act: Write lockfile
-	err = writeLockFile(lockFile)
+	err := writeLockFile(lockFile)
 	if err != nil {
 		t.Fatalf("writeLockFile failed: %v", err)
 	}
@@ -204,14 +197,7 @@ func TestWriteLockFile_AtomicWrite(t *testing.T) {
 func TestReadLockFile_SkipsIdenticalProvider(t *testing.T) {
 	// Arrange: Setup temp directory with existing lockfile
 	tempDir := t.TempDir()
-	originalDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(tempDir); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Chdir(originalDir) }()
+	t.Chdir(tempDir)
 
 	// Create existing lockfile
 	existingLock := LockFile{
