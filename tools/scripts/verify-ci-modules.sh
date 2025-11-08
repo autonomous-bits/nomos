@@ -3,7 +3,7 @@
 # verify-ci-modules.sh
 # Fast CI smoke test that validates workspace integrity and runs tests across all modules.
 #
-# Usage: ./scripts/verify-ci-modules.sh
+# Usage: ./tools/scripts/verify-ci-modules.sh
 
 set -euo pipefail
 
