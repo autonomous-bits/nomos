@@ -123,7 +123,7 @@ make test
 ```
 
 - Module docs and architecture guidance: see [docs/architecture/go-monorepo-structure.md](docs/architecture/go-monorepo-structure.md)
-- CI helper: `./scripts/verify-ci-modules.sh` validates workspace and runs tests
+- CI helper: `./tools/scripts/verify-ci-modules.sh` validates workspace and runs tests
   
 Each module maintains its own `go.mod`, `README.md`, and `CHANGELOG.md`.
 
