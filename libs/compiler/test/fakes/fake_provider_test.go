@@ -20,12 +20,13 @@ func TestFakeProvider_Init_CalledOnce(t *testing.T) {
 	})
 
 	// Act - Get provider twice
-	provider1, err := registry.GetProvider("test")
+	ctx := context.Background()
+	provider1, err := registry.GetProvider(ctx, "test")
 	if err != nil {
 		t.Fatalf("first GetProvider failed: %v", err)
 	}
 
-	provider2, err := registry.GetProvider("test")
+	provider2, err := registry.GetProvider(ctx, "test")
 	if err != nil {
 		t.Fatalf("second GetProvider failed: %v", err)
 	}
@@ -165,12 +166,12 @@ func TestFakeProvider_MultipleProviders(t *testing.T) {
 	})
 
 	// Act - Get both providers
-	configProvider, err := registry.GetProvider("config")
+	configProvider, err := registry.GetProvider(ctx, "config")
 	if err != nil {
 		t.Fatalf("failed to get config provider: %v", err)
 	}
 
-	secretsProvider, err := registry.GetProvider("secrets")
+	secretsProvider, err := registry.GetProvider(ctx, "secrets")
 	if err != nil {
 		t.Fatalf("failed to get secrets provider: %v", err)
 	}

@@ -28,7 +28,7 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 
 		// Attempt to create a provider of type "file"
 		config := map[string]any{"directory": "./testdata"}
-		provider, err := registry.CreateProvider("file", config)
+		provider, err := registry.CreateProvider(context.Background(), "file", config)
 
 		// For now, we expect an error because the binary doesn't exist
 		// This test will evolve as we implement the functionality
@@ -50,7 +50,7 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 			return &fakeProvider{}, nil
 		})
 
-		provider, err := registry.CreateProvider("test", map[string]any{})
+		provider, err := registry.CreateProvider(context.Background(), "test", map[string]any{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

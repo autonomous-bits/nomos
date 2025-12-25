@@ -135,3 +135,62 @@ The module includes a checked-in `coverage.html` file for visual coverage inspec
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out -o coverage.html
 ```
+
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./...
+```
+- All code must compile without errors
+- No unresolved imports or type errors
+
+### 2. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+```
+- All existing tests must pass
+- New tests must be added for new functionality
+- Race detector must report no data races
+- Minimum coverage targets must be maintained
+
+### 3. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors (warnings are acceptable if documented)
+- Code follows Go best practices
+
+### 4. Integration Test Verification ✅
+```bash
+go test ./test/integration/... -v
+```
+- All integration tests must pass
+- Parser correctly handles all test fixtures
+
+### 5. Documentation Updates ✅
+- Update CHANGELOG.md if behavior changed
+- Update README.md if API changed
+- Add/update code comments for new functions
+- Update examples if syntax changed
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful
+✅ Tests: XX/XX passed (YY.Y% coverage)
+✅ Race Detector: Clean
+✅ Linting: Clean (or list acceptable warnings)
+✅ Integration Tests: All passed
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

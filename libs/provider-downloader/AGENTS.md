@@ -126,3 +126,69 @@ Currently **not implemented** - all downloads are fresh. Future caching consider
 - **Provider authoring**: `docs/guides/provider-authoring-guide.md`
 - **Go monorepo structure**: `docs/architecture/go-monorepo-structure.md`
 - **PRD references**: Issue #68, User Story #69
+
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./...
+```
+- All code must compile without errors
+- No unresolved imports or type errors
+
+### 2. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+```
+- All existing tests must pass
+- New tests must be added for new functionality
+- Race detector must report no data races
+- Archive extraction tests must pass
+- Minimum 85%+ coverage maintained
+
+### 3. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors (warnings are acceptable if documented)
+- Code follows Go best practices
+- No debug fmt.Printf() statements
+
+### 4. HTTP Client Verification ✅
+- Timeout configurations are reasonable
+- Error handling covers network failures
+- Rate limiting is respected
+- GitHub API authentication works correctly
+
+### 5. Archive Handling Verification ✅
+- tar.gz extraction works correctly
+- Nested directory structures are handled
+- Corrupted archives are detected
+- Binary permissions (0755) are set correctly
+
+### 6. Documentation Updates ✅
+- Update CHANGELOG.md if behavior changed
+- Update README.md if API changed
+- Add/update code comments for new functions
+- Document new ClientOptions fields
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful
+✅ Tests: XX/XX passed (YY.Y% coverage)
+✅ Race Detector: Clean
+✅ Linting: Clean (or list acceptable warnings)
+✅ Archive Extraction: Tested and working
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

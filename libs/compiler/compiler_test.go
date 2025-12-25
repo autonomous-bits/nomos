@@ -15,7 +15,7 @@ func (m *mockProviderRegistry) Register(alias string, constructor ProviderConstr
 	m.aliases = append(m.aliases, alias)
 }
 
-func (m *mockProviderRegistry) GetProvider(alias string) (Provider, error) {
+func (m *mockProviderRegistry) GetProvider(ctx context.Context, alias string) (Provider, error) {
 	return nil, errors.New("not implemented")
 }
 

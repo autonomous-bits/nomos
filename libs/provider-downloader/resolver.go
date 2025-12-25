@@ -65,10 +65,10 @@ func (c *Client) resolveAssetFromGitHub(ctx context.Context, spec *ProviderSpec)
 	}
 
 	// Try to find matching asset using ordered matchers
-	fmt.Printf("[DEBUG] Searching for asset matching: repo=%s, version=%s, os=%s, arch=%s\n", spec.Repo, version, targetOS, targetArch)
+	c.debugf("Searching for asset matching: repo=%s, version=%s, os=%s, arch=%s", spec.Repo, version, targetOS, targetArch)
 	assetName := c.findMatchingAsset(release.Assets, spec.Repo, version, targetOS, targetArch)
 	if assetName == "" {
-		fmt.Printf("[DEBUG] No matching asset found\n")
+		c.debugf("No matching asset found")
 		return nil, &AssetNotFoundError{
 			Owner:   spec.Owner,
 			Repo:    spec.Repo,
@@ -77,7 +77,7 @@ func (c *Client) resolveAssetFromGitHub(ctx context.Context, spec *ProviderSpec)
 			Arch:    targetArch,
 		}
 	}
-	fmt.Printf("[DEBUG] Matched asset: %s\n", assetName)
+	c.debugf("Matched asset: %s", assetName)
 
 	// Find the asset details
 	for _, asset := range release.Assets {
@@ -119,7 +119,7 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	// Log the request URL
-	fmt.Printf("[DEBUG] GitHub API request: %s\n", url)
+	c.debugf("GitHub API request: %s", url)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 	defer resp.Body.Close()
 
 	// Log the response status
-	fmt.Printf("[DEBUG] GitHub API response: HTTP %d\n", resp.StatusCode)
+	c.debugf("GitHub API response: HTTP %d", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusNotFound {
 		// Try alternate version format (add/remove "v" prefix)
@@ -187,11 +187,11 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 	}
 
 	// Log the release tag and available assets
-	fmt.Printf("[DEBUG] Release tag: %s\n", release.TagName)
-	fmt.Printf("[DEBUG] Available assets (%d):\n", len(release.Assets))
+	c.debugf("Release tag: %s", release.TagName)
+	c.debugf("Available assets (%d):", len(release.Assets))
 	for i, asset := range release.Assets {
-		fmt.Printf("[DEBUG]   [%d] %s (size: %d, type: %s)\n", i+1, asset.Name, asset.Size, asset.ContentType)
-		fmt.Printf("[DEBUG]       URL: %s\n", asset.BrowserDownloadURL)
+		c.debugf("  [%d] %s (size: %d, type: %s)", i+1, asset.Name, asset.Size, asset.ContentType)
+		c.debugf("      URL: %s", asset.BrowserDownloadURL)
 	}
 
 	return &release, nil
@@ -219,40 +219,41 @@ func (c *Client) findMatchingAsset(assets []githubAsset, repo, version, targetOS
 		fmt.Sprintf("%s-%s", repo, targetOS),
 	}
 
-	fmt.Printf("[DEBUG] Trying exact patterns:\n")
+	c.debugf("Trying exact patterns:")
 	for i, pattern := range patterns {
-		fmt.Printf("[DEBUG]   [%d] %s\n", i+1, pattern)
+		c.debugf("  [%d] %s", i+1, pattern)
 	}
 
 	for _, pattern := range patterns {
 		for _, name := range assetNames {
 			// Check exact match
 			if name == pattern {
-				fmt.Printf("[DEBUG] Found exact match: %s\n", name)
+				c.debugf("Found exact match: %s", name)
 				return name
 			}
 			// Also check with common extensions (.tar.gz, .zip, .tgz, etc.)
 			if strings.HasPrefix(name, pattern+".") {
-				fmt.Printf("[DEBUG] Found pattern match with extension: %s (pattern: %s)\n", name, pattern)
+				c.debugf("Found pattern match with extension: %s (pattern: %s)", name, pattern)
 				return name
 			}
 		}
 	}
-	fmt.Printf("[DEBUG] No exact pattern matches found\n")
+	c.debugf("No exact pattern matches found")
 
 	// 2. Fallback: substring matching (case-insensitive)
 	// Normalize arch names for matching (amd64 == x86_64)
 	archVariants := []string{targetArch}
-	if targetArch == "amd64" {
+	switch targetArch {
+	case "amd64":
 		archVariants = append(archVariants, "x86_64", "x86-64")
-	} else if targetArch == "arm64" {
+	case "arm64":
 		archVariants = append(archVariants, "aarch64")
 	}
 
-	fmt.Printf("[DEBUG] Trying substring matching (case-insensitive) - looking for: os=%s, arch=%v, version=%s\n", targetOS, archVariants, versionNumber)
+	c.debugf("Trying substring matching (case-insensitive) - looking for: os=%s, arch=%v, version=%s", targetOS, archVariants, versionNumber)
 
 	// First pass: prefer matches that include version in filename
-	fmt.Printf("[DEBUG] First pass: looking for assets with version in name\n")
+	c.debugf("First pass: looking for assets with version in name")
 	for _, name := range assetNames {
 		nameLower := strings.ToLower(name)
 		osMatch := strings.Contains(nameLower, strings.ToLower(targetOS))
@@ -267,14 +268,14 @@ func (c *Client) findMatchingAsset(assets []githubAsset, repo, version, targetOS
 		}
 
 		if osMatch && archMatch && versionMatch {
-			fmt.Printf("[DEBUG] Found substring match (with version): %s\n", name)
+			c.debugf("Found substring match (with version): %s", name)
 			return name
 		}
 	}
-	fmt.Printf("[DEBUG] No matches found with version in filename\n")
+	c.debugf("No matches found with version in filename")
 
 	// Second pass: match without version requirement (legacy support)
-	fmt.Printf("[DEBUG] Second pass: looking for assets without version requirement\n")
+	c.debugf("Second pass: looking for assets without version requirement")
 	for _, name := range assetNames {
 		nameLower := strings.ToLower(name)
 		osMatch := strings.Contains(nameLower, strings.ToLower(targetOS))
@@ -288,12 +289,12 @@ func (c *Client) findMatchingAsset(assets []githubAsset, repo, version, targetOS
 		}
 
 		if osMatch && archMatch {
-			fmt.Printf("[DEBUG] Found substring match (legacy): %s\n", name)
+			c.debugf("Found substring match (legacy): %s", name)
 			return name
 		}
 	}
 
-	fmt.Printf("[DEBUG] No substring matches found\n")
+	c.debugf("No substring matches found")
 	return ""
 }
 

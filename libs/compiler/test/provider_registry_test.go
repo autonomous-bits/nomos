@@ -63,7 +63,7 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry.Register(alias, constructor)
 
 		// Assert - Get should instantiate the provider
-		provider, err := registry.GetProvider(alias)
+		provider, err := registry.GetProvider(context.Background(), alias)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -89,7 +89,8 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry := compiler.NewProviderRegistry()
 
 		// Act
-		provider, err := registry.GetProvider("nonexistent")
+		ctx := context.Background()
+		provider, err := registry.GetProvider(ctx, "nonexistent")
 
 		// Assert
 		if err == nil {
@@ -114,7 +115,8 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry.Register(alias, constructor)
 
 		// Act
-		provider, err := registry.GetProvider(alias)
+		ctx := context.Background()
+		provider, err := registry.GetProvider(ctx, alias)
 
 		// Assert
 		if err == nil {
@@ -145,8 +147,9 @@ func TestProviderRegistry_InstanceCaching(t *testing.T) {
 		registry.Register(alias, constructor)
 
 		// Act - Get the provider twice
-		provider1, err1 := registry.GetProvider(alias)
-		provider2, err2 := registry.GetProvider(alias)
+		ctx := context.Background()
+		provider1, err1 := registry.GetProvider(ctx, alias)
+		provider2, err2 := registry.GetProvider(ctx, alias)
 
 		// Assert
 		if err1 != nil {
@@ -176,7 +179,7 @@ func TestProviderRegistry_InstanceCaching(t *testing.T) {
 
 		// Act - Get the provider multiple times
 		for i := 0; i < 3; i++ {
-			_, err := registry.GetProvider(alias)
+			_, err := registry.GetProvider(context.Background(), alias)
 			if err != nil {
 				t.Fatalf("GetProvider call %d failed: %v", i+1, err)
 			}
@@ -217,7 +220,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 		// Assert - All providers should be retrievable
 		for i := 0; i < 10; i++ {
 			alias := fmt.Sprintf("provider-%d", i)
-			provider, err := registry.GetProvider(alias)
+			provider, err := registry.GetProvider(context.Background(), alias)
 			if err != nil {
 				t.Errorf("failed to get provider %q: %v", alias, err)
 			}
@@ -243,7 +246,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 		done := make(chan compiler.Provider, 10)
 		for i := 0; i < 10; i++ {
 			go func() {
-				provider, err := registry.GetProvider(alias)
+				provider, err := registry.GetProvider(context.Background(), alias)
 				if err != nil {
 					t.Errorf("concurrent Get failed: %v", err)
 				}

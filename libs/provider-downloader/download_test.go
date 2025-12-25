@@ -2,8 +2,7 @@ package downloader
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -92,12 +91,6 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	}
 }
 
-// computeSHA256 computes SHA256 checksum for test data.
-func computeSHA256(data []byte) string {
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:])
-}
-
 // TestDownloadAndInstall_ChecksumMismatch verifies checksum validation.
 func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 	// Arrange: Create fake provider binary with mismatched checksum
@@ -138,7 +131,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 
 	// Verify error type
 	var checksumErr *ChecksumMismatchError
-	if !asError(err, &checksumErr) {
+	if !errors.As(err, &checksumErr) {
 		t.Errorf("expected ChecksumMismatchError, got %T: %v", err, err)
 	}
 
@@ -340,16 +333,4 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 	if result.Checksum != expectedChecksum {
 		t.Errorf("checksum mismatch: expected %s, got %s", expectedChecksum, result.Checksum)
 	}
-}
-
-// asError is a helper similar to errors.As for cleaner test assertions.
-func asError(err error, target interface{}) bool {
-	switch v := target.(type) {
-	case **ChecksumMismatchError:
-		if e, ok := err.(*ChecksumMismatchError); ok {
-			*v = e
-			return true
-		}
-	}
-	return false
 }

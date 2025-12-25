@@ -15,6 +15,7 @@ type Client struct {
 	baseURL       string
 	retryAttempts int
 	retryDelay    time.Duration
+	logger        Logger
 }
 
 // NewClient creates a new downloader client with the given options.
@@ -63,6 +64,7 @@ func NewClient(ctx context.Context, opts *ClientOptions) *Client {
 		baseURL:       baseURL,
 		retryAttempts: retryAttempts,
 		retryDelay:    retryDelay,
+		logger:        opts.Logger,
 	}
 }
 
@@ -145,4 +147,11 @@ func (c *Client) DownloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 	}
 
 	return c.downloadAndInstall(ctx, asset, destDir)
+}
+
+// debugf logs a debug message if a logger is configured.
+func (c *Client) debugf(format string, args ...interface{}) {
+	if c.logger != nil {
+		c.logger.Debugf(format, args...)
+	}
 }

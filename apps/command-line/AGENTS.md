@@ -171,3 +171,81 @@ Nomos CLI exit codes:
 
 Tagged as `apps/command-line/v1.x.x` for releases.  
 See `docs/RELEASE.md` for version tagging strategy.
+
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./cmd/nomos
+./nomos --help  # Verify binary works
+```
+- All code must compile without errors
+- Binary executes and shows help
+- No unresolved imports or type errors
+- All commands are accessible
+
+### 2. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+go test ./test/... -v  # Integration tests
+```
+- All existing tests must pass
+- New tests must be added for new commands/flags
+- Race detector must report no data races
+- Integration tests with real binary must pass
+- Command output matches expectations
+
+### 3. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors (warnings are acceptable if documented)
+- Code follows Go best practices
+- No os.Exit() in command handlers (return errors instead)
+
+### 4. CLI UX Verification ✅
+- Help text is clear and accurate
+- Error messages are actionable
+- Flags work as documented
+- Output format is consistent
+- Exit codes are correct (0 for success, non-zero for errors)
+
+### 5. Command Integration Verification ✅
+```bash
+# Test actual command execution
+./nomos build testdata/simple.csl
+./nomos init testdata/simple.csl
+./nomos --version
+```
+- Commands execute successfully
+- File I/O works correctly
+- Diagnostics display properly
+- Provider initialization works
+
+### 6. Documentation Updates ✅
+- Update CHANGELOG.md if behavior changed
+- Update README.md for new commands/flags
+- Update help text for modified commands
+- Add/update usage examples
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful (binary executes)
+✅ Tests: XX/XX passed (YY.Y% coverage)
+✅ Race Detector: Clean
+✅ Integration Tests: All passed
+✅ Linting: Clean (or list acceptable warnings)
+✅ CLI UX: Help text updated, commands work
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

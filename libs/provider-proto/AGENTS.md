@@ -89,3 +89,77 @@ Use standard gRPC status codes:
 ### Build Tags
 
 No special build tags required. Generated code works across all platforms.
+
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./...
+```
+- All code must compile without errors
+- Generated protobuf code is up to date
+- No unresolved imports or type errors
+
+### 2. Protobuf Verification ✅
+```bash
+buf lint
+buf breaking --against .git#branch=main
+make generate  # Ensure generated code is current
+```
+- Proto files pass buf linting
+- No breaking changes (unless intentional and documented)
+- Generated Go code matches proto definitions
+
+### 3. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+```
+- All existing tests must pass
+- New tests must be added for new RPC methods
+- Race detector must report no data races
+- gRPC integration tests must pass
+- Contract tests validate all message types
+
+### 4. gRPC Integration Verification ✅
+- Real client-server tests pass
+- All RPC methods tested (Init, Fetch, Info, Health, Shutdown)
+- Error status codes are correct
+- Data serialization round-trips work
+- Lifecycle ordering is enforced
+
+### 5. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors
+- Code follows Go best practices
+- No unused functions in test files
+
+### 6. Documentation Updates ✅
+- Update CHANGELOG.md if contract changed
+- Update README.md if API changed
+- Update proto comments for new fields/methods
+- Verify README examples compile
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful
+✅ Protobuf: Lint clean, no breaking changes
+✅ Generated Code: Up to date
+✅ Tests: XX/XX passed
+✅ Race Detector: Clean
+✅ gRPC Integration: All methods tested
+✅ Linting: Clean
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

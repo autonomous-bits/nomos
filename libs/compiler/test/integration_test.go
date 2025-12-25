@@ -18,7 +18,7 @@ func (f *fakeProviderRegistry) Register(alias string, constructor compiler.Provi
 	f.aliases = append(f.aliases, alias)
 }
 
-func (f *fakeProviderRegistry) GetProvider(alias string) (compiler.Provider, error) {
+func (f *fakeProviderRegistry) GetProvider(ctx context.Context, alias string) (compiler.Provider, error) {
 	return nil, errors.New("no providers registered")
 }
 

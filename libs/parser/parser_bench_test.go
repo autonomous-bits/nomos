@@ -18,11 +18,10 @@ func BenchmarkParse_Small(b *testing.B) {
 
 import:baseConfig:./base.csl
 
-reference:base:config.database
-
 database:
   host: localhost
   port: 5432
+  connection: reference:base:config.database
 `
 
 	b.ResetTimer()

@@ -40,7 +40,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
 		config := map[string]any{"test": "config"}
-		_, err := typeRegistry.CreateProvider("testprovider", config)
+		_, err := typeRegistry.CreateProvider(context.Background(), "testprovider", config)
 
 		if err == nil {
 			t.Fatal("expected error for non-existent binary, got nil")
@@ -72,7 +72,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		})
 
 		config := map[string]any{"test": "config"}
-		provider, err := typeRegistry.CreateProvider("testprovider", config)
+		provider, err := typeRegistry.CreateProvider(context.Background(), "testprovider", config)
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -107,7 +107,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
-		_, err := typeRegistry.CreateProvider("missing", map[string]any{})
+		_, err := typeRegistry.CreateProvider(context.Background(), "missing", map[string]any{})
 
 		if err == nil {
 			t.Fatal("expected error for missing provider, got nil")

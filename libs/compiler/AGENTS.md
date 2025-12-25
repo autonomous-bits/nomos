@@ -346,3 +346,74 @@ snapshot, err := compiler.Compile(ctx, opts)
 - **gRPC Proto:** `libs/provider-proto/README.md`
 - **Parser Integration:** `libs/parser/README.md`
 
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./...
+```
+- All code must compile without errors
+- No unresolved imports or type errors
+- Context propagation is correct throughout
+
+### 2. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+go test ./test/... -tags=integration  # Integration tests
+```
+- All existing tests must pass
+- New tests must be added for new functionality
+- Race detector must report no data races
+- Integration tests must pass
+- Mock/fake provider registries must be updated
+
+### 3. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors (warnings are acceptable if documented)
+- Code follows Go best practices
+- No unused context.Context parameters
+
+### 4. Provider Integration Verification ✅
+```bash
+go test ./test/integration_network_test.go -v  # Network tests
+```
+- Provider lifecycle tests pass
+- External provider communication works
+- Checksum validation functions correctly
+- Lockfile resolution works
+
+### 5. Security Verification ✅
+- Provider binary checksums are validated
+- Context cancellation is propagated correctly
+- No hardcoded context.Background() in new code
+- Provider binaries are executed only after validation
+
+### 6. Documentation Updates ✅
+- Update CHANGELOG.md if behavior changed
+- Update README.md if API changed
+- Add/update code comments for new functions
+- Update architecture docs if structure changed
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful
+✅ Tests: XX/XX passed (YY.Y% coverage)
+✅ Race Detector: Clean
+✅ Integration Tests: All passed
+✅ Linting: Clean (or list acceptable warnings)
+✅ Security: Checksums validated, context propagated
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

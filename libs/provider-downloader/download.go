@@ -71,7 +71,14 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 
 	// If the asset is an archive (tar.gz, zip), extract it
 	if needsExtraction(asset.Name) {
-		extractedPath, err := extractArchive(tmpPath, destDir, asset.Name)
+		// Create temporary extraction directory
+		extractDir, err := os.MkdirTemp(tmpDir, "extract-*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create extraction directory: %w", err)
+		}
+		defer os.RemoveAll(extractDir) // Clean up extraction directory
+
+		extractedPath, err := extractArchive(tmpPath, extractDir, asset.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract archive: %w", err)
 		}
@@ -254,8 +261,10 @@ func extractTarGz(archivePath, destDir string) (string, error) {
 	// Create tar reader
 	tr := tar.NewReader(gzr)
 
-	// Extract all files
+	// Track all extracted files and find the provider binary
 	var providerPath string
+	var fallbackPath string // For "nomos-provider-*" names
+
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -270,8 +279,9 @@ func extractTarGz(archivePath, destDir string) (string, error) {
 			continue
 		}
 
-		// Extract file
-		target := filepath.Join(destDir, filepath.Base(header.Name))
+		// Extract file (flattened to destDir)
+		baseName := filepath.Base(header.Name)
+		target := filepath.Join(destDir, baseName)
 		outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return "", fmt.Errorf("failed to create file %s: %w", target, err)
@@ -283,16 +293,22 @@ func extractTarGz(archivePath, destDir string) (string, error) {
 		}
 		outFile.Close()
 
-		// If this is the provider binary, remember its path
-		baseName := filepath.Base(header.Name)
-		if baseName == "provider" || baseName == "nomos-provider-file" {
+		// Check if this is a provider binary
+		// Priority: exact "provider" match > "nomos-provider-*" match
+		if baseName == "provider" {
 			providerPath = target
+		} else if providerPath == "" && contains(baseName, "nomos-provider-") {
+			fallbackPath = target
 		}
 	}
 
-	if providerPath == "" {
-		return "", fmt.Errorf("provider binary not found in archive")
+	// Prefer exact "provider" match, fall back to "nomos-provider-*"
+	if providerPath != "" {
+		return providerPath, nil
+	}
+	if fallbackPath != "" {
+		return fallbackPath, nil
 	}
 
-	return providerPath, nil
+	return "", fmt.Errorf("provider binary not found in archive")
 }

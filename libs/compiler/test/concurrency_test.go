@@ -67,7 +67,7 @@ func TestProviderRegistry_ConcurrentGetProvider(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			p, err := registry.GetProvider("test")
+			p, err := registry.GetProvider(context.Background(), "test")
 			if err != nil {
 				errors <- err
 				return
@@ -248,7 +248,7 @@ func (r *concurrencyTestRegistry) registerConcurrent(alias string, provider comp
 	r.providers[alias] = provider
 }
 
-func (r *concurrencyTestRegistry) GetProvider(alias string) (compiler.Provider, error) {
+func (r *concurrencyTestRegistry) GetProvider(ctx context.Context, alias string) (compiler.Provider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

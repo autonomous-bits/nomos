@@ -197,7 +197,7 @@ func (r *benchProviderRegistry) Register(alias string, constructor compiler.Prov
 	// No-op for benchmarks
 }
 
-func (r *benchProviderRegistry) GetProvider(alias string) (compiler.Provider, error) {
+func (r *benchProviderRegistry) GetProvider(ctx context.Context, alias string) (compiler.Provider, error) {
 	return r.provider, nil
 }
 
