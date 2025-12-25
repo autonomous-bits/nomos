@@ -1,7 +1,9 @@
-# Provider Proto Module Agent
+---
+name: provider-proto-module
+description: Specialized agent for libs/provider-proto - handles gRPC protocol buffer contracts for external provider communication.
+---
 
-## Purpose
-Specialized agent for `libs/provider-proto` - handles gRPC protocol buffer contracts for external provider communication. This module defines the service contract that all Nomos external providers must implement to communicate with the Nomos compiler.
+This module defines the service contract that all Nomos external providers must implement to communicate with the Nomos compiler.
 
 ## Module Context
 - **Path**: `libs/provider-proto`
@@ -20,9 +22,9 @@ Specialized agent for `libs/provider-proto` - handles gRPC protocol buffer contr
 - **Build System**: Buf CLI (recommended) or protoc
 
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**  
-For gRPC/protobuf questions, **consult api-messaging-expert.md**  
-For provider implementation patterns, **consult compiler-module.md**
+For general Go questions, **consult go-expert.agent.md**  
+For gRPC/protobuf questions, **consult api-messaging-expert.agent.md**  
+For provider implementation patterns, **consult compiler-module.agent.md**
 
 ## Provider Proto-Specific Patterns
 

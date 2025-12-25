@@ -1,7 +1,9 @@
-# Testing Expert Agent
+---
+name: testing-expert
+description: Provides comprehensive testing expertise for Go projects, covering unit tests, integration tests, table-driven patterns, test organization, benchmarking, test coverage, mocking, and testing best practices.
+---
 
-## Purpose
-Provides comprehensive testing expertise for Go projects, covering unit tests, integration tests, table-driven patterns, test organization, benchmarking, test coverage, mocking, and testing best practices. This agent serves as the authoritative reference for all testing-related decisions in Go development.
+This agent serves as the authoritative reference for all testing-related decisions in Go development.
 
 ## Standards Source
 - https://github.com/autonomous-bits/development-standards/blob/main/go/tests.md

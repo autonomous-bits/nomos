@@ -1,7 +1,7 @@
-# Nomos Orchestrator Agent
-
-## Purpose
-Primary entry point for all Nomos development tasks. Analyzes incoming tasks/issues, determines scope, and delegates to appropriate specialized agents.
+---
+name: nomos
+description: Primary entry point for all Nomos development tasks. Analyzes incoming tasks/issues, determines scope, and delegates to appropriate specialized agents.
+---
 
 ## Responsibilities
 1. **Task Analysis**: Understand the nature and scope of requested work
@@ -13,20 +13,20 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 ## Agent Hierarchy
 
 ### Specialized Module Agents
-- `parser-module.md` - For libs/parser work
-- `compiler-module.md` - For libs/compiler work
-- `cli-module.md` - For apps/command-line work
-- `provider-proto-module.md` - For libs/provider-proto work
-- `provider-downloader-module.md` - For libs/provider-downloader work
+- `parser-module.agent.md` - For libs/parser work
+- `compiler-module.agent.md` - For libs/compiler work
+- `cli-module.agent.md` - For apps/command-line work
+- `provider-proto-module.agent.md` - For libs/provider-proto work
+- `provider-downloader-module.agent.md` - For libs/provider-downloader work
 
 ### Cross-Cutting Agent
-- `monorepo-governance.md` - For workspace, versioning, changelog, commits
+- `monorepo-governance.agent.md` - For workspace, versioning, changelog, commits
 
 ### Capability Agents (Available to Module Agents)
-- `go-expert.md` - Go language expertise
-- `cli-expert.md` - CLI design expertise
-- `testing-expert.md` - Testing expertise
-- `api-messaging-expert.md` - API/gRPC expertise
+- `go-expert.agent.md` - Go language expertise
+- `cli-expert.agent.md` - CLI design expertise
+- `testing-expert.agent.md` - Testing expertise
+- `api-messaging-expert.agent.md` - API/gRPC expertise
 
 ## Decision Tree
 
@@ -35,29 +35,29 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 2. Delegate to corresponding module agent
 3. Module agent will further delegate to capability agents as needed
 
-**Example**: "Fix parser error on nested maps" → `parser-module.md`
+**Example**: "Fix parser error on nested maps" → `parser-module.agent.md`
 
 ### Multi-Module Tasks
 1. Identify all affected modules
 2. Consult relevant architecture docs (e.g., `docs/architecture/`)
 3. Delegate to each module agent in dependency order
 4. Coordinate changes across modules
-5. Ensure `monorepo-governance.md` for versioning/changelog
+5. Ensure `monorepo-governance.agent.md` for versioning/changelog
 
-**Example**: "Add new provider type" → `provider-proto-module.md` + `compiler-module.md` + `cli-module.md` + `monorepo-governance.md`
+**Example**: "Add new provider type" → `provider-proto-module.agent.md` + `compiler-module.agent.md` + `cli-module.agent.md` + `monorepo-governance.agent.md`
 
 ### Cross-Cutting Tasks
-1. Delegate directly to `monorepo-governance.md`
+1. Delegate directly to `monorepo-governance.agent.md`
 2. May involve multiple module agents for implementation
 
-**Example**: "Update all CHANGELOGs for v2.0 release" → `monorepo-governance.md`
+**Example**: "Update all CHANGELOGs for v2.0 release" → `monorepo-governance.agent.md`
 
 ### Infrastructure Tasks
 1. Assess if standards/governance related
 2. Consult existing instructions in `.github/instructions/`
-3. Coordinate with `monorepo-governance.md`
+3. Coordinate with `monorepo-governance.agent.md`
 
-**Example**: "Update CI/CD workflow" → `monorepo-governance.md` + context from repo
+**Example**: "Update CI/CD workflow" → `monorepo-governance.agent.md` + context from repo
 
 ## Task Processing Workflow
 
@@ -84,26 +84,26 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 ## Module Identification Guide
 
 ### By File Path
-- `libs/parser/` → `parser-module.md`
-- `libs/compiler/` → `compiler-module.md`
-- `apps/command-line/` → `cli-module.md`
-- `libs/provider-proto/` → `provider-proto-module.md`
-- `libs/provider-downloader/` → `provider-downloader-module.md`
-- `go.work`, `.github/`, root-level configs → `monorepo-governance.md`
+- `libs/parser/` → `parser-module.agent.md`
+- `libs/compiler/` → `compiler-module.agent.md`
+- `apps/command-line/` → `cli-module.agent.md`
+- `libs/provider-proto/` → `provider-proto-module.agent.md`
+- `libs/provider-downloader/` → `provider-downloader-module.agent.md`
+- `go.work`, `.github/`, root-level configs → `monorepo-governance.agent.md`
 
 ### By Component/Feature
-- **Parsing, lexing, AST** → `parser-module.md`
-- **Compilation, type checking, import resolution** → `compiler-module.md`
-- **CLI commands, flags, user interaction** → `cli-module.md`
-- **gRPC contracts, protobuf definitions** → `provider-proto-module.md`
-- **Provider binary management, downloading** → `provider-downloader-module.md`
-- **Versioning, changelogs, commits, workspace** → `monorepo-governance.md`
+- **Parsing, lexing, AST** → `parser-module.agent.md`
+- **Compilation, type checking, import resolution** → `compiler-module.agent.md`
+- **CLI commands, flags, user interaction** → `cli-module.agent.md`
+- **gRPC contracts, protobuf definitions** → `provider-proto-module.agent.md`
+- **Provider binary management, downloading** → `provider-downloader-module.agent.md`
+- **Versioning, changelogs, commits, workspace** → `monorepo-governance.agent.md`
 
 ### By Technology/Expertise Area
-- **General Go patterns** → Delegate to module agent, which consults `go-expert.md`
-- **CLI UX and conventions** → Delegate to `cli-module.md`, which consults `cli-expert.md`
-- **Testing patterns** → Delegate to module agent, which consults `testing-expert.md`
-- **gRPC/API design** → Delegate to relevant module, which consults `api-messaging-expert.md`
+- **General Go patterns** → Delegate to module agent, which consults `go-expert.agent.md`
+- **CLI UX and conventions** → Delegate to `cli-module.agent.md`, which consults `cli-expert.agent.md`
+- **Testing patterns** → Delegate to module agent, which consults `testing-expert.agent.md`
+- **gRPC/API design** → Delegate to relevant module, which consults `api-messaging-expert.agent.md`
 
 ## Examples
 
@@ -116,11 +116,11 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 - Language feature requires syntax and semantic handling
 
 **Delegation**:
-1. `parser-module.md` - Implement lexer/parser changes for ternary syntax
-   - Will consult `go-expert.md` for code patterns
-   - Will consult `testing-expert.md` for test structure
-2. `compiler-module.md` - Add type checking and compilation logic if needed
-3. `monorepo-governance.md` - Update CHANGELOGs for both modules, coordinate versions
+1. `parser-module.agent.md` - Implement lexer/parser changes for ternary syntax
+   - Will consult `go-expert.agent.md` for code patterns
+   - Will consult `testing-expert.agent.md` for test structure
+2. `compiler-module.agent.md` - Add type checking and compilation logic if needed
+3. `monorepo-governance.agent.md` - Update CHANGELOGs for both modules, coordinate versions
 
 **Expected Deliverables**:
 - Updated parser with ternary operator support
@@ -138,10 +138,10 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 - Cobra command with table output
 
 **Delegation**:
-1. `cli-module.md` - Implement new command following Cobra patterns
-   - Will consult `cli-expert.md` for command structure and output design
-   - Will consult `go-expert.md` for general code patterns
-   - May coordinate with `compiler-module.md` to access provider information
+1. `cli-module.agent.md` - Implement new command following Cobra patterns
+   - Will consult `cli-expert.agent.md` for command structure and output design
+   - Will consult `go-expert.agent.md` for general code patterns
+   - May coordinate with `compiler-module.agent.md` to access provider information
 
 **Expected Deliverables**:
 - New `provider list` command under `nomos provider`
@@ -162,18 +162,18 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 
 **Delegation**:
 1. **First**: Review architecture document thoroughly
-2. `provider-proto-module.md` - Define/update gRPC contracts for AWS provider
-   - Will consult `api-messaging-expert.md` for gRPC patterns
-3. `provider-downloader-module.md` - Ensure can fetch external AWS provider binary
+2. `provider-proto-module.agent.md` - Define/update gRPC contracts for AWS provider
+   - Will consult `api-messaging-expert.agent.md` for gRPC patterns
+3. `provider-downloader-module.agent.md` - Ensure can fetch external AWS provider binary
    - Verify download, caching, version resolution
-4. `compiler-module.md` - Update provider registry and invocation logic
+4. `compiler-module.agent.md` - Update provider registry and invocation logic
    - Change from in-process to gRPC client invocation
    - Update provider type registry for external provider
-5. `cli-module.md` - Update commands for external providers
+5. `cli-module.agent.md` - Update commands for external providers
    - Provider install/update commands
    - Provider configuration handling
-6. `parser-module.md` - Verify syntax supports external providers (likely no changes)
-7. `monorepo-governance.md` - Coordinate CHANGELOGs, versions, commits
+6. `parser-module.agent.md` - Verify syntax supports external providers (likely no changes)
+7. `monorepo-governance.agent.md` - Coordinate CHANGELOGs, versions, commits
    - Major version bump likely required
    - Coordinated release across all modules
 
@@ -196,9 +196,9 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 - Focus on integration tests with realistic scenarios
 
 **Delegation**:
-1. `compiler-module.md` - Handle compiler-specific context
-   - Will delegate to `testing-expert.md` for test patterns
-   - Will consult `go-expert.md` for test implementation
+1. `compiler-module.agent.md` - Handle compiler-specific context
+   - Will delegate to `testing-expert.agent.md` for test patterns
+   - Will consult `go-expert.agent.md` for test implementation
 
 **Expected Deliverables**:
 - New integration tests covering edge cases
@@ -211,12 +211,12 @@ Primary entry point for all Nomos development tasks. Analyzes incoming tasks/iss
 
 ### Dependency Order for Multi-Module Changes
 When changes span multiple modules, implement in this order:
-1. **Foundation**: `parser-module.md` (if syntax changes)
-2. **Protocol**: `provider-proto-module.md` (if contracts change)
-3. **Infrastructure**: `provider-downloader-module.md` (if provider management changes)
-4. **Core Logic**: `compiler-module.md` (business logic changes)
-5. **Interface**: `cli-module.md` (user-facing changes)
-6. **Governance**: `monorepo-governance.md` (versioning, changelog, tagging)
+1. **Foundation**: `parser-module.agent.md` (if syntax changes)
+2. **Protocol**: `provider-proto-module.agent.md` (if contracts change)
+3. **Infrastructure**: `provider-downloader-module.agent.md` (if provider management changes)
+4. **Core Logic**: `compiler-module.agent.md` (business logic changes)
+5. **Interface**: `cli-module.agent.md` (user-facing changes)
+6. **Governance**: `monorepo-governance.agent.md` (versioning, changelog, tagging)
 
 ### Cross-Module Testing
 - Integration tests at each module level

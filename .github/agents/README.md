@@ -23,29 +23,29 @@ Capability Agents:
 ## Agent Types
 
 ### 1. Orchestrator Agent
-**File**: [nomos-agent.md](nomos-agent.md)
+**File**: [nomos.agent.md](nomos.agent.md)
 
 The primary entry point for all Nomos development tasks. It analyzes incoming tasks, determines scope, and delegates to appropriate specialized agents.
 
 ### 2. Module Agents
 Specialized agents for each package in the monorepo:
 
-- **[parser-module.md](parser-module.md)** - Handles `libs/parser` work (lexing, parsing, AST generation)
-- **[compiler-module.md](compiler-module.md)** - Handles `libs/compiler` work (compilation, import resolution, provider integration)
-- **[cli-module.md](cli-module.md)** - Handles `apps/command-line` work (CLI commands, user interaction)
-- **[provider-proto-module.md](provider-proto-module.md)** - Handles `libs/provider-proto` work (gRPC contracts)
-- **[provider-downloader-module.md](provider-downloader-module.md)** - Handles `libs/provider-downloader` work (provider binary management)
+- **[parser-module.agent.md](parser-module.agent.md)** - Handles `libs/parser` work (lexing, parsing, AST generation)
+- **[compiler-module.agent.md](compiler-module.agent.md)** - Handles `libs/compiler` work (compilation, import resolution, provider integration)
+- **[cli-module.agent.md](cli-module.agent.md)** - Handles `apps/command-line` work (CLI commands, user interaction)
+- **[provider-proto-module.agent.md](provider-proto-module.agent.md)** - Handles `libs/provider-proto` work (gRPC contracts)
+- **[provider-downloader-module.agent.md](provider-downloader-module.agent.md)** - Handles `libs/provider-downloader` work (provider binary management)
 
 ### 3. Capability Agents
 Delegatable expertise areas that module agents can consult:
 
-- **[go-expert.md](go-expert.md)** - Go language best practices, patterns, security, performance
-- **[cli-expert.md](cli-expert.md)** - CLI design, POSIX/GNU conventions, Cobra framework
-- **[testing-expert.md](testing-expert.md)** - Testing patterns, table-driven tests, coverage
-- **[api-messaging-expert.md](api-messaging-expert.md)** - API design, gRPC, async messaging
+- **[go-expert.agent.md](go-expert.agent.md)** - Go language best practices, patterns, security, performance
+- **[cli-expert.agent.md](cli-expert.agent.md)** - CLI design, POSIX/GNU conventions, Cobra framework
+- **[testing-expert.agent.md](testing-expert.agent.md)** - Testing patterns, table-driven tests, coverage
+- **[api-messaging-expert.agent.md](api-messaging-expert.agent.md)** - API design, gRPC, async messaging
 
 ### 4. Governance Agent
-**File**: [monorepo-governance.md](monorepo-governance.md)
+**File**: [monorepo-governance.agent.md](monorepo-governance.agent.md)
 
 Handles cross-cutting concerns: workspace management, versioning, changelog coordination, commit messages.
 
@@ -53,7 +53,7 @@ Handles cross-cutting concerns: workspace management, versioning, changelog coor
 
 ### Starting a New Task
 
-1. **Always start with the orchestrator**: Invoke `nomos-agent.md` first
+1. **Always start with the orchestrator**: Invoke `nomos.agent.md` first
 2. **Provide full context**: Include task description, relevant files, and any constraints
 3. **Let the orchestrator route**: It will analyze and delegate to appropriate agents
 4. **Follow the delegation chain**: Module agents may further delegate to capability agents
@@ -64,37 +64,37 @@ Handles cross-cutting concerns: workspace management, versioning, changelog coor
 ```
 User Request: "Fix parser error on nested maps"
     ↓
-nomos-agent.md (analyzes: affects libs/parser)
+nomos.agent.md (analyzes: affects libs/parser)
     ↓
-parser-module.md (handles parser-specific context)
+parser-module.agent.md (handles parser-specific context)
     ↓
-go-expert.md (consults for Go patterns)
+go-expert.agent.md (consults for Go patterns)
     ↓
-testing-expert.md (consults for test patterns)
+testing-expert.agent.md (consults for test patterns)
 ```
 
 #### Multi-Module Task
 ```
 User Request: "Add new provider type"
     ↓
-nomos-agent.md (analyzes: affects multiple modules)
+nomos.agent.md (analyzes: affects multiple modules)
     ↓
-provider-proto-module.md (update contracts)
+provider-proto-module.agent.md (update contracts)
     ↓
-compiler-module.md (update provider registry)
+compiler-module.agent.md (update provider registry)
     ↓
-cli-module.md (update commands)
+cli-module.agent.md (update commands)
     ↓
-monorepo-governance.md (coordinate versions/changelogs)
+monorepo-governance.agent.md (coordinate versions/changelogs)
 ```
 
 #### Cross-Cutting Task
 ```
 User Request: "Update all CHANGELOGs for v2.0 release"
     ↓
-nomos-agent.md (analyzes: cross-cutting)
+nomos.agent.md (analyzes: cross-cutting)
     ↓
-monorepo-governance.md (handles versioning strategy)
+monorepo-governance.agent.md (handles versioning strategy)
     ↓
 (touches multiple module CHANGELOGs)
 ```
@@ -104,25 +104,25 @@ monorepo-governance.md (handles versioning strategy)
 ### Module → Capability Delegation
 
 Module agents should delegate to capability agents for:
-- **General Go questions** → `go-expert.md`
-- **CLI design questions** → `cli-expert.md`
-- **Testing patterns** → `testing-expert.md`
-- **API/gRPC questions** → `api-messaging-expert.md`
+- **General Go questions** → `go-expert.agent.md`
+- **CLI design questions** → `cli-expert.agent.md`
+- **Testing patterns** → `testing-expert.agent.md`
+- **API/gRPC questions** → `api-messaging-expert.agent.md`
 
-Example from compiler-module.md:
+Example from compiler-module.agent.md:
 ```markdown
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**
-For testing questions, **consult testing-expert.md**
-For provider communication/gRPC, **consult api-messaging-expert.md**
+For general Go questions, **consult go-expert.agent.md**
+For testing questions, **consult testing-expert.agent.md**
+For provider communication/gRPC, **consult api-messaging-expert.agent.md**
 ```
 
 ### Direct Capability Consultation
 
 You can directly consult capability agents for specific questions:
-- "What's the Go convention for error wrapping?" → `go-expert.md`
-- "How should I structure CLI subcommands?" → `cli-expert.md`
-- "What's the table-driven test pattern?" → `testing-expert.md`
+- "What's the Go convention for error wrapping?" → `go-expert.agent.md`
+- "How should I structure CLI subcommands?" → `cli-expert.agent.md`
+- "What's the table-driven test pattern?" → `testing-expert.agent.md`
 
 ## Standards Maintenance
 
@@ -146,17 +146,17 @@ All agent files are located in `.github/agents/`:
 ```
 .github/agents/
 ├── README.md (this file)
-├── nomos-agent.md (orchestrator)
-├── go-expert.md
-├── cli-expert.md
-├── testing-expert.md
-├── api-messaging-expert.md
-├── parser-module.md
-├── compiler-module.md
-├── cli-module.md
-├── provider-proto-module.md
-├── provider-downloader-module.md
-└── monorepo-governance.md
+├── nomos.agent.md (orchestrator)
+├── go-expert.agent.md
+├── cli-expert.agent.md
+├── testing-expert.agent.md
+├── api-messaging-expert.agent.md
+├── parser-module.agent.md
+├── compiler-module.agent.md
+├── cli-module.agent.md
+├── provider-proto-module.agent.md
+├── provider-downloader-module.agent.md
+└── monorepo-governance.agent.md
 ```
 
 ### Module-Specific AGENTS.md
@@ -182,4 +182,4 @@ When adding new agents or updating existing ones:
 
 ## Questions?
 
-For questions about the agent system or how to use it effectively, start with `nomos-agent.md` - it will help route your question appropriately.
+For questions about the agent system or how to use it effectively, start with `nomos.agent.md` - it will help route your question appropriately.

@@ -1,7 +1,9 @@
-# CLI Expert Agent
+---
+name: cli-expert
+description: Provides comprehensive CLI design expertise covering POSIX/GNU conventions, command structure, I/O handling, and Cobra framework patterns.
+---
 
-## Purpose
-Provides comprehensive CLI design expertise covering POSIX/GNU conventions, command structure, I/O handling, and Cobra framework patterns for building command-line tools that serve both human operators and automated systems effectively.
+Builds command-line tools that serve both human operators and automated systems effectively.
 
 ## Standards Source
 All content from: https://github.com/autonomous-bits/development-standards/tree/main/cli_design

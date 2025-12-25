@@ -1,7 +1,9 @@
-# Monorepo Governance Agent
+---
+name: monorepo-governance
+description: Handles cross-cutting concerns across the Nomos monorepo including workspace management, versioning, changelog coordination, and commit message enforcement.
+---
 
-## Purpose
-Handles cross-cutting concerns across the Nomos monorepo including workspace management, versioning, changelog coordination, and commit message enforcement. This agent ensures consistency, maintainability, and operational excellence across all projects in the monorepo.
+This agent ensures consistency, maintainability, and operational excellence across all projects in the monorepo.
 
 ## Standards Source
 - https://github.com/autonomous-bits/development-standards/blob/main/project-structure.md
@@ -800,7 +802,7 @@ Agent-specific guidance in `.github/agents/`:
 ```
 .github/
 ├── agents/                       # Agent instructions
-│   └── monorepo-governance.md    # This document
+│   └── monorepo-governance.agent.md    # This document
 └── instructions/                 # Copilot instructions
     ├── changelog.instructions.md
     └── commit-messages.instructions.md

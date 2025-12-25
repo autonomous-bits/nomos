@@ -1,7 +1,7 @@
-# Provider Downloader Module Agent
-
-## Purpose
-Specialized agent for `libs/provider-downloader` - handles provider binary resolution, downloading, version management, and caching for the Nomos ecosystem.
+---
+name: provider-downloader-module
+description: Specialized agent for libs/provider-downloader - handles provider binary resolution, downloading, version management, and caching for the Nomos ecosystem.
+---
 
 ## Module Context
 - **Path**: `libs/provider-downloader`
@@ -27,9 +27,9 @@ Specialized agent for `libs/provider-downloader` - handles provider binary resol
   - `resolver_version_test.go` - Version resolution tests
 
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**  
-For testing questions, **consult testing-expert.md**  
-For compiler integration, **consult compiler-module.md**
+For general Go questions, **consult go-expert.agent.md**  
+For testing questions, **consult testing-expert.agent.md**  
+For compiler integration, **consult compiler-module.agent.md**
 
 ## Provider Downloader-Specific Patterns
 

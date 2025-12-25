@@ -1,7 +1,7 @@
-# Parser Module Agent
-
-## Purpose
-Specialized agent for `libs/parser` - handles parsing Nomos configuration scripts (.csl) into a stable Abstract Syntax Tree (AST), maintaining parser logic, error handling, and ensuring high performance.
+---
+name: parser-module
+description: Specialized agent for libs/parser - handles parsing Nomos configuration scripts into AST, maintaining parser logic, error handling, and ensuring high performance.
+---
 
 ## Module Context
 - **Path**: `libs/parser`
@@ -29,9 +29,9 @@ Specialized agent for `libs/parser` - handles parsing Nomos configuration script
   - Benchmark tests for performance validation
 
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**  
-For testing questions, **consult testing-expert.md**  
-For compiler integration questions, **consult compiler-module.md**
+For general Go questions, **consult go-expert.agent.md**  
+For testing questions, **consult testing-expert.agent.md**  
+For compiler integration questions, **consult compiler-module.agent.md**
 
 ## Parser-Specific Patterns
 

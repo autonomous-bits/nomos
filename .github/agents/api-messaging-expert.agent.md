@@ -1,7 +1,7 @@
-# API & Messaging Expert Agent
-
-## Purpose
-Provides expertise in API design, gRPC patterns, async messaging, and inter-service communication for provider integration and distributed systems.
+---
+name: api-messaging-expert
+description: Provides expertise in API design, gRPC patterns, async messaging, and inter-service communication for provider integration and distributed systems.
+---
 
 ## Standards Source
 - https://github.com/autonomous-bits/development-standards/tree/main/api_design

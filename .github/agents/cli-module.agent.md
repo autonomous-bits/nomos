@@ -1,7 +1,9 @@
-# CLI Module Agent
+---
+name: cli-module
+description: Specialized agent for apps/command-line - handles the Nomos CLI tool, command structure, flag handling, output formatting, and user interaction.
+---
 
-## Purpose
-Specialized agent for `apps/command-line` - handles the Nomos CLI tool, command structure, flag handling, output formatting, and user interaction. This is the user-facing executable that wraps the compiler and parser libraries to provide a cohesive command-line experience.
+This is the user-facing executable that wraps the compiler and parser libraries to provide a cohesive command-line experience.
 
 ## Module Context
 - **Path**: `apps/command-line`
@@ -24,10 +26,10 @@ Specialized agent for `apps/command-line` - handles the Nomos CLI tool, command 
 - `internal/initcmd/` — Init command logic (provider discovery and installation)
 
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**  
-For compiler semantics, **consult compiler-module.md**  
-For testing questions, **consult testing-expert.md**  
-For provider-related questions, **consult provider-expert.md**
+For general Go questions, **consult go-expert.agent.md**  
+For compiler semantics, **consult compiler-module.agent.md**  
+For testing questions, **consult testing-expert.agent.md**  
+For CLI design patterns, **consult cli-expert.agent.md**
 
 ## CLI Architecture Patterns
 

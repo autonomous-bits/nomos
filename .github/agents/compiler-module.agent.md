@@ -1,7 +1,7 @@
-# Compiler Module Agent
-
-## Purpose
-Specialized agent for `libs/compiler` - handles compilation of parsed AST into configuration snapshots, import resolution, provider integration (both in-process and external subprocess-based), lockfile management, and deterministic configuration merging.
+---
+name: compiler-module
+description: Specialized agent for libs/compiler - handles compilation of parsed AST into configuration snapshots, import resolution, provider integration, lockfile management, and deterministic configuration merging.
+---
 
 ## Module Context
 - **Path**: `libs/compiler`
@@ -41,10 +41,10 @@ Specialized agent for `libs/compiler` - handles compilation of parsed AST into c
   - Coverage: Enforce 80% minimum via CI
 
 ## Delegation Instructions
-For general Go questions, **consult go-expert.md**  
-For testing questions, **consult testing-expert.md**  
-For provider communication/gRPC, **consult api-messaging-expert.md**  
-For parser AST details, **consult parser-module.md**
+For general Go questions, **consult go-expert.agent.md**  
+For testing questions, **consult testing-expert.agent.md**  
+For provider communication/gRPC, **consult api-messaging-expert.agent.md**  
+For parser AST details, **consult parser-module.agent.md**
 
 ## Compiler-Specific Patterns
 

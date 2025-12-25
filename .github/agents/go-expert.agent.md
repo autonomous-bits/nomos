@@ -1,7 +1,7 @@
-# Go Expert Agent
-
-## Purpose
-Provides comprehensive Go language expertise covering general practices, testing, security, performance, and idiomatic patterns for professional Go development.
+---
+name: go-expert
+description: Provides comprehensive Go language expertise covering general practices, testing, security, performance, and idiomatic patterns for professional Go development.
+---
 
 ## Standards Source
 All content from: https://github.com/autonomous-bits/development-standards/tree/main/standards/go
