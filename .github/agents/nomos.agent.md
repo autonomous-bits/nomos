@@ -152,7 +152,7 @@ description: Primary entry point for all Nomos development tasks. Analyzes incom
 - README update
 
 ### Example 3: External Provider Migration
-**Task**: "Migrate AWS provider from in-process to external gRPC"
+**Task**: "Migrate file provider from in-process to external gRPC"
 
 **Analysis**:
 - Affects: ALL modules - complex cross-cutting change
@@ -162,9 +162,9 @@ description: Primary entry point for all Nomos development tasks. Analyzes incom
 
 **Delegation**:
 1. **First**: Review architecture document thoroughly
-2. `provider-proto-module.agent.md` - Define/update gRPC contracts for AWS provider
+2. `provider-proto-module.agent.md` - Define/update gRPC contracts for file provider
    - Will consult `api-messaging-expert.agent.md` for gRPC patterns
-3. `provider-downloader-module.agent.md` - Ensure can fetch external AWS provider binary
+3. `provider-downloader-module.agent.md` - Ensure can fetch external file provider binary
    - Verify download, caching, version resolution
 4. `compiler-module.agent.md` - Update provider registry and invocation logic
    - Change from in-process to gRPC client invocation
@@ -179,7 +179,7 @@ description: Primary entry point for all Nomos development tasks. Analyzes incom
 
 **Expected Deliverables**:
 - Updated gRPC contracts
-- External AWS provider binary support
+- External file provider binary support
 - Compiler changes for external invocation
 - CLI commands for provider management
 - Comprehensive integration tests

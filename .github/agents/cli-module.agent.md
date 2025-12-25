@@ -180,8 +180,8 @@ Creates:
 Parser extracts `source:` declarations from `.csl` files:
 ```nomos
 source:
-  alias: 'aws'
-  type: 'autonomous-bits/nomos-provider-aws'
+  alias: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
   version: '1.2.3'
 ```
 
