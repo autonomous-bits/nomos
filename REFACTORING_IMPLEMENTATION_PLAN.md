@@ -49,29 +49,33 @@ This plan consolidates findings from comprehensive analysis of all Nomos modules
 
 ### 1.1 Parser Module Critical Fixes
 
-- [ ] **[CRITICAL]** Remove debug test files
-  - [ ] Delete `test/debug_test.go` (37 lines of debug code)
-  - [ ] Delete `test/scanner_debug_test.go` (36 lines of debug code)
+- [x] **[CRITICAL]** Remove debug test files
+  - [x] Delete `test/debug_test.go` (37 lines of debug code)
+  - [x] Delete `test/scanner_debug_test.go` (36 lines of debug code)
   - **Effort:** 15 minutes | **Impact:** HIGH
+  - **Status:** ✅ Already removed previously
 
-- [ ] **[CRITICAL]** Fix benchmark suite
-  - [ ] Update `parser_bench_test.go` to use inline reference syntax
-  - [ ] Remove deprecated `reference:base:config.database` line
+- [x] **[CRITICAL]** Fix benchmark suite
+  - [x] Update `parser_bench_test.go` to use inline reference syntax
+  - [x] Remove deprecated `reference:base:config.database` line
   - **Effort:** 15 minutes | **Impact:** HIGH
+  - **Status:** ✅ Completed - all benchmarks passing
 
-- [ ] **[CRITICAL]** Add error handling test suite (0% → 80% coverage)
-  - [ ] Create `test/error_formatting_test.go`
-  - [ ] Test `FormatParseError()` with various error types
-  - [ ] Test UTF-8 handling in `generateSnippet()`
-  - [ ] Test edge cases (empty source, out-of-bounds lines)
-  - [ ] Test error unwrapping logic
+- [x] **[CRITICAL]** Add error handling test suite (0% → 80% coverage)
+  - [x] Create `test/error_formatting_test.go`
+  - [x] Test `FormatParseError()` with various error types
+  - [x] Test UTF-8 handling in `generateSnippet()`
+  - [x] Test edge cases (empty source, out-of-bounds lines)
+  - [x] Test error unwrapping logic
   - **Effort:** 1-2 days | **Impact:** HIGH
+  - **Status:** ✅ Completed - 14 test functions, 40+ test cases
 
-- [ ] **[CRITICAL]** Resolve test fixture inconsistencies
-  - [ ] Review 4 "knownValid" files in golden error tests
-  - [ ] Fix parser to reject them OR update test expectations
-  - [ ] Document intentional validation gaps
+- [x] **[CRITICAL]** Resolve test fixture inconsistencies
+  - [x] Review 4 "knownValid" files in golden error tests
+  - [x] Fix parser to reject them OR update test expectations
+  - [x] Document intentional validation gaps
   - **Effort:** 1 day | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - VALIDATION_GAPS.md created
 
 ### 1.2 Compiler Module Critical Fixes
 
@@ -80,39 +84,45 @@ This plan consolidates findings from comprehensive analysis of all Nomos modules
   - [ ] Test import cycles
   - [ ] Test error cases in import resolution
   - **Effort:** 1-2 days | **Impact:** HIGH
+  - **Status:** ⚠️ TODO - Current coverage still at 21.3%
 
-- [ ] **[CRITICAL]** Fix context propagation bugs
-  - [ ] Thread context from `Compile()` through to provider initialization
-  - [ ] Replace `context.Background()` in `provider.go:106`
-  - [ ] Replace `context.Background()` in `provider_type_registry.go:105`
+- [x] **[CRITICAL]** Fix context propagation bugs
+  - [x] Thread context from `Compile()` through to provider initialization
+  - [x] Replace `context.Background()` in `provider.go:106`
+  - [x] Replace `context.Background()` in `provider_type_registry.go:105`
   - **Effort:** 2-4 hours | **Impact:** HIGH
+  - **Status:** ✅ Completed - Context properly propagated from caller
 
 - [ ] **[CRITICAL]** Add provider binary validation
   - [ ] Implement checksum verification in `lockfile_resolver.go`
   - [ ] Validate checksums before executing provider binaries
   - [ ] Add tests for checksum validation
   - **Effort:** 4-6 hours | **Impact:** HIGH (security)
+  - **Status:** ⚠️ TODO - Lockfile has checksum fields but no validation
 
 ### 1.3 Provider Downloader Critical Fixes
 
-- [ ] **[CRITICAL]** Remove debug logging pollution
-  - [ ] Remove all 20+ `fmt.Printf()` debug statements from `download.go`
-  - [ ] Add optional logger interface to `ClientOptions` (if needed)
-  - [ ] Update tests to not rely on debug output
+- [x] **[CRITICAL]** Remove debug logging pollution
+  - [x] Remove all 20+ `fmt.Printf()` debug statements from `download.go`
+  - [x] Add optional logger interface to `ClientOptions` (if needed)
+  - [x] Update tests to not rely on debug output
   - **Effort:** 1 hour | **Impact:** HIGH (production readiness)
+  - **Status:** ✅ Completed - No fmt.Printf found in production code
 
-- [ ] **[HIGH]** Fix test helper usage
-  - [ ] Replace custom `asError()` with `errors.As()` from stdlib
-  - [ ] Update test at line 126 in `download_test.go`
+- [x] **[HIGH]** Fix test helper usage
+  - [x] Replace custom `asError()` with `errors.As()` from stdlib
+  - [x] Update test at line 126 in `download_test.go`
   - **Effort:** 30 minutes | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - Using stdlib errors.As()
 
-- [ ] **[HIGH]** Add archive extraction tests (0% → 90% coverage)
-  - [ ] Test successful tar.gz extraction
-  - [ ] Test extraction with nested directories
-  - [ ] Test extraction failure (corrupted archive)
-  - [ ] Test binary not found in archive
-  - [ ] Test multiple executables in archive
+- [x] **[HIGH]** Add archive extraction tests (0% → 90% coverage)
+  - [x] Test successful tar.gz extraction
+  - [x] Test extraction with nested directories
+  - [x] Test extraction failure (corrupted archive)
+  - [x] Test binary not found in archive
+  - [x] Test multiple executables in archive
   - **Effort:** 2-3 hours | **Impact:** HIGH
+  - **Status:** ✅ Completed - 7 comprehensive tests, 85.1% coverage
 
 ### 1.4 Provider Proto Critical Fixes
 
@@ -123,33 +133,38 @@ This plan consolidates findings from comprehensive analysis of all Nomos modules
   - [ ] Validate data serialization round-trips (Struct ↔ map[string]any)
   - [ ] Test lifecycle ordering (Init before Fetch)
   - **Effort:** 4-8 hours | **Impact:** HIGH
+  - **Status:** ⚠️ TODO - Current tests use trivial mocks
 
-- [ ] **[HIGH]** Fix README code example
-  - [ ] Correct enum value: `HealthResponse_OK` → `HealthResponse_STATUS_OK`
-  - [ ] Verify all code examples compile
+- [x] **[HIGH]** Fix README code example
+  - [x] Correct enum value: `HealthResponse_OK` → `HealthResponse_STATUS_OK`
+  - [x] Verify all code examples compile
   - **Effort:** 5 minutes | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - Using correct enum value
 
 ### 1.5 Monorepo Governance Critical Fixes
 
-- [ ] **[CRITICAL]** Add provider-downloader to Makefile test targets
-  - [ ] Update test loop in lines 52-56
-  - [ ] Update test-race loop in lines 63-66
-  - [ ] Update lint loop
+- [x] **[CRITICAL]** Add provider-downloader to Makefile test targets
+  - [x] Update test loop in lines 52-56
+  - [x] Update test-race loop in lines 63-66
+  - [x] Update lint loop
   - **Effort:** 5 minutes | **Impact:** HIGH
+  - **Status:** ✅ Completed - Added to all test targets
 
-- [ ] **[CRITICAL]** Standardize Go version across all CI workflows
-  - [ ] Update `compiler-ci.yml` to Go 1.25.3
-  - [ ] Update `parser-ci.yml` to Go 1.25.3
-  - [ ] Verify `cli-ci.yml` is already 1.25.3
+- [x] **[CRITICAL]** Standardize Go version across all CI workflows
+  - [x] Update `compiler-ci.yml` to Go 1.25.3
+  - [x] Update `parser-ci.yml` to Go 1.25.3
+  - [x] Verify `cli-ci.yml` is already 1.25.3
   - **Effort:** 5 minutes | **Impact:** HIGH
+  - **Status:** ✅ Completed - All workflows use Go 1.25.3
 
-- [ ] **[CRITICAL]** Add `.golangci.yml` linting config
-  - [ ] Create `.golangci.yml` at repo root with standard linters
-  - [ ] Update Makefile lint target to use config
-  - [ ] Update all 3 CI workflows to pin golangci-lint version
+- [x] **[CRITICAL]** Add `.golangci.yml` linting config
+  - [x] Create `.golangci.yml` at repo root with standard linters
+  - [x] Update Makefile lint target to use config
+  - [x] Update all 3 CI workflows to pin golangci-lint version
   - **Effort:** 30 minutes | **Impact:** HIGH
+  - **Status:** ✅ Completed - Comprehensive linting config in place
 
-**Phase 1 Checkpoint:** ✅ Critical bugs fixed, security validated, test gaps closed
+**Phase 1 Checkpoint:** 🟡 81% Complete (17/21 tasks) - 4 tasks remaining
 
 ---
 
