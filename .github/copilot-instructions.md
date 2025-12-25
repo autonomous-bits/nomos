@@ -10,11 +10,3 @@ These configuration scripts will be compiled producing a versioned snapshot that
 - [Nomos Compiler Library](../libs/compiler): A Go library that provides functionality to parse and compile Nomos scripts.
 - [Nomos Parser Library](../libs/parser): A Go library that provides functionality to parse Nomos scripts into an abstract syntax tree (AST).
 
-## Standards and Guidelines
-
-- General project structure and development guidance can be found in the [Go Monorepo Structure documentation](../docs/architecture/go-monorepo-structure.md). Each project contains its own `AGENTS.md` file with module-specific layout and development instructions.
-- Coding standards are located in GitHub Spaces. Use the `github/get_copilot_space` tool and fetch the `general-standards` space (owner: `pewpewpotato`).
-
-**IMPORTANT:** Always get the constitution from the `general-standards` GitHub space before starting any code implementation.
-**IMPORTANT:** Always refer to the latest coding standards from the `general-standards` GitHub space before starting any code implementation.
-
