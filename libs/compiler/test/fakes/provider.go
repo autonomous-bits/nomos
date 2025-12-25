@@ -50,7 +50,7 @@ func NewFakeProvider(alias string) *FakeProvider {
 }
 
 // Init implements compiler.Provider.Init.
-func (f *FakeProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (f *FakeProvider) Init(_ context.Context, opts compiler.ProviderInitOptions) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -65,7 +65,7 @@ func (f *FakeProvider) Init(ctx context.Context, opts compiler.ProviderInitOptio
 }
 
 // Fetch implements compiler.Provider.Fetch.
-func (f *FakeProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (f *FakeProvider) Fetch(_ context.Context, path []string) (any, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

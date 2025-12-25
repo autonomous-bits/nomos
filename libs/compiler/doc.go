@@ -1,13 +1,15 @@
-// Package providerproc manages the lifecycle of external provider subprocesses
-// and facilitates gRPC communication between the Nomos compiler and providers.
+// Package compiler provides functionality to parse and compile Nomos scripts into
+// configuration snapshots. It integrates with the parser library to process .csl files,
+// resolves external references via provider plugins, and produces deterministic output
+// with comprehensive metadata and provenance tracking.
 //
 // # Overview
 //
-// External providers are separate executables that implement the Nomos Provider
-// gRPC service contract defined in libs/provider-proto. This package provides:
+// The compiler orchestrates the entire compilation process:
 //
-//   - Manager: Starts, manages, and shuts down provider subprocesses
-//   - Client: Wraps gRPC connections and implements compiler.Provider interface
+//   - Parsing .csl files via the parser library
+//   - Managing external provider subprocesses via gRPC
+//   - Resolving references and imports with cycle detection
 //
 // # Architecture
 //

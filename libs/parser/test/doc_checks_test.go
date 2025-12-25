@@ -17,6 +17,7 @@ import (
 func TestDocumentation_InlineReferenceContent(t *testing.T) {
 	// Read README.md
 	readmePath := filepath.Join("..", "README.md")
+	//nolint:gosec // G304: readmePath is controlled test fixture path
 	content, err := os.ReadFile(readmePath)
 	if err != nil {
 		t.Fatalf("failed to read README.md: %v", err)
@@ -186,6 +187,7 @@ func TestDocumentation_ExamplesAreParseable(t *testing.T) {
 
 	for path, expectedKeywords := range exampleFiles {
 		t.Run(filepath.Base(path), func(t *testing.T) {
+			//nolint:gosec // G304: path is controlled test fixture path from exampleFiles map
 			content, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatalf("failed to read example file %s: %v", path, err)

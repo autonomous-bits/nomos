@@ -74,13 +74,14 @@ func TestGolden_ErrorScenarios(t *testing.T) {
 			}
 
 			// Read or create golden file
+			//nolint:gosec // G304: goldenPath is controlled test fixture path
 			expectedJSON, err := os.ReadFile(goldenPath)
 			if err != nil {
 				t.Logf("Golden file not found at %s, writing actual output", goldenPath)
-				if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(goldenPath), 0750); err != nil {
 					t.Fatalf("failed to create golden directory: %v", err)
 				}
-				if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil {
+				if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 					t.Fatalf("failed to write golden file: %v", err)
 				}
 				t.Skip("Generated golden file, re-run test to verify")
@@ -99,12 +100,26 @@ func TestGolden_ErrorScenarios(t *testing.T) {
 func TestGolden_NegativeFixtures(t *testing.T) {
 	negativeDir := "../testdata/fixtures/negative"
 
-	// Files that represent valid syntax or cases we cannot/should not validate
+	// Files that represent valid syntax or cases we cannot/should not validate at parse time.
+	// These are documented in detail in docs/VALIDATION_GAPS.md
 	knownValid := map[string]bool{
-		"duplicate_key.csl":       true, // Duplicate detection disabled (needs scope-aware implementation for nested structures)
-		"incomplete_import.csl":   true, // import:alias without path is valid syntax (path is optional)
-		"invalid_indentation.csl": true, // Non-indented content after section just means empty section (valid)
-		"unknown_statement.csl":   true, // Unknown identifiers are treated as section declarations (valid)
+		// Duplicate detection requires scope-aware analysis for nested structures,
+		// key shadowing, and merge semantics. Implemented in compiler, not parser.
+		"duplicate_key.csl": true,
+
+		// Import path is optional: "import:alias" OR "import:alias:path"
+		// Path resolution happens in compiler during import resolution phase.
+		"incomplete_import.csl": true,
+
+		// Non-indented content after section creates empty section + new top-level statement.
+		// Parser does not enforce indentation-based scoping (unlike Python).
+		// This is syntactically valid but potentially confusing.
+		"invalid_indentation.csl": true,
+
+		// Unknown identifiers (not source/import/reference) are treated as section declarations.
+		// This is by design to allow arbitrary user-defined section names.
+		// Validation of section names would require schema/provider knowledge (compiler concern).
+		"unknown_statement.csl": true,
 	}
 
 	entries, err := os.ReadDir(negativeDir)
@@ -121,9 +136,9 @@ func TestGolden_NegativeFixtures(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fixturePath := filepath.Join(negativeDir, name)
 
-			// Skip files that are actually valid or cannot be validated
+			// Skip files that are actually valid or cannot be validated at parse time
 			if knownValid[name] {
-				t.Skipf("VALID: %s represents valid syntax or unimplementable validation", name)
+				t.Skipf("VALID: %s represents valid syntax or deferred validation (see docs/VALIDATION_GAPS.md)", name)
 				return
 			}
 

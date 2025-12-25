@@ -134,7 +134,7 @@ func ToYAML(snapshot compiler.Snapshot) ([]byte, error) {
 }
 
 // ToHCL serializes a snapshot to HCL with best-effort stability.
-func ToHCL(snapshot compiler.Snapshot) ([]byte, error) {
+func ToHCL(_ compiler.Snapshot) ([]byte, error) {
 	// Import github.com/hashicorp/hcl/v2/hclwrite for HCL serialization
 	// Note: HCL serialization for arbitrary data structures is complex and may
 	// not preserve all structure types. This is best-effort.

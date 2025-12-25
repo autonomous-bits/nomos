@@ -64,16 +64,16 @@ type mockProvider struct {
 	providerv1.UnimplementedProviderServiceServer
 }
 
-func (m *mockProvider) Init(ctx context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
+func (m *mockProvider) Init(_ context.Context, _ *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	return &providerv1.InitResponse{}, nil
 }
 
-func (m *mockProvider) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
+func (m *mockProvider) Fetch(_ context.Context, _ *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
 	value, _ := structpb.NewStruct(map[string]interface{}{"test": "data"})
 	return &providerv1.FetchResponse{Value: value}, nil
 }
 
-func (m *mockProvider) Info(ctx context.Context, req *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
+func (m *mockProvider) Info(_ context.Context, _ *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
 	return &providerv1.InfoResponse{
 		Alias:   "mock",
 		Version: "0.1.0",
@@ -81,18 +81,18 @@ func (m *mockProvider) Info(ctx context.Context, req *providerv1.InfoRequest) (*
 	}, nil
 }
 
-func (m *mockProvider) Health(ctx context.Context, req *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
+func (m *mockProvider) Health(_ context.Context, _ *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
 	return &providerv1.HealthResponse{
 		Status:  providerv1.HealthResponse_STATUS_OK,
 		Message: "healthy",
 	}, nil
 }
 
-func (m *mockProvider) Shutdown(ctx context.Context, req *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
+func (m *mockProvider) Shutdown(_ context.Context, _ *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
 	return &providerv1.ShutdownResponse{}, nil
 }
 
-func TestMockProvider_ImplementsInterface(t *testing.T) {
+func TestMockProvider_ImplementsInterface(_ *testing.T) {
 	var _ providerv1.ProviderServiceServer = (*mockProvider)(nil)
 }
 

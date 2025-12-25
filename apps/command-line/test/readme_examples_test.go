@@ -73,6 +73,7 @@ func TestREADMEExamples(t *testing.T) {
 				t.Skip("YAML format not yet implemented")
 			}
 
+			//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 			cmd := exec.Command(binPath, tt.args...)
 			stdout, stderr, exitCode := runCommand(t, cmd)
 
@@ -119,6 +120,7 @@ func TestREADMEExamplesWithOutput(t *testing.T) {
 	tmpDir := t.TempDir()
 	outputFile := filepath.Join(tmpDir, "snapshot.json")
 
+	//nolint:gosec // G204: Test code with controlled input
 	cmd := exec.Command(binPath, "build", "-p", "testdata/simple.csl", "-o", outputFile)
 	stdout, stderr, exitCode := runCommand(t, cmd)
 
@@ -133,6 +135,7 @@ func TestREADMEExamplesWithOutput(t *testing.T) {
 	}
 
 	// Verify file contains valid JSON
+	//nolint:gosec // G304: Reading test output file from controlled location
 	content, err := os.ReadFile(outputFile)
 	if err != nil {
 		t.Fatalf("failed to read output file: %v", err)
@@ -168,9 +171,11 @@ func TestREADMEExamplesDeterminism(t *testing.T) {
 	}
 
 	// Run the same command twice
+	//nolint:gosec,noctx // G204: Test code with controlled binary path; context not needed
 	cmd1 := exec.Command(binPath, "build", "-p", "testdata/simple.csl")
 	stdout1, stderr1, exitCode1 := runCommand(t, cmd1)
 
+	//nolint:gosec,noctx // G204: Test code with controlled binary path; context not needed
 	cmd2 := exec.Command(binPath, "build", "-p", "testdata/simple.csl")
 	_, stderr2, exitCode2 := runCommand(t, cmd2)
 

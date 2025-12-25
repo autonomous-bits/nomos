@@ -63,7 +63,7 @@ func (p *myProvider) Info(ctx context.Context, req *providerv1.InfoRequest) (*pr
 
 func (p *myProvider) Health(ctx context.Context, req *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
     return &providerv1.HealthResponse{
-        Status:  providerv1.HealthResponse_OK,
+        Status:  providerv1.HealthResponse_STATUS_OK,
         Message: "provider is healthy",
     }, nil
 }

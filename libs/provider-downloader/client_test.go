@@ -9,9 +9,7 @@ import (
 
 // TestNewClient_WithNilOptions tests that NewClient handles nil options gracefully.
 func TestNewClient_WithNilOptions(t *testing.T) {
-	ctx := context.Background()
-
-	client := NewClient(ctx, nil)
+	client := NewClient(nil)
 
 	if client == nil {
 		t.Fatal("expected non-nil client, got nil")
@@ -36,8 +34,6 @@ func TestNewClient_WithNilOptions(t *testing.T) {
 
 // TestNewClient_WithCustomOptions tests that NewClient respects custom options.
 func TestNewClient_WithCustomOptions(t *testing.T) {
-	ctx := context.Background()
-
 	opts := &ClientOptions{
 		GitHubToken:   "test-token",
 		RetryAttempts: 5,
@@ -45,7 +41,7 @@ func TestNewClient_WithCustomOptions(t *testing.T) {
 		BaseURL:       "https://custom.github.com",
 	}
 
-	client := NewClient(ctx, opts)
+	client := NewClient(opts)
 
 	if client == nil {
 		t.Fatal("expected non-nil client, got nil")
@@ -70,8 +66,8 @@ func TestNewClient_WithCustomOptions(t *testing.T) {
 
 // TestResolveAsset_NilSpec tests error handling for nil spec.
 func TestResolveAsset_NilSpec(t *testing.T) {
-	ctx := context.Background()
-	client := NewClient(ctx, nil)
+	ctx := context.TODO()
+	client := NewClient(nil)
 
 	asset, err := client.ResolveAsset(ctx, nil)
 
@@ -95,8 +91,8 @@ func TestResolveAsset_NilSpec(t *testing.T) {
 
 // TestResolveAsset_MissingOwner tests error handling for missing owner.
 func TestResolveAsset_MissingOwner(t *testing.T) {
-	ctx := context.Background()
-	client := NewClient(ctx, nil)
+	ctx := context.TODO()
+	client := NewClient(nil)
 
 	spec := &ProviderSpec{
 		Repo:    "test-repo",
@@ -125,8 +121,8 @@ func TestResolveAsset_MissingOwner(t *testing.T) {
 
 // TestResolveAsset_MissingRepo tests error handling for missing repo.
 func TestResolveAsset_MissingRepo(t *testing.T) {
-	ctx := context.Background()
-	client := NewClient(ctx, nil)
+	ctx := context.TODO()
+	client := NewClient(nil)
 
 	spec := &ProviderSpec{
 		Owner:   "test-owner",
@@ -166,8 +162,8 @@ func TestResolveAsset_MissingVersion(t *testing.T) {
 
 // TestDownloadAndInstall_NilAsset tests error handling for nil asset.
 func TestDownloadAndInstall_NilAsset(t *testing.T) {
-	ctx := context.Background()
-	client := NewClient(ctx, nil)
+	ctx := context.TODO()
+	client := NewClient(nil)
 
 	result, err := client.DownloadAndInstall(ctx, nil, "/tmp/dest")
 
@@ -182,8 +178,8 @@ func TestDownloadAndInstall_NilAsset(t *testing.T) {
 
 // TestDownloadAndInstall_EmptyDestDir tests error handling for empty destination.
 func TestDownloadAndInstall_EmptyDestDir(t *testing.T) {
-	ctx := context.Background()
-	client := NewClient(ctx, nil)
+	ctx := context.TODO()
+	client := NewClient(nil)
 
 	asset := &AssetInfo{
 		URL:  "https://example.com/asset",

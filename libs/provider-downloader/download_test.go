@@ -2,8 +2,7 @@ package downloader
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +18,7 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	expectedChecksum := computeSHA256(providerContent)
 
 	// Setup httptest server that serves the fake binary
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.WriteHeader(http.StatusOK)
@@ -30,7 +30,7 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	destDir := t.TempDir()
 
 	// Create client with test server
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 		BaseURL:    server.URL,
 	})
@@ -92,12 +92,6 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	}
 }
 
-// computeSHA256 computes SHA256 checksum for test data.
-func computeSHA256(data []byte) string {
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:])
-}
-
 // TestDownloadAndInstall_ChecksumMismatch verifies checksum validation.
 func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 	// Arrange: Create fake provider binary with mismatched checksum
@@ -105,6 +99,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 	wrongChecksum := "deadbeef0000000000000000000000000000000000000000000000000000000"
 
 	// Setup httptest server
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(providerContent)
@@ -113,7 +108,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -138,7 +133,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 
 	// Verify error type
 	var checksumErr *ChecksumMismatchError
-	if !asError(err, &checksumErr) {
+	if !errors.As(err, &checksumErr) {
 		t.Errorf("expected ChecksumMismatchError, got %T: %v", err, err)
 	}
 
@@ -161,6 +156,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 	providerContent := []byte("retry-test-content")
 	expectedChecksum := computeSHA256(providerContent)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
 		if attemptCount < 3 {
@@ -176,7 +172,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient:    server.Client(),
 		RetryAttempts: 3,
 		RetryDelay:    1 * time.Millisecond, // Fast retries for tests
@@ -211,6 +207,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 func TestDownloadAndInstall_NetworkError(t *testing.T) {
 	// Arrange: Server always fails
 	attemptCount := 0
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
 		w.WriteHeader(http.StatusInternalServerError)
@@ -219,7 +216,7 @@ func TestDownloadAndInstall_NetworkError(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient:    server.Client(),
 		RetryAttempts: 3,
 		RetryDelay:    1 * time.Millisecond,
@@ -257,6 +254,7 @@ func TestDownloadAndInstall_Timeout(t *testing.T) {
 	// Arrange: Server that hangs/delays response
 	providerContent := []byte("slow-provider-content")
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate slow server by sleeping longer than the context timeout
 		time.Sleep(200 * time.Millisecond)
@@ -267,7 +265,7 @@ func TestDownloadAndInstall_Timeout(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -305,6 +303,7 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 	providerContent := []byte("slow-but-successful")
 	expectedChecksum := computeSHA256(providerContent)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate moderate delay
 		time.Sleep(50 * time.Millisecond)
@@ -315,7 +314,7 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -340,16 +339,4 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 	if result.Checksum != expectedChecksum {
 		t.Errorf("checksum mismatch: expected %s, got %s", expectedChecksum, result.Checksum)
 	}
-}
-
-// asError is a helper similar to errors.As for cleaner test assertions.
-func asError(err error, target interface{}) bool {
-	switch v := target.(type) {
-	case **ChecksumMismatchError:
-		if e, ok := err.(*ChecksumMismatchError); ok {
-			*v = e
-			return true
-		}
-	}
-	return false
 }

@@ -33,6 +33,8 @@ func (v *Validator) Validate(ctx context.Context, data any) error {
 }
 
 // validateValue recursively validates a single value.
+//
+//nolint:unparam // ctx parameter reserved for future enhancement (e.g., timeout control)
 func (v *Validator) validateValue(ctx context.Context, val any, path string) error {
 	switch value := val.(type) {
 	case *ast.ReferenceExpr:
@@ -136,7 +138,7 @@ func levenshteinDistance(s1, s2 string) int {
 				cost = 1
 			}
 
-			matrix[i][j] = min(
+			matrix[i][j] = minInt(
 				matrix[i-1][j]+1,      // deletion
 				matrix[i][j-1]+1,      // insertion
 				matrix[i-1][j-1]+cost, // substitution
@@ -147,8 +149,8 @@ func levenshteinDistance(s1, s2 string) int {
 	return matrix[len1][len2]
 }
 
-// min returns the minimum of three integers.
-func min(a, b, c int) int {
+// minInt returns the minimum of three integers.
+func minInt(a, b, c int) int {
 	if a < b {
 		if a < c {
 			return a
@@ -278,7 +280,7 @@ func (g *DependencyGraph) buildCycleError(cyclePath []*GraphNode) error {
 	}
 
 	// Build descriptive message
-	var parts []string
+	parts := make([]string, 0, len(cyclePath))
 	for _, node := range cyclePath {
 		parts = append(parts, node.Description)
 	}

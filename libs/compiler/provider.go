@@ -33,7 +33,8 @@ type ProviderRegistry interface {
 	// GetProvider returns a provider for the given alias.
 	// Providers are instantiated on demand and cached for the compilation run.
 	// Returns ErrProviderNotRegistered if the alias is not registered.
-	GetProvider(alias string) (Provider, error)
+	// The context is used for provider initialization and should respect cancellation.
+	GetProvider(ctx context.Context, alias string) (Provider, error)
 
 	// RegisteredAliases returns the list of all registered provider aliases.
 	// Used by semantic validation to check for unresolved references.
@@ -65,7 +66,7 @@ func (r *providerRegistry) Register(alias string, constructor ProviderConstructo
 }
 
 // GetProvider implements ProviderRegistry.GetProvider.
-func (r *providerRegistry) GetProvider(alias string) (Provider, error) {
+func (r *providerRegistry) GetProvider(ctx context.Context, alias string) (Provider, error) {
 	// Check if instance already exists (fast path with read lock)
 	r.instanceMutex.Lock()
 	if instance, ok := r.instances[alias]; ok {
@@ -102,8 +103,7 @@ func (r *providerRegistry) GetProvider(alias string) (Provider, error) {
 		return nil, fmt.Errorf("failed to construct provider %q: %w", alias, err)
 	}
 
-	// Initialize provider
-	ctx := context.Background() // TODO: Accept context from caller
+	// Initialize provider with context from caller
 	if err := provider.Init(ctx, opts); err != nil {
 		return nil, fmt.Errorf("failed to initialize provider %q: %w", alias, err)
 	}

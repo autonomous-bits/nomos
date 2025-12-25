@@ -1,3 +1,4 @@
+// Package testutil provides test utilities and fixtures for the downloader package.
 package testutil
 
 import (

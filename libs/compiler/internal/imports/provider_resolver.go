@@ -25,13 +25,13 @@ type ProviderInitOptions struct {
 
 // ProviderRegistry manages provider instances.
 type ProviderRegistry interface {
-	GetProvider(alias string) (Provider, error)
+	GetProvider(ctx context.Context, alias string) (Provider, error)
 	Register(alias string, constructor func(ProviderInitOptions) (Provider, error))
 }
 
 // ProviderTypeRegistry manages provider type constructors.
 type ProviderTypeRegistry interface {
-	CreateProvider(typeName string, config map[string]any) (Provider, error)
+	CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error)
 }
 
 // ExtractedData represents parsed file data with imports extracted.
@@ -169,7 +169,7 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 // initializeProvider initializes a provider from a source declaration.
 func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath string, registry ProviderRegistry, typeRegistry ProviderTypeRegistry) error {
 	// Check if provider already exists
-	if _, err := registry.GetProvider(src.Alias); err == nil {
+	if _, err := registry.GetProvider(ctx, src.Alias); err == nil {
 		// Already initialized
 		return nil
 	}
@@ -180,7 +180,7 @@ func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath stri
 	}
 
 	// Create and initialize the provider once
-	provider, err := typeRegistry.CreateProvider(src.Type, src.Config)
+	provider, err := typeRegistry.CreateProvider(ctx, src.Type, src.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create provider %q of type %q: %w", src.Alias, src.Type, err)
 	}
@@ -198,7 +198,7 @@ func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath stri
 
 	// Register a constructor that returns the already-initialized provider instance
 	// This avoids double-initialization when the registry's GetProvider is called
-	registry.Register(src.Alias, func(opts ProviderInitOptions) (Provider, error) {
+	registry.Register(src.Alias, func(_ ProviderInitOptions) (Provider, error) {
 		// Return the cached, already-initialized provider
 		// The registry will call Init on it, but we'll wrap it to make Init a no-op
 		return &alreadyInitializedProvider{provider: provider}, nil
@@ -213,7 +213,7 @@ type alreadyInitializedProvider struct {
 	provider Provider
 }
 
-func (p *alreadyInitializedProvider) Init(ctx context.Context, opts ProviderInitOptions) error {
+func (p *alreadyInitializedProvider) Init(_ context.Context, _ ProviderInitOptions) error {
 	// No-op: provider is already initialized
 	return nil
 }
@@ -225,7 +225,7 @@ func (p *alreadyInitializedProvider) Fetch(ctx context.Context, path []string) (
 // resolveImport resolves a single import using the provider.
 func resolveImport(ctx context.Context, imp ImportDecl, registry ProviderRegistry) (map[string]any, error) {
 	// Get the provider
-	provider, err := registry.GetProvider(imp.Alias)
+	provider, err := registry.GetProvider(ctx, imp.Alias)
 	if err != nil {
 		return nil, fmt.Errorf("provider %q not found: %w", imp.Alias, err)
 	}

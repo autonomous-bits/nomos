@@ -146,6 +146,7 @@ func discoverProviders(paths []string) ([]DiscoveredProvider, error) {
 	seen := make(map[string]bool)
 
 	for _, path := range paths {
+		//nolint:gosec // G304: Path comes from user CLI input, intentional file inclusion
 		file, err := os.Open(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open %s: %w", path, err)
@@ -224,7 +225,7 @@ func installProvider(p DiscoveredProvider, opts Options) (ProviderEntry, error) 
 	// Create downloader client
 	// Check for GitHub token in environment for higher rate limits
 	githubToken := os.Getenv("GITHUB_TOKEN")
-	client := downloader.NewClient(ctx, &downloader.ClientOptions{
+	client := downloader.NewClient(&downloader.ClientOptions{
 		GitHubToken: githubToken,
 	})
 
@@ -319,7 +320,7 @@ func writeLockFile(lock LockFile) error {
 
 	// Ensure directory exists
 	lockDir := filepath.Dir(lockPath)
-	if err := os.MkdirAll(lockDir, 0755); err != nil {
+	if err := os.MkdirAll(lockDir, 0750); err != nil {
 		return err
 	}
 
@@ -378,6 +379,7 @@ func writeLockFile(lock LockFile) error {
 func readLockFile() *LockFile {
 	lockPath := filepath.Join(".nomos", "providers.lock.json")
 
+	//nolint:gosec // G304: Path is hardcoded to .nomos/providers.lock.json, safe
 	data, err := os.ReadFile(lockPath)
 	if err != nil {
 		return nil // File doesn't exist or can't be read

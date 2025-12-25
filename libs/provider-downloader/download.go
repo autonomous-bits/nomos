@@ -29,12 +29,14 @@ import (
 // Returns error for network or filesystem failures.
 func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destDir string) (*InstallResult, error) {
 	// Create destination directory if it doesn't exist
+	//nolint:gosec // G301: Standard directory permissions (0755) are appropriate for provider installation directories
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
 	// Create temporary directory for download
 	tmpDir := filepath.Join(filepath.Dir(destDir), ".nomos-tmp")
+	//nolint:gosec // G301: Standard directory permissions (0755) are appropriate for temporary directories
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
@@ -46,8 +48,8 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 	}
 	tmpPath := tmpFile.Name()
 	defer func() {
-		tmpFile.Close()
-		os.Remove(tmpPath) // Clean up temp file on error
+		_ = tmpFile.Close()    // Ignore close error in defer
+		_ = os.Remove(tmpPath) // Best effort cleanup, ignore error
 	}()
 
 	// Download asset with retry logic
@@ -71,7 +73,14 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 
 	// If the asset is an archive (tar.gz, zip), extract it
 	if needsExtraction(asset.Name) {
-		extractedPath, err := extractArchive(tmpPath, destDir, asset.Name)
+		// Create temporary extraction directory
+		extractDir, err := os.MkdirTemp(tmpDir, "extract-*")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create extraction directory: %w", err)
+		}
+		defer func() { _ = os.RemoveAll(extractDir) }() // Best effort cleanup
+
+		extractedPath, err := extractArchive(tmpPath, extractDir, asset.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract archive: %w", err)
 		}
@@ -80,6 +89,7 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 	}
 
 	// Set executable permissions
+	//nolint:gosec // G302: Executable permissions (0755) required for provider binaries
 	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to set permissions: %w", err)
 	}
@@ -159,7 +169,7 @@ func (c *Client) attemptDownload(ctx context.Context, url string, w io.Writer) (
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to download: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
@@ -238,24 +248,27 @@ func extractArchive(archivePath, destDir, assetName string) (string, error) {
 // extractTarGz extracts a tar.gz archive and returns the path to the provider binary.
 func extractTarGz(archivePath, destDir string) (string, error) {
 	// Open the archive file
+	//nolint:gosec // G304: archivePath is from our own download, not user input
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open archive: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Create gzip reader
 	gzr, err := gzip.NewReader(f)
 	if err != nil {
 		return "", fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-	defer gzr.Close()
+	defer func() { _ = gzr.Close() }()
 
 	// Create tar reader
 	tr := tar.NewReader(gzr)
 
-	// Extract all files
+	// Track all extracted files and find the provider binary
 	var providerPath string
+	var fallbackPath string // For "nomos-provider-*" names
+
 	for {
 		header, err := tr.Next()
 		if err == io.EOF {
@@ -270,29 +283,41 @@ func extractTarGz(archivePath, destDir string) (string, error) {
 			continue
 		}
 
-		// Extract file
-		target := filepath.Join(destDir, filepath.Base(header.Name))
+		// Extract file (flattened to destDir)
+		baseName := filepath.Base(header.Name)
+		target := filepath.Join(destDir, baseName)
+		//nolint:gosec // G304: target is constructed from our controlled temp directory and sanitized basename
+		//nolint:gosec // G110: Archive from trusted GitHub releases, size limited by download timeout
 		outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return "", fmt.Errorf("failed to create file %s: %w", target, err)
 		}
 
+		//nolint:gosec // G110: Archive from trusted GitHub releases, size limited by download timeout
 		if _, err := io.Copy(outFile, tr); err != nil {
-			outFile.Close()
+			_ = outFile.Close()
 			return "", fmt.Errorf("failed to extract file %s: %w", target, err)
 		}
-		outFile.Close()
+		if err := outFile.Close(); err != nil {
+			return "", fmt.Errorf("failed to close extracted file %s: %w", target, err)
+		}
 
-		// If this is the provider binary, remember its path
-		baseName := filepath.Base(header.Name)
-		if baseName == "provider" || baseName == "nomos-provider-file" {
+		// Check if this is a provider binary
+		// Priority: exact "provider" match > "nomos-provider-*" match
+		if baseName == "provider" {
 			providerPath = target
+		} else if providerPath == "" && contains(baseName, "nomos-provider-") {
+			fallbackPath = target
 		}
 	}
 
-	if providerPath == "" {
-		return "", fmt.Errorf("provider binary not found in archive")
+	// Prefer exact "provider" match, fall back to "nomos-provider-*"
+	if providerPath != "" {
+		return providerPath, nil
+	}
+	if fallbackPath != "" {
+		return fallbackPath, nil
 	}
 
-	return providerPath, nil
+	return "", fmt.Errorf("provider binary not found in archive")
 }

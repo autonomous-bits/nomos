@@ -193,11 +193,11 @@ type benchProviderRegistry struct {
 	provider compiler.Provider
 }
 
-func (r *benchProviderRegistry) Register(alias string, constructor compiler.ProviderConstructor) {
+func (r *benchProviderRegistry) Register(_ string, _ compiler.ProviderConstructor) {
 	// No-op for benchmarks
 }
 
-func (r *benchProviderRegistry) GetProvider(alias string) (compiler.Provider, error) {
+func (r *benchProviderRegistry) GetProvider(_ context.Context, _ string) (compiler.Provider, error) {
 	return r.provider, nil
 }
 

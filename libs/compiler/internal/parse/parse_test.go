@@ -15,7 +15,7 @@ func TestParseFile_ValidFile(t *testing.T) {
 	validContent := `simple-section:
   key: value
 `
-	if err := os.WriteFile(validPath, []byte(validContent), 0644); err != nil {
+	if err := os.WriteFile(validPath, []byte(validContent), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -45,7 +45,7 @@ func TestParseFile_SyntaxError(t *testing.T) {
 	invalidContent := `section
   key value
 `
-	if err := os.WriteFile(invalidPath, []byte(invalidContent), 0644); err != nil {
+	if err := os.WriteFile(invalidPath, []byte(invalidContent), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func TestParseFile_FormattedError(t *testing.T) {
 	badContent := `config:
   @invalid: value
 `
-	if err := os.WriteFile(badPath, []byte(badContent), 0644); err != nil {
+	if err := os.WriteFile(badPath, []byte(badContent), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 

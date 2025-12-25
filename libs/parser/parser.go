@@ -28,11 +28,11 @@ type Parser struct {
 	// Future: add configuration options here
 }
 
-// ParserOption is a function that configures a Parser.
-type ParserOption func(*Parser)
+// Option is a function that configures a Parser.
+type Option func(*Parser)
 
 // NewParser creates a new Parser with the given options.
-func NewParser(opts ...ParserOption) *Parser {
+func NewParser(opts ...Option) *Parser {
 	p := &Parser{}
 	for _, opt := range opts {
 		opt(p)
@@ -49,6 +49,7 @@ func ParseFile(path string) (*ast.AST, error) {
 
 // ParseFile parses a file using this parser instance.
 func (p *Parser) ParseFile(path string) (*ast.AST, error) {
+	//nolint:gosec // G304: Path is controlled by caller, legitimate API surface for file parsing
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, NewParseError(IOError, path, 0, 0, fmt.Sprintf("failed to open file: %v", err))
@@ -152,7 +153,7 @@ func (p *Parser) parseStatement(s *scanner.Scanner, sourceText string) (ast.Stmt
 	case "import":
 		return p.parseImportStmt(s, startLine, startCol, sourceText)
 	case "reference":
-		return p.parseReferenceStmt(s, startLine, startCol, sourceText)
+		return nil, p.parseReferenceStmt(s, startLine, startCol, sourceText)
 	default:
 		// Try to parse as a section declaration
 		if ch != '\n' && ch != '\r' && !s.IsEOF() {
@@ -283,13 +284,13 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, so
 // parseReferenceStmt parses a reference statement.
 // NOTE: Top-level reference statements are deprecated (BREAKING CHANGE).
 // Users should use inline references in value positions instead.
-func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.ReferenceStmt, error) {
+func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) error {
 	// Reject top-level reference statements with a migration message
 	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 		"invalid syntax: top-level 'reference:' statements are no longer supported. Use inline references instead.\n"+
 			"Example: Instead of a top-level 'reference:alias:path', use 'key: reference:alias:path' in a value position.")
 	err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
-	return nil, err
+	return err
 }
 
 // parseSectionDecl parses a configuration section.

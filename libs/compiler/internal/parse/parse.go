@@ -15,9 +15,11 @@ import (
 // ParseFile parses a Nomos configuration file from the filesystem.
 // It returns the AST, any diagnostics generated during parsing, and a fatal error if parsing cannot proceed.
 // Parse errors are captured as diagnostics with structured SourceSpan information.
+//
+//nolint:revive // Parse prefix is part of public API and matches parser package naming
 func ParseFile(path string) (*ast.AST, []diagnostic.Diagnostic, error) {
 	// Read source text for error formatting
-	sourceBytes, err := os.ReadFile(path)
+	sourceBytes, err := os.ReadFile(path) //nolint:gosec // G304: Path from compilation input, validated by caller
 	if err != nil {
 		// I/O errors are returned as diagnostics
 		diag := diagnostic.Diagnostic{
@@ -50,6 +52,8 @@ func ParseFile(path string) (*ast.AST, []diagnostic.Diagnostic, error) {
 // ParseReader parses Nomos configuration from an io.Reader.
 // The filename parameter is used for error messages and source spans.
 // It returns the AST, any diagnostics generated during parsing, and a fatal error if parsing cannot proceed.
+//
+//nolint:revive // Parse prefix is part of public API and matches parser package naming
 func ParseReader(r io.Reader, filename string) (*ast.AST, []diagnostic.Diagnostic, error) {
 	// Read source text for error formatting
 	sourceBytes, err := io.ReadAll(r)

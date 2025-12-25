@@ -1,11 +1,10 @@
 package test
 
-import "github.com/autonomous-bits/nomos/libs/compiler"
-
 import (
 	"context"
 	"testing"
 
+	"github.com/autonomous-bits/nomos/libs/compiler"
 	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,7 +27,7 @@ func TestClient_Fetch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := compiler.NewClient(conn, "test-alias")
 
@@ -66,7 +65,7 @@ func TestClient_Fetch_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := compiler.NewClient(conn, "test-alias")
 
@@ -100,7 +99,7 @@ func TestClient_Init(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := compiler.NewClient(conn, "test-alias")
 
@@ -138,7 +137,7 @@ func TestClient_Info(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := compiler.NewClient(conn, "test-alias")
 

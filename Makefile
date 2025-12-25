@@ -47,7 +47,7 @@ build-module: work-sync
 # Run all tests
 test: work-sync
 	@echo "Running all tests across workspace..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-proto; do \
+	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
 		echo "Testing $$dir..."; \
 		(cd $$dir && go test -v ./...) || exit 1; \
 	done
@@ -55,7 +55,7 @@ test: work-sync
 # Run tests with race detector
 test-race: work-sync
 	@echo "Running tests with race detector..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-proto; do \
+	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
 		echo "Testing $$dir with race detector..."; \
 		(cd $$dir && go test -race ./...) || exit 1; \
 	done
@@ -72,7 +72,7 @@ test-module: work-sync
 # Lint all modules
 lint:
 	@echo "Linting all modules..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-proto; do \
+	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
 		echo "Linting $$dir..."; \
 		(cd $$dir && golangci-lint run ./...) || true; \
 	done

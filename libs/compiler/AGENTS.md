@@ -1,96 +1,419 @@
-# AGENTS: libs/compiler
+# Nomos Compiler Agent-Specific Patterns
 
-This document describes the `libs/compiler` module layout and development guidance. It focuses on the local structure for the compiler library (the public surface exposed to apps such as the `command-line` CLI) and the internal packages used during compilation.
+> **Note**: For comprehensive compiler development guidance, see `.github/agents/compiler-module.agent.md`  
+> For task coordination, start with `.github/agents/nomos.agent.md`
 
-Purpose
--------
+## Nomos-Specific Patterns
 
-The `libs/compiler` module provides compilation functionality for Nomos scripts. It exposes a small, stable public API that higher-level applications (for example `apps/command-line`) call to compile inputs into configuration snapshots.
+### Provider Registration
 
-Repository layout (local)
--------------------------
+**External Providers Architecture (Current)**
 
-Typical files and directories:
+Nomos uses a per-alias subprocess model for provider execution:
 
-- `go.mod` / `go.sum` — module declaration and dependency pins for the compiler library.
-- `compiler.go` (or a `pkg/compiler/` package) — the public API entry points (e.g., `Compile(path string) (Result, error)`).
-- `internal/` — compiler internals such as lexer, parser adapters, IR, analyzer, and codegen. These packages are private to the module.
-- `pkg/` — optional packages that provide public sub-packages used by other modules.
-- `test/` — integration tests validating the compiler end-to-end (may use fixtures under `testdata/`).
-- `examples/` — small examples showing how to invoke the compiler library programmatically.
+```go
+// Provider lifecycle managed via internal/providerproc
+manager := providerproc.NewManager()
+defer manager.Shutdown(context.Background())
 
-Example layout:
+opts := compiler.ProviderInitOptions{
+    Alias:  "configs",
+    Config: map[string]any{"directory": "./configs"},
+}
 
-```
-libs/compiler/
-├── go.mod
-├── go.sum
-├── compiler.go        # public API (or pkg/compiler/)
-├── pkg/               # optional public packages
-├── internal/
-│   ├── lexer/
-│   ├── parser/        # may call into libs/parser
-│   ├── ir/
-│   ├── analyzer/
-│   └── codegen/
-├── test/
-│   └── integration_test.go
-└── examples/
+provider, err := manager.GetProvider(ctx, "configs", binaryPath, opts)
 ```
 
-Public API contract (suggested)
--------------------------------
+**Process Lifecycle:**
+1. Binary validation from trusted `.nomos/providers/` directory
+2. Lazy start on first `GetProvider` call
+3. Port discovery via `PROVIDER_PORT=<port>` stdout parsing
+4. gRPC connection with health check
+5. Compile-duration lifetime
+6. Graceful shutdown with context cancellation
 
-Keep the public API small and stable. A minimal contract might look like:
+**Key Files:**
+- `manager.go` - Provider lifecycle and registry
+- `provider_resolver.go` - Provider resolution and initialization
+- `provider_type_registry.go` - Type registry with remote query support
+- `internal/providerproc/` - Subprocess management
 
-- `Compile(inputPath string, opts ...CompileOption) (Snapshot, error)`
-- `Snapshot` — a serializable artifact containing compiled configuration and metadata
-- Errors — use wrapped errors with context for easier debugging
+### Lockfile Format
 
-Design notes
-------------
+**Location:** `.nomos/providers.lock.json`
 
-- Put implementation details into `internal/` packages to avoid accidental external dependencies.
-- If the parser logic is shared, the compiler should depend on `github.com/autonomous-bits/nomos/libs/parser` as a module import.
-- Avoid circular dependencies: the compiler should import the parser, not vice-versa.
+**Schema:**
+```json
+{
+  "providers": [
+    {
+      "alias": "configs",
+      "type": "file",
+      "version": "0.2.0",
+      "os": "darwin",
+      "arch": "arm64",
+      "source": {
+        "github": {
+          "owner": "autonomous-bits",
+          "repo": "nomos-provider-file",
+          "asset": "nomos-provider-file-0.2.0-darwin-arm64"
+        }
+      },
+      "checksum": "sha256:...",
+      "path": ".nomos/providers/file/0.2.0/darwin-arm64/provider"
+    }
+  ]
+}
+```
 
-Developer tasks
----------------
+**Resolution Precedence:**
+1. `.nomos/providers.lock.json` (authoritative paths and checksums)
+2. Inline `.csl` source declaration (version authority)
+3. `.nomos/providers.yaml` (source hints only)
 
-Run unit tests
+**Installation Layout:**
+```
+.nomos/
+  providers/
+    {name}/
+      {version}/
+        {os}-{arch}/
+          provider         # executable
+          CHECKSUM
+```
 
-	cd libs/compiler
-	go test ./... -v
+**Key Files:**
+- `lockfile_resolver.go` - Lockfile parsing and version resolution
 
-Run integration tests
+### Import Resolution
 
-Integration tests may exercise the library against sample source files in `testdata/`:
+**Nomos Import Semantics:**
+- Declaration-order processing
+- Lexicographic file traversal (deterministic)
+- Deep-merge for maps, last-wins for scalars/arrays
+- Circular import detection
 
-	cd libs/compiler
-	go test ./test -v
+**Import Path Adapters:**
+- File system: relative or absolute paths
+- Git: `git://repo/path` (future)
+- HTTP: `https://domain/path` (future)
 
-Build and run examples
+**Error Handling:**
+- Missing imports → fatal with source location
+- Circular imports → fatal with cycle path
+- Parse errors → wrapped with import context
 
-Examples can be built or run with `go run`:
+**Key Files:**
+- `import_resolution.go` - Import statement processing
+- `internal/imports/` - Resolution implementation
+- `internal/validator/` - Cycle detection
 
-	go run ./examples/simple
+### Type Registry
 
-Consuming this library from the CLI
-----------------------------------
+**Purpose:** Maps Nomos provider types to implementations
 
-- Import via module path: `github.com/autonomous-bits/nomos/libs/compiler`.
-- During local development, make sure the root `go.work` includes both `apps/command-line` and `libs/compiler` so the CLI resolves to the local module.
+**Local Registration:**
+```go
+registry := NewProviderTypeRegistry()
+registry.Register("file", ProviderTypeInfo{
+    Type:        "file",
+    Description: "Filesystem provider",
+    Constructor: NewFileProvider,
+})
+```
 
-Best practices
---------------
+**Remote Type Registry:**
+- Queries provider binaries via gRPC Info RPC
+- Caches type metadata per compilation run
+- Validates compatibility with compiler version
 
-- Keep public packages under `pkg/` or at the module root and internal helpers under `internal/`.
-- Write deterministic tests that use fixtures under `testdata/` and avoid relying on external network calls.
-- Provide small example programs showing the typical usage pattern for callers (the CLI or other tools).
-- Version the module independently and follow semantic versioning for any breaking changes.
+**Key Files:**
+- `provider_type_registry.go` - Registry implementation
+- `provider_type_registry_remote_test.go` - Remote query tests
 
-If you need help
----------------
+### Reference Resolution
 
-Open a PR describing the change and reference the module-level design if you think a public API change is needed.
+**Nomos Reference Syntax:** `reference:{alias}:{path}`
 
+**Path Navigation:**
+```
+reference:configs:storage.config.storage.type
+→ Fetch from 'configs' provider: ["storage"]
+→ Navigate: ["config", "storage", "type"]
+```
+
+**Caching Behavior:**
+- Per-compilation run cache
+- Same provider+path → single fetch
+- Thread-safe with mutex protection
+- Context-aware timeouts
+
+**Error Modes:**
+- Fatal (default): provider failures stop compilation
+- Non-fatal: `Options.AllowMissingProvider = true` → warnings
+
+**Key Files:**
+- `client.go` - Reference resolution with caching
+- `internal/resolver/` - Resolution engine
+
+### Configuration Merge Semantics
+
+**Nomos Deep-Merge Rules:**
+- **Maps:** Recursive merge, combining keys
+- **Scalars:** Last-wins (newer replaces older)
+- **Arrays:** Last-wins (entire array replaced)
+- **Null:** Explicit null overrides previous value
+
+**Provenance Tracking:**
+```go
+type Provenance struct {
+    Source        string `json:"source"`         // File path
+    ProviderAlias string `json:"provider_alias"` // Provider source
+}
+
+result, provenance := compiler.DeepMerge(base, override, baseSource, overrideSource)
+```
+
+**Determinism:**
+- Lexicographic import ordering
+- Stable map key output
+- Per-run fetch caching prevents non-determinism
+
+**Key Files:**
+- `merge.go` - Deep-merge implementation
+- `merge_test.go` - Merge semantics validation
+
+### Snapshot Metadata
+
+**Nomos Snapshot Structure:**
+```go
+type Snapshot struct {
+    Data     map[string]any  `json:"data"`
+    Metadata Metadata        `json:"metadata"`
+}
+
+type Metadata struct {
+    InputFiles       []string              `json:"input_files"`       // Sorted absolute paths
+    ProviderAliases  []string              `json:"provider_aliases"`  // Sorted aliases
+    StartTime        time.Time             `json:"start_time"`        // Audit trail
+    EndTime          time.Time             `json:"end_time"`          // Duration
+    Errors           []string              `json:"errors"`            // Fatal errors
+    Warnings         []string              `json:"warnings"`          // Non-fatal issues
+    PerKeyProvenance map[string]Provenance `json:"per_key_provenance"` // Origin tracking
+}
+```
+
+**Usage:**
+- Auditing: track which files/providers contributed to output
+- Debugging: identify source of configuration values
+- Reproducibility: snapshot includes full compilation context
+
+**Key Files:**
+- `compiler.go` - Snapshot and Metadata types
+- `metadata_test.go` - Metadata validation
+
+### Build Tags
+
+**Integration Tests:**
+```go
+//go:build integration
+
+// Network-dependent tests requiring external services
+```
+
+**Usage:**
+```bash
+# Run standard tests (no network)
+go test ./...
+
+# Run integration tests
+go test -tags=integration ./test
+```
+
+**Key Files:**
+- `test/integration_network_test.go` - Network-dependent tests
+- `test/integration_test.go` - Standard integration tests
+- `test/concurrency_test.go` - Race condition tests
+
+### Deterministic Compilation
+
+**Nomos Determinism Guarantees:**
+- Identical inputs → identical outputs (cross-platform)
+- Lexicographic directory traversal
+- Sorted provider aliases in metadata
+- Stable merge ordering
+- Deterministic JSON output (sorted keys)
+- Per-run caching prevents fetch variability
+
+**Testing:**
+```bash
+# Golden file tests validate determinism
+go test ./test -v
+
+# Regenerate golden files
+GOLDEN_UPDATE=1 go test ./test
+```
+
+**Key Files:**
+- `testdata/` - Golden files for snapshot validation
+- `test/integration_test.go` - Determinism tests
+
+### Diagnostic Formatting
+
+**Nomos Error Format:**
+```
+app.csl:3:9: error: unresolved reference to provider 'config'
+   3 |   port: reference:config:port
+     |         ^
+```
+
+**Features:**
+- Machine-parseable: `file:line:col: severity: message`
+- Source snippets with caret pointing to error
+- UTF-8 aware column positioning
+- Delegates to parser for syntax errors
+
+**Key Files:**
+- `internal/diagnostic/` - Error formatting
+- `errors.go` - Error types and wrapping
+
+### Parser Contract
+
+**What Compiler Expects:**
+- `parser.ParseFile(path string) (*ast.AST, error)`
+- `parser.Parse(r io.Reader, filename string) (*ast.AST, error)`
+- `ast.ReferenceExpr` for inline references: `key: reference:alias:path`
+- **1-indexed** line and column numbers
+- **Byte-based columns** (not rune counts)
+- `SourceSpan` on every AST node for error reporting
+
+**Error Handling:**
+- Parser: syntax-level validation only
+- Compiler: semantic validation (cycles, references, providers)
+
+**Key Files:**
+- `compiler.go` - Parser integration
+- `internal/converter/` - AST conversion
+- `interface_check.go` - Parser interface validation
+
+### Provider Security Model
+
+**Trusted Execution:**
+- Only execute binaries from `.nomos/providers/`
+- Checksum verification (lockfile)
+- Subprocess isolation (no shared state)
+- Localhost-only gRPC (no network exposure)
+
+**Lifecycle Management:**
+- Lazy start reduces attack surface
+- Graceful shutdown prevents resource leaks
+- Health checks before first use
+- Context cancellation for timeouts
+
+**Key Files:**
+- `provider_resolver.go` - Binary validation
+- `internal/providerproc/` - Subprocess security
+
+### Timeout Configuration
+
+**Nomos Timeout Settings:**
+```go
+opts := compiler.Options{
+    Path: "./config",
+    Timeouts: compiler.OptionsTimeouts{
+        PerProviderFetch: 5 * time.Second, // Per-fetch timeout
+    },
+}
+
+// Context cancellation for overall compilation
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+snapshot, err := compiler.Compile(ctx, opts)
+```
+
+**Key Files:**
+- `compiler.go` - Options and OptionsTimeouts types
+
+---
+
+## References
+
+- **Architecture:** `docs/architecture/nomos-external-providers-feature-breakdown.md`
+- **Provider Authoring:** `docs/guides/provider-authoring-guide.md`
+- **Merge Semantics:** `docs/merge.md`
+- **Provider Contract:** `docs/provider.md`
+- **gRPC Proto:** `libs/provider-proto/README.md`
+- **Parser Integration:** `libs/parser/README.md`
+
+---
+
+## Task Completion Verification
+
+**MANDATORY**: Before completing ANY task, the agent MUST verify all of the following:
+
+### 1. Build Verification ✅
+```bash
+go build ./...
+```
+- All code must compile without errors
+- No unresolved imports or type errors
+- Context propagation is correct throughout
+
+### 2. Test Verification ✅
+```bash
+go test ./...
+go test ./... -race  # Check for race conditions
+go test ./test/... -tags=integration  # Integration tests
+```
+- All existing tests must pass
+- New tests must be added for new functionality
+- Race detector must report no data races
+- Integration tests must pass
+- Mock/fake provider registries must be updated
+
+### 3. Linting Verification ✅
+```bash
+go vet ./...
+golangci-lint run
+```
+- No `go vet` warnings
+- No golangci-lint errors (warnings are acceptable if documented)
+- Code follows Go best practices
+- No unused context.Context parameters
+
+### 4. Provider Integration Verification ✅
+```bash
+go test ./test/integration_network_test.go -v  # Network tests
+```
+- Provider lifecycle tests pass
+- External provider communication works
+- Checksum validation functions correctly
+- Lockfile resolution works
+
+### 5. Security Verification ✅
+- Provider binary checksums are validated
+- Context cancellation is propagated correctly
+- No hardcoded context.Background() in new code
+- Provider binaries are executed only after validation
+
+### 6. Documentation Updates ✅
+- Update CHANGELOG.md if behavior changed
+- Update README.md if API changed
+- Add/update code comments for new functions
+- Update architecture docs if structure changed
+
+### Verification Checklist Template
+
+When completing a task, report:
+```
+✅ Build: Successful
+✅ Tests: XX/XX passed (YY.Y% coverage)
+✅ Race Detector: Clean
+✅ Integration Tests: All passed
+✅ Linting: Clean (or list acceptable warnings)
+✅ Security: Checksums validated, context propagated
+✅ Documentation: Updated [list files]
+```
+
+**DO NOT** mark a task as complete without running ALL verification steps and reporting results.

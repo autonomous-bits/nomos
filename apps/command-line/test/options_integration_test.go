@@ -20,7 +20,7 @@ type mockCompiler struct {
 }
 
 // Compile records the options and returns the configured response.
-func (m *mockCompiler) Compile(ctx context.Context, opts compiler.Options) (compiler.Snapshot, error) {
+func (m *mockCompiler) Compile(_ context.Context, opts compiler.Options) (compiler.Snapshot, error) {
 	m.RecordedOptions = &opts
 	return m.ReturnSnapshot, m.ReturnError
 }
@@ -199,7 +199,7 @@ func TestOptionsBuilder_Integration(t *testing.T) {
 func TestOptionsBuilder_CustomRegistries(t *testing.T) {
 	// Create custom registries with test providers
 	customPR := compiler.NewProviderRegistry()
-	customPR.Register("test-provider", func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+	customPR.Register("test-provider", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return nil, nil // Minimal test provider
 	})
 

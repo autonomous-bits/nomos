@@ -11,8 +11,8 @@ type providerRegistryImportsAdapter struct {
 	registry ProviderRegistry
 }
 
-func (a *providerRegistryImportsAdapter) GetProvider(alias string) (imports.Provider, error) {
-	provider, err := a.registry.GetProvider(alias)
+func (a *providerRegistryImportsAdapter) GetProvider(ctx context.Context, alias string) (imports.Provider, error) {
+	provider, err := a.registry.GetProvider(ctx, alias)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +81,8 @@ type providerTypeRegistryImportsAdapter struct {
 	typeRegistry ProviderTypeRegistry
 }
 
-func (a *providerTypeRegistryImportsAdapter) CreateProvider(typeName string, config map[string]any) (imports.Provider, error) {
-	provider, err := a.typeRegistry.CreateProvider(typeName, config)
+func (a *providerTypeRegistryImportsAdapter) CreateProvider(ctx context.Context, typeName string, config map[string]any) (imports.Provider, error) {
+	provider, err := a.typeRegistry.CreateProvider(ctx, typeName, config)
 	if err != nil {
 		return nil, err
 	}

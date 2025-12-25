@@ -10,7 +10,7 @@ import (
 // LockfileProviderResolver implements compiler.ProviderResolver using a lockfile.
 // It translates provider type lookups to binary paths from the lockfile.
 type LockfileProviderResolver struct {
-	resolver *Resolver
+	resolver    *Resolver
 	baseDirFunc func() string // Function to get the base directory for provider binaries
 }
 
@@ -39,36 +39,41 @@ func NewLockfileProviderResolver(lockfilePath, manifestPath string, baseDirFunc 
 }
 
 // ResolveBinaryPath resolves a provider type to its binary path using the lockfile.
-// It returns the absolute path to the provider executable.
+// It returns the absolute path to the provider executable after validating its checksum.
 //
 // Note: This implementation assumes a 1:1 mapping between provider type and alias
 // for simplicity. In practice, multiple aliases could share the same type.
 // For the initial implementation, we use type as a lookup key.
-func (r *LockfileProviderResolver) ResolveBinaryPath(ctx context.Context, providerType string) (string, error) {
+func (r *LockfileProviderResolver) ResolveBinaryPath(_ context.Context, providerType string) (string, error) {
 	// Get all providers and find one matching the type
 	// In the current design, we use type as the lookup key
 	// The compiler will call this when creating a provider from a type
 	allProviders := r.resolver.GetAllProviders()
-	
+
 	for _, p := range allProviders {
 		if p.Type == providerType {
-			// If path is already absolute, use it
+			// Determine absolute path
+			var binaryPath string
 			if filepath.IsAbs(p.Path) {
-				// Verify the binary exists
-				if _, err := os.Stat(p.Path); err != nil {
-					return "", fmt.Errorf("provider binary not found at %s: %w (run 'nomos init' to install providers)", p.Path, err)
-				}
-				return p.Path, nil
+				binaryPath = p.Path
+			} else {
+				// Resolve relative to base directory
+				baseDir := r.baseDirFunc()
+				binaryPath = filepath.Join(baseDir, p.Path)
 			}
-
-			// Otherwise, resolve relative to base directory
-			baseDir := r.baseDirFunc()
-			binaryPath := filepath.Join(baseDir, p.Path)
 
 			// Verify the binary exists
 			if _, err := os.Stat(binaryPath); err != nil {
 				return "", fmt.Errorf("provider binary not found at %s: %w (run 'nomos init' to install providers)", binaryPath, err)
 			}
+
+			// Validate checksum if present (CRITICAL for security)
+			if p.Checksum != "" {
+				if err := ValidateChecksum(binaryPath, p.Checksum); err != nil {
+					return "", fmt.Errorf("provider binary checksum validation failed for %s: %w", providerType, err)
+				}
+			}
+			// TODO: Make checksum mandatory in a future version
 
 			return binaryPath, nil
 		}

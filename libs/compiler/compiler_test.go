@@ -10,12 +10,12 @@ type mockProviderRegistry struct {
 	aliases []string
 }
 
-func (m *mockProviderRegistry) Register(alias string, constructor ProviderConstructor) {
+func (m *mockProviderRegistry) Register(alias string, _ ProviderConstructor) {
 	// No-op for basic tests
 	m.aliases = append(m.aliases, alias)
 }
 
-func (m *mockProviderRegistry) GetProvider(alias string) (Provider, error) {
+func (m *mockProviderRegistry) GetProvider(_ context.Context, _ string) (Provider, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -106,11 +106,15 @@ func TestCompile_DeterministicDirectoryTraversal(t *testing.T) {
 
 // writeFile is a helper to write content to a file.
 func writeFile(path, content string) error {
-	file, err := os.Create(path)
+	file, err := os.Create(path) //nolint:gosec // G304: Path is from test temp directory
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 	_, err = file.WriteString(content)
 	return err
 }

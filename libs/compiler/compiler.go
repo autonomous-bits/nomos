@@ -22,7 +22,9 @@ import (
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/resolver"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/validator"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
-) // Options configures a compilation run.
+)
+
+// Options configures a compilation run.
 type Options struct {
 	// Path specifies the input file or directory to compile.
 	Path string
@@ -347,7 +349,7 @@ func initializeProvidersFromSources(ctx context.Context, inputFiles []string, op
 			}
 
 			// Check if provider is already registered
-			if _, err := opts.ProviderRegistry.GetProvider(sourceDecl.Alias); err == nil {
+			if _, err := opts.ProviderRegistry.GetProvider(ctx, sourceDecl.Alias); err == nil {
 				// Already registered, skip
 				continue
 			}
@@ -359,7 +361,7 @@ func initializeProvidersFromSources(ctx context.Context, inputFiles []string, op
 			}
 
 			// Create provider from type using the type registry
-			provider, err := opts.ProviderTypeRegistry.CreateProvider(sourceDecl.Type, config)
+			provider, err := opts.ProviderTypeRegistry.CreateProvider(ctx, sourceDecl.Type, config)
 			if err != nil {
 				return fmt.Errorf("failed to create provider %q of type %q: %w", sourceDecl.Alias, sourceDecl.Type, err)
 			}
@@ -376,7 +378,7 @@ func initializeProvidersFromSources(ctx context.Context, inputFiles []string, op
 			}
 
 			// Register the provider
-			opts.ProviderRegistry.Register(sourceDecl.Alias, func(opts ProviderInitOptions) (Provider, error) {
+			opts.ProviderRegistry.Register(sourceDecl.Alias, func(_ ProviderInitOptions) (Provider, error) {
 				return provider, nil
 			})
 		}
@@ -402,8 +404,11 @@ func exprToConfigValue(expr ast.Expr) any {
 // resolveReferences resolves all ReferenceExpr nodes in the data using the resolver.
 // Warnings generated during resolution are appended to the warnings slice.
 func resolveReferences(ctx context.Context, data map[string]any, opts Options, warnings *[]string) (map[string]any, error) {
-	// Create adapter for ProviderRegistry
-	registryAdapter := &providerRegistryAdapter{registry: opts.ProviderRegistry}
+	// Create adapter for ProviderRegistry with context
+	registryAdapter := &providerRegistryAdapter{
+		registry: opts.ProviderRegistry,
+		ctx:      ctx,
+	}
 
 	// Create resolver with options
 	resolverOpts := resolver.ResolverOptions{
@@ -435,10 +440,11 @@ func resolveReferences(ctx context.Context, data map[string]any, opts Options, w
 // providerRegistryAdapter adapts compiler.ProviderRegistry to resolver.ProviderRegistry.
 type providerRegistryAdapter struct {
 	registry ProviderRegistry
+	ctx      context.Context
 }
 
 func (a *providerRegistryAdapter) GetProvider(alias string) (resolver.Provider, error) {
-	provider, err := a.registry.GetProvider(alias)
+	provider, err := a.registry.GetProvider(a.ctx, alias)
 	if err != nil {
 		return nil, err
 	}

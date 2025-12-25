@@ -37,6 +37,8 @@ type ProviderRegistry interface {
 }
 
 // ResolverOptions configures the reference resolver.
+//
+//nolint:revive // Resolver prefix is part of public API naming convention
 type ResolverOptions struct {
 	// ProviderRegistry provides access to external data sources.
 	ProviderRegistry ProviderRegistry

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Comprehensive gRPC integration tests with real client-server communication
+- Test coverage for all RPC methods (Init, Fetch, Info, Health, Shutdown)
+- Error handling tests with gRPC status codes (InvalidArgument, FailedPrecondition, NotFound)
+- Data serialization round-trip tests (Struct ↔ map[string]interface{})
+- Lifecycle ordering tests (Init before Fetch requirement)
+- Context cancellation tests
+- README code example compilation verification test
+
+### Fixed
+- README code example: corrected enum value `HealthResponse_OK` → `HealthResponse_STATUS_OK`
+
 ## [0.1.1] - 2025-11-02
 
 ### Fixed

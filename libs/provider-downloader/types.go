@@ -59,6 +59,13 @@ type InstallResult struct {
 	Size int64
 }
 
+// Logger is an optional interface for debug logging.
+// Implement this interface to receive debug logs from the downloader.
+type Logger interface {
+	// Debugf logs a debug message with format string and arguments.
+	Debugf(format string, args ...interface{})
+}
+
 // ClientOptions configures the downloader client.
 type ClientOptions struct {
 	// GitHubToken is an optional GitHub personal access token for authenticated requests.
@@ -83,6 +90,10 @@ type ClientOptions struct {
 	// Default: "https://api.github.com"
 	// Can be overridden for testing or GitHub Enterprise.
 	BaseURL string
+
+	// Logger is an optional logger for debug output.
+	// If nil, no debug logging is performed.
+	Logger Logger
 }
 
 // DefaultClientOptions returns ClientOptions with sensible defaults.

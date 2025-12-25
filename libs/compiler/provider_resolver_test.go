@@ -44,7 +44,7 @@ type fakeResolver struct {
 	entries map[string]string
 }
 
-func (f *fakeResolver) ResolveBinaryPath(ctx context.Context, providerType string) (string, error) {
+func (f *fakeResolver) ResolveBinaryPath(_ context.Context, providerType string) (string, error) {
 	path, ok := f.entries[providerType]
 	if !ok {
 		return "", compiler.ErrProviderNotRegistered

@@ -28,7 +28,7 @@ func newMockProvider(alias string) *mockProvider {
 	}
 }
 
-func (m *mockProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (m *mockProvider) Init(_ context.Context, _ compiler.ProviderInitOptions) error {
 	m.InitCount++
 	if m.initError != nil {
 		return m.initError
@@ -36,7 +36,7 @@ func (m *mockProvider) Init(ctx context.Context, opts compiler.ProviderInitOptio
 	return nil
 }
 
-func (m *mockProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (m *mockProvider) Fetch(_ context.Context, _ []string) (any, error) {
 	m.FetchCount++
 	if m.fetchError != nil {
 		return nil, m.fetchError
@@ -55,7 +55,7 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry := compiler.NewProviderRegistry()
 		alias := "test-provider"
 
-		constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+		constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 			return newMockProvider(alias), nil
 		}
 
@@ -63,7 +63,7 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry.Register(alias, constructor)
 
 		// Assert - Get should instantiate the provider
-		provider, err := registry.GetProvider(alias)
+		provider, err := registry.GetProvider(context.Background(), alias)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -89,7 +89,8 @@ func TestProviderRegistry_Register(t *testing.T) {
 		registry := compiler.NewProviderRegistry()
 
 		// Act
-		provider, err := registry.GetProvider("nonexistent")
+		ctx := context.Background()
+		provider, err := registry.GetProvider(ctx, "nonexistent")
 
 		// Assert
 		if err == nil {
@@ -107,14 +108,15 @@ func TestProviderRegistry_Register(t *testing.T) {
 		alias := "failing-provider"
 		expectedErr := errors.New("constructor failed")
 
-		constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+		constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 			return nil, expectedErr
 		}
 
 		registry.Register(alias, constructor)
 
 		// Act
-		provider, err := registry.GetProvider(alias)
+		ctx := context.Background()
+		provider, err := registry.GetProvider(ctx, alias)
 
 		// Assert
 		if err == nil {
@@ -138,15 +140,16 @@ func TestProviderRegistry_InstanceCaching(t *testing.T) {
 		registry := compiler.NewProviderRegistry()
 		alias := "cached-provider"
 
-		constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+		constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 			return &mockProvider{alias: alias, version: "test-v1.0.0"}, nil
 		}
 
 		registry.Register(alias, constructor)
 
 		// Act - Get the provider twice
-		provider1, err1 := registry.GetProvider(alias)
-		provider2, err2 := registry.GetProvider(alias)
+		ctx := context.Background()
+		provider1, err1 := registry.GetProvider(ctx, alias)
+		provider2, err2 := registry.GetProvider(ctx, alias)
 
 		// Assert
 		if err1 != nil {
@@ -168,7 +171,7 @@ func TestProviderRegistry_InstanceCaching(t *testing.T) {
 		alias := "init-once-provider"
 		mock := newMockProvider(alias)
 
-		constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+		constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 			return mock, nil
 		}
 
@@ -176,7 +179,7 @@ func TestProviderRegistry_InstanceCaching(t *testing.T) {
 
 		// Act - Get the provider multiple times
 		for i := 0; i < 3; i++ {
-			_, err := registry.GetProvider(alias)
+			_, err := registry.GetProvider(context.Background(), alias)
 			if err != nil {
 				t.Fatalf("GetProvider call %d failed: %v", i+1, err)
 			}
@@ -201,7 +204,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 			i := i // Capture loop variable
 			go func() {
 				alias := fmt.Sprintf("provider-%d", i)
-				constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+				constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 					return &mockProvider{alias: alias, version: "test-v1.0.0"}, nil
 				}
 				registry.Register(alias, constructor)
@@ -217,7 +220,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 		// Assert - All providers should be retrievable
 		for i := 0; i < 10; i++ {
 			alias := fmt.Sprintf("provider-%d", i)
-			provider, err := registry.GetProvider(alias)
+			provider, err := registry.GetProvider(context.Background(), alias)
 			if err != nil {
 				t.Errorf("failed to get provider %q: %v", alias, err)
 			}
@@ -233,7 +236,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 		alias := "concurrent-get-provider"
 		mock := newMockProvider(alias)
 
-		constructor := func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+		constructor := func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 			return mock, nil
 		}
 
@@ -243,7 +246,7 @@ func TestProviderRegistry_ConcurrentRegistration(t *testing.T) {
 		done := make(chan compiler.Provider, 10)
 		for i := 0; i < 10; i++ {
 			go func() {
-				provider, err := registry.GetProvider(alias)
+				provider, err := registry.GetProvider(context.Background(), alias)
 				if err != nil {
 					t.Errorf("concurrent Get failed: %v", err)
 				}

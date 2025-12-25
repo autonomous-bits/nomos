@@ -18,6 +18,7 @@ func TestCompile_MetadataPopulation(t *testing.T) {
 	file1 := filepath.Join(tmpDir, "app.csl")
 	file2 := filepath.Join(tmpDir, "config.csl")
 
+	//nolint:gosec // G306: Test file with intentional 0644 permissions
 	err := os.WriteFile(file1, []byte(`app:
   name: 'test-app'
   port: 8080
@@ -26,6 +27,7 @@ func TestCompile_MetadataPopulation(t *testing.T) {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
+	//nolint:gosec // G306: Test file with intentional 0644 permissions
 	err = os.WriteFile(file2, []byte(`database:
   host: 'localhost'
   port: 5432
@@ -38,10 +40,10 @@ func TestCompile_MetadataPopulation(t *testing.T) {
 	registry := compiler.NewProviderRegistry()
 
 	// Register some mock providers
-	registry.Register("file", func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+	registry.Register("file", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return &mockProvider{alias: "file"}, nil
 	})
-	registry.Register("env", func(opts compiler.ProviderInitOptions) (compiler.Provider, error) {
+	registry.Register("env", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return &mockProvider{alias: "env"}, nil
 	})
 
@@ -155,10 +157,10 @@ type mockProvider struct {
 	alias string
 }
 
-func (m *mockProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (m *mockProvider) Init(_ context.Context, _ compiler.ProviderInitOptions) error {
 	return nil
 }
 
-func (m *mockProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (m *mockProvider) Fetch(_ context.Context, _ []string) (any, error) {
 	return nil, nil
 }

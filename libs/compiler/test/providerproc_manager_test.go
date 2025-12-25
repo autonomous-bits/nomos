@@ -1,7 +1,5 @@
 package test
 
-import "github.com/autonomous-bits/nomos/libs/compiler"
-
 import (
 	"context"
 	"fmt"
@@ -11,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/autonomous-bits/nomos/libs/compiler"
 )
 
 // TestManager_GetProvider_StartSubprocess tests that GetProvider starts
@@ -216,7 +215,7 @@ require (
 replace github.com/autonomous-bits/nomos/libs/provider-proto => %s
 `, providerProtoPath)
 	goModPath := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(goModPath, []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(goModPath, []byte(goMod), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
@@ -288,12 +287,12 @@ func main() {
 `
 
 	mainGoPath := filepath.Join(tmpDir, "main.go")
-	if err := os.WriteFile(mainGoPath, []byte(mainGo), 0644); err != nil {
+	if err := os.WriteFile(mainGoPath, []byte(mainGo), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("Failed to write main.go: %v", err)
 	}
 
 	// Run go mod tidy to download dependencies
-	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd := exec.Command("go", "mod", "tidy") //nolint:noctx // Test helper uses synchronous exec for simplicity
 	tidyCmd.Dir = tmpDir
 	tidyOutput, err := tidyCmd.CombinedOutput()
 	if err != nil {
@@ -301,7 +300,8 @@ func main() {
 	}
 
 	// Build the binary
-	cmd := exec.Command("go", "build", "-o", binaryPath, mainGoPath)
+	//nolint:gosec // G204: Test helper building controlled test binary with known args
+	cmd := exec.CommandContext(context.Background(), "go", "build", "-o", binaryPath, mainGoPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

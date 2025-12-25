@@ -21,7 +21,8 @@ type ProviderTypeRegistry interface {
 
 	// CreateProvider creates a provider instance of the given type with the provided config.
 	// Returns an error if the type is not registered.
-	CreateProvider(typeName string, config map[string]any) (Provider, error)
+	// The context is used for provider initialization and should respect cancellation.
+	CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error)
 
 	// IsTypeRegistered checks if a provider type is registered.
 	IsTypeRegistered(typeName string) bool
@@ -84,7 +85,7 @@ func (r *providerTypeRegistry) RegisterType(typeName string, constructor Provide
 }
 
 // CreateProvider implements ProviderTypeRegistry.CreateProvider.
-func (r *providerTypeRegistry) CreateProvider(typeName string, config map[string]any) (Provider, error) {
+func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error) {
 	// First, check for in-process constructor
 	r.mu.RLock()
 	constructor, hasConstructor := r.constructors[typeName]
@@ -102,7 +103,6 @@ func (r *providerTypeRegistry) CreateProvider(typeName string, config map[string
 
 	// Fall back to remote provider if resolver+manager available
 	if hasResolver {
-		ctx := context.Background() // TODO: Accept context from caller
 		binaryPath, err := r.resolver.ResolveBinaryPath(ctx, typeName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve provider type %q: %w", typeName, err)

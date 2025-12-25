@@ -45,6 +45,7 @@ func TestInitCommand_Hermetic_FullFlow(t *testing.T) {
 app:
 	name: 'test-app'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl: %v", err)
 	}
@@ -67,6 +68,7 @@ app:
 
 	// Verify lockfile structure
 	lockPath := filepath.Join(tmpDir, ".nomos", "providers.lock.json")
+	//nolint:gosec // G304: Test code reading test-generated lockfile
 	lockData, err := os.ReadFile(lockPath)
 	if os.IsNotExist(err) {
 		t.Skip("Skipping until injection mechanism added for test servers")
@@ -163,7 +165,7 @@ func newMockGitHubAPIServer(t *testing.T, owner, repo, tag string, assetNames []
 func newMockAssetServer(t *testing.T, content []byte) *httptest.Server {
 	t.Helper()
 
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(content); err != nil {

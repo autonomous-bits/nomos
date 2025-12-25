@@ -47,12 +47,10 @@ func TestToJSON_Deterministic(t *testing.T) {
 
 		if i == 0 {
 			firstOutput = output
-		} else {
-			if string(output) != string(firstOutput) {
-				t.Errorf("iteration %d: output differs from first iteration", i)
-				t.Logf("First:\n%s", firstOutput)
-				t.Logf("Current:\n%s", output)
-			}
+		} else if string(output) != string(firstOutput) {
+			t.Errorf("iteration %d: output differs from first iteration", i)
+			t.Logf("First:\n%s", firstOutput)
+			t.Logf("Current:\n%s", output)
 		}
 	}
 }

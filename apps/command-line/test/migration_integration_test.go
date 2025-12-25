@@ -29,6 +29,7 @@ app:
 	name: 'test-app'
 	env: 'dev'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
@@ -40,6 +41,7 @@ app:
 	}
 
 	// Run nomos build (should fail with migration error)
+	//nolint:gosec // G204: Test code with controlled input
 	cmd := exec.Command(nomosPath, "build", "-p", cslPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
@@ -75,12 +77,14 @@ func TestBuildFailsWithMigrationError_MalformedLockfile(t *testing.T) {
 
 	// Create .nomos directory and malformed lockfile
 	nomosDir := filepath.Join(tmpDir, ".nomos")
+	//nolint:gosec // G301: Test directory with standard permissions
 	if err := os.MkdirAll(nomosDir, 0755); err != nil {
 		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
 
 	lockfilePath := filepath.Join(nomosDir, "providers.lock.json")
 	malformedJSON := `{ "providers": [ this is not valid json ] }`
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(lockfilePath, []byte(malformedJSON), 0644); err != nil {
 		t.Fatalf("failed to create malformed lockfile: %v", err)
 	}
@@ -96,11 +100,13 @@ func TestBuildFailsWithMigrationError_MalformedLockfile(t *testing.T) {
 app:
 	name: 'test-app'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
 	// Run nomos build
+	//nolint:gosec // G204: Test code with controlled input
 	cmd := exec.Command(nomosPath, "build", "-p", cslPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
@@ -132,6 +138,7 @@ func TestBuildFailsWithMigrationError_MissingBinary(t *testing.T) {
 
 	// Create .nomos directory
 	nomosDir := filepath.Join(tmpDir, ".nomos")
+	//nolint:gosec // G301: Test directory with standard permissions
 	if err := os.MkdirAll(nomosDir, 0755); err != nil {
 		t.Fatalf("failed to create .nomos dir: %v", err)
 	}
@@ -150,6 +157,7 @@ func TestBuildFailsWithMigrationError_MissingBinary(t *testing.T) {
     }
   ]
 }`
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(lockfilePath, []byte(lockfileContent), 0644); err != nil {
 		t.Fatalf("failed to create lockfile: %v", err)
 	}
@@ -165,11 +173,13 @@ func TestBuildFailsWithMigrationError_MissingBinary(t *testing.T) {
 app:
 	name: 'test-app'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
 	// Run nomos build
+	//nolint:gosec // G204: Test code with controlled input
 	cmd := exec.Command(nomosPath, "build", "-p", cslPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()

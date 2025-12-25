@@ -110,21 +110,9 @@ func TestReferenceExpr_ImplementsNode(t *testing.T) {
 }
 
 // TestReferenceExpr_ImplementsExpr verifies ReferenceExpr implements the Expr interface.
-func TestReferenceExpr_ImplementsExpr(t *testing.T) {
-	ref := &ast.ReferenceExpr{
-		Alias: "test",
-		Path:  []string{"key"},
-		SourceSpan: ast.SourceSpan{
-			Filename:  "test.csl",
-			StartLine: 1,
-			StartCol:  1,
-			EndLine:   1,
-			EndCol:    10,
-		},
-	}
-
-	// Verify it implements Expr
-	var _ ast.Expr = ref
+func TestReferenceExpr_ImplementsExpr(_ *testing.T) {
+	// Verify it implements Expr (compile-time check)
+	var _ ast.Expr = &ast.ReferenceExpr{}
 }
 
 // TestExpr_TypeSwitch verifies all Expr variants can be handled in type switches.

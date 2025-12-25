@@ -66,7 +66,7 @@ func NewFakeProviderServer(alias, version, providerType string) *FakeProviderSer
 }
 
 // Init implements the Init RPC method.
-func (s *FakeProviderServer) Init(ctx context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
+func (s *FakeProviderServer) Init(_ context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -91,7 +91,7 @@ func (s *FakeProviderServer) Init(ctx context.Context, req *providerv1.InitReque
 }
 
 // Fetch implements the Fetch RPC method.
-func (s *FakeProviderServer) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
+func (s *FakeProviderServer) Fetch(_ context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -118,7 +118,7 @@ func (s *FakeProviderServer) Fetch(ctx context.Context, req *providerv1.FetchReq
 }
 
 // Info implements the Info RPC method.
-func (s *FakeProviderServer) Info(ctx context.Context, req *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
+func (s *FakeProviderServer) Info(_ context.Context, _ *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -136,7 +136,7 @@ func (s *FakeProviderServer) Info(ctx context.Context, req *providerv1.InfoReque
 }
 
 // Health implements the Health RPC method.
-func (s *FakeProviderServer) Health(ctx context.Context, req *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
+func (s *FakeProviderServer) Health(_ context.Context, _ *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -153,7 +153,7 @@ func (s *FakeProviderServer) Health(ctx context.Context, req *providerv1.HealthR
 }
 
 // Shutdown implements the Shutdown RPC method.
-func (s *FakeProviderServer) Shutdown(ctx context.Context, req *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
+func (s *FakeProviderServer) Shutdown(_ context.Context, _ *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -334,6 +334,7 @@ func pathToKey(path []string) string {
 // Returns the server instance, the address it's listening on, and an error.
 // The caller should call Stop() on the server when done.
 func StartFakeProviderServer(fakeImpl *FakeProviderServer) (*grpc.Server, string, error) {
+	//nolint:noctx // Test helper, context not needed for ephemeral test listener
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create listener: %w", err)
