@@ -78,7 +78,7 @@ func (e *ErrCycleDetected) Error() string {
 		return e.Message
 	}
 
-	var parts []string
+	parts := make([]string, 0, len(e.Chain))
 	for i, node := range e.Chain {
 		arrow := " → "
 		if i == len(e.Chain)-1 {

@@ -13,6 +13,7 @@ func TestDiscoverFiles_SingleFile(t *testing.T) {
 	// Create temp file
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test.csl")
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filePath, []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -36,6 +37,7 @@ func TestDiscoverFiles_SingleNonCSLFile_ReturnsError(t *testing.T) {
 	// Create temp file without .csl extension
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test.txt")
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -61,6 +63,7 @@ func TestDiscoverFiles_Directory_LexicographicOrdering(t *testing.T) {
 
 	for _, name := range testFiles {
 		filePath := filepath.Join(tmpDir, name)
+		//nolint:gosec // G306: Test file with non-sensitive content
 		if err := os.WriteFile(filePath, []byte("{}"), 0644); err != nil {
 			t.Fatalf("failed to create test file %q: %v", name, err)
 		}
@@ -101,22 +104,27 @@ func TestDiscoverFiles_NestedDirectories_RecursiveOrdering(t *testing.T) {
 	//     b.csl
 	//     deeper/
 	//       c.csl
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filepath.Join(tmpDir, "a.csl"), []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create a.csl: %v", err)
 	}
 
 	subDir := filepath.Join(tmpDir, "subdir")
+	//nolint:gosec // G301: Test directory with standard permissions
 	if err := os.MkdirAll(subDir, 0755); err != nil {
 		t.Fatalf("failed to create subdir: %v", err)
 	}
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filepath.Join(subDir, "b.csl"), []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create b.csl: %v", err)
 	}
 
 	deeperDir := filepath.Join(subDir, "deeper")
+	//nolint:gosec // G301: Test directory with standard permissions
 	if err := os.MkdirAll(deeperDir, 0755); err != nil {
 		t.Fatalf("failed to create deeper dir: %v", err)
 	}
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filepath.Join(deeperDir, "c.csl"), []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create c.csl: %v", err)
 	}
@@ -179,6 +187,7 @@ func TestDiscoverFiles_DirectoryWithNonCSLFiles_IgnoresThem(t *testing.T) {
 
 	for name := range testFiles {
 		filePath := filepath.Join(tmpDir, name)
+		//nolint:gosec // G306: Test file with non-sensitive content
 		if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
 			t.Fatalf("failed to create test file %q: %v", name, err)
 		}
@@ -221,6 +230,7 @@ func TestDiscoverFiles_SymlinkToFile(t *testing.T) {
 
 	// Create real file
 	realFile := filepath.Join(tmpDir, "real.csl")
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(realFile, []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create real file: %v", err)
 	}
@@ -260,6 +270,7 @@ func TestDiscoverFiles_SymlinkLoop_HandledGracefully(t *testing.T) {
 	// Create directories for loop
 	dir1 := filepath.Join(tmpDir, "dir1")
 	dir2 := filepath.Join(tmpDir, "dir1", "dir2")
+	//nolint:gosec // G301: Test directory with standard permissions
 	if err := os.MkdirAll(dir2, 0755); err != nil {
 		t.Fatalf("failed to create directories: %v", err)
 	}
@@ -271,6 +282,7 @@ func TestDiscoverFiles_SymlinkLoop_HandledGracefully(t *testing.T) {
 	}
 
 	// Create a valid .csl file to ensure we have something to discover
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(filepath.Join(dir1, "test.csl"), []byte("{}"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -282,10 +294,7 @@ func TestDiscoverFiles_SymlinkLoop_HandledGracefully(t *testing.T) {
 	if err != nil {
 		// Error is acceptable for symlink loops
 		t.Logf("symlink loop produced error (acceptable): %v", err)
-	} else {
-		// If no error, should have found the test file
-		if len(files) < 1 {
-			t.Error("expected at least 1 file despite symlink loop")
-		}
+	} else if len(files) < 1 {
+		t.Error("expected at least 1 file despite symlink loop")
 	}
 }

@@ -74,13 +74,14 @@ func TestGolden_ErrorScenarios(t *testing.T) {
 			}
 
 			// Read or create golden file
+			//nolint:gosec // G304: goldenPath is controlled test fixture path
 			expectedJSON, err := os.ReadFile(goldenPath)
 			if err != nil {
 				t.Logf("Golden file not found at %s, writing actual output", goldenPath)
-				if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(goldenPath), 0750); err != nil {
 					t.Fatalf("failed to create golden directory: %v", err)
 				}
-				if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil {
+				if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 					t.Fatalf("failed to write golden file: %v", err)
 				}
 				t.Skip("Generated golden file, re-run test to verify")

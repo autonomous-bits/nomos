@@ -45,7 +45,7 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 
 		// Register an in-process constructor
 		inProcessCalled := false
-		registry.RegisterType("test", func(config map[string]any) (compiler.Provider, error) {
+		registry.RegisterType("test", func(_ map[string]any) (compiler.Provider, error) {
 			inProcessCalled = true
 			return &fakeProvider{}, nil
 		})
@@ -68,10 +68,10 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 // fakeProvider implements compiler.Provider for testing.
 type fakeProvider struct{}
 
-func (f *fakeProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (f *fakeProvider) Init(_ context.Context, _ compiler.ProviderInitOptions) error {
 	return nil
 }
 
-func (f *fakeProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (f *fakeProvider) Fetch(_ context.Context, _ []string) (any, error) {
 	return map[string]any{"test": "data"}, nil
 }

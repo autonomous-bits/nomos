@@ -98,7 +98,7 @@ func buildCommand(args []string) error {
 		// Ensure output directory exists
 		dir := filepath.Dir(buildFlags.Out)
 		if dir != "" && dir != "." {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0750); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: cannot create output directory: %v\n\n", err)
 				printBuildHelp()
 				os.Exit(exitUsageErr)
@@ -106,7 +106,7 @@ func buildCommand(args []string) error {
 		}
 
 		// Try to write file
-		if err := os.WriteFile(buildFlags.Out, output, 0644); err != nil {
+		if err := os.WriteFile(buildFlags.Out, output, 0600); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: cannot write output file: %v\n\n", err)
 			printBuildHelp()
 			os.Exit(exitUsageErr)

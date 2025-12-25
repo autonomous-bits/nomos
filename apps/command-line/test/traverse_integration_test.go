@@ -16,9 +16,9 @@ import (
 // mockProviderRegistry implements compiler.ProviderRegistry for testing.
 type mockProviderRegistry struct{}
 
-func (m *mockProviderRegistry) Register(alias string, constructor compiler.ProviderConstructor) {}
+func (m *mockProviderRegistry) Register(alias string, _ compiler.ProviderConstructor) {}
 
-func (m *mockProviderRegistry) GetProvider(alias string) (compiler.Provider, error) {
+func (m *mockProviderRegistry) GetProvider(_ context.Context, alias string) (compiler.Provider, error) {
 	return nil, compiler.ErrProviderNotRegistered
 }
 
@@ -44,6 +44,7 @@ func TestTraverseIntegration_OrderedFilesPassedToCompiler(t *testing.T) {
 
 	for name, content := range testFiles {
 		filePath := filepath.Join(tmpDir, name)
+		//nolint:gosec // G306: Test file with non-sensitive content
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			t.Fatalf("failed to create test file %q: %v", name, err)
 		}
@@ -148,9 +149,11 @@ func TestTraverseIntegration_NestedDirectories(t *testing.T) {
 
 	for relPath, content := range files {
 		fullPath := filepath.Join(tmpDir, relPath)
+		//nolint:gosec // G301: Test directory with standard permissions
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 			t.Fatalf("failed to create directory for %q: %v", relPath, err)
 		}
+		//nolint:gosec // G306: Test file with non-sensitive content
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
 			t.Fatalf("failed to create file %q: %v", relPath, err)
 		}

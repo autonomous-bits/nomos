@@ -37,11 +37,13 @@ app:
 	name: 'test-app'
 	env: 'dev'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
 	// Run nomos init
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(nomosPath, "init", cslPath)
 	cmd.Dir = projectDir
 	output, err := cmd.CombinedOutput()
@@ -148,11 +150,13 @@ func TestInitCommand_Integration_MissingVersion(t *testing.T) {
 	type: 'file'
 	directory: './configs'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
 	// Run nomos init
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(nomosPath, "init", cslPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
@@ -181,11 +185,13 @@ func TestInitCommand_Integration_DryRun(t *testing.T) {
 	version: '1.0.0'
 	directory: './data'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create csl file: %v", err)
 	}
 
 	// Run nomos init with --dry-run
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(nomosPath, "init", "--dry-run", cslPath)
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
@@ -211,6 +217,7 @@ func buildNomosForTest(t *testing.T) string {
 
 	tmpBin := filepath.Join(t.TempDir(), "nomos-test")
 	// Build from parent directory (apps/command-line) not from test/
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed for build
 	cmd := exec.Command("go", "build", "-o", tmpBin, "../cmd/nomos")
 
 	if output, err := cmd.CombinedOutput(); err != nil {

@@ -13,12 +13,12 @@ type fakeProviderRegistry struct {
 	aliases []string
 }
 
-func (f *fakeProviderRegistry) Register(alias string, constructor compiler.ProviderConstructor) {
+func (f *fakeProviderRegistry) Register(alias string, _ compiler.ProviderConstructor) {
 	// No-op for smoke tests
 	f.aliases = append(f.aliases, alias)
 }
 
-func (f *fakeProviderRegistry) GetProvider(ctx context.Context, alias string) (compiler.Provider, error) {
+func (f *fakeProviderRegistry) GetProvider(_ context.Context, _ string) (compiler.Provider, error) {
 	return nil, errors.New("no providers registered")
 }
 

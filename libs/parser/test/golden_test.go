@@ -32,11 +32,12 @@ func TestGolden_SimpleFile(t *testing.T) {
 	}
 
 	// Read golden file
+	//nolint:gosec // G304: goldenPath is controlled test fixture path
 	expectedJSON, err := os.ReadFile(goldenPath)
 	if err != nil {
 		// If golden file doesn't exist, write it (useful for generating golden files)
 		t.Logf("Golden file not found at %s, writing actual output", goldenPath)
-		if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil {
+		if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 			t.Fatalf("failed to write golden file: %v", err)
 		}
 		t.Skip("Generated golden file, re-run test to verify")
@@ -83,10 +84,11 @@ func TestGolden_AllFixtures(t *testing.T) {
 			}
 
 			// Read or create golden file
+			//nolint:gosec // G304: goldenPath is controlled test fixture path
 			expectedJSON, err := os.ReadFile(goldenPath)
 			if err != nil {
 				t.Logf("Golden file not found at %s, writing actual output", goldenPath)
-				if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil {
+				if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 					t.Fatalf("failed to write golden file: %v", err)
 				}
 				t.Skip("Generated golden file, re-run test to verify")

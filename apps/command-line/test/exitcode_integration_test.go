@@ -21,6 +21,7 @@ func TestExitCodes_Integration(t *testing.T) {
 
 	t.Run("invalid_usage_exits_2", func(t *testing.T) {
 		// Missing required --path flag
+		//nolint:gosec,noctx // G204: Test code with controlled binary path and args; context not needed
 		cmd := exec.Command(binPath, "build")
 		err := cmd.Run()
 
@@ -40,6 +41,7 @@ func TestExitCodes_Integration(t *testing.T) {
 
 	t.Run("invalid_format_exits_2", func(t *testing.T) {
 		// Invalid format value
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command(binPath, "build", "--path", "testdata/fixture-simple.csl", "--format", "invalid")
 		err := cmd.Run()
 
@@ -59,6 +61,7 @@ func TestExitCodes_Integration(t *testing.T) {
 
 	t.Run("nonexistent_path_exits_1", func(t *testing.T) {
 		// Nonexistent file should cause compilation error
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command(binPath, "build", "--path", "/nonexistent/path.csl")
 		err := cmd.Run()
 
@@ -80,6 +83,7 @@ func TestExitCodes_Integration(t *testing.T) {
 		// Create temporary empty directory
 		emptyDir := t.TempDir()
 
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command(binPath, "build", "--path", emptyDir)
 		err := cmd.Run()
 
@@ -101,11 +105,13 @@ func TestExitCodes_Integration(t *testing.T) {
 		// Create a simple valid fixture
 		tmpDir := t.TempDir()
 		fixturePath := filepath.Join(tmpDir, "test.csl")
+		//nolint:gosec // G306: Test file with non-sensitive content
 		err := os.WriteFile(fixturePath, []byte("app: myapp\nversion: 1.0"), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create fixture: %v", err)
 		}
 
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command(binPath, "build", "--path", fixturePath, "--format", "json")
 		err = cmd.Run()
 
@@ -136,6 +142,7 @@ func TestDiagnosticFormatting_Integration(t *testing.T) {
 
 	t.Run("error_includes_file_location", func(t *testing.T) {
 		// Nonexistent path will trigger an error
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command(binPath, "build", "--path", "/tmp/nonexistent-test-file.csl")
 		output, err := cmd.CombinedOutput()
 
@@ -167,6 +174,7 @@ func TestNonWritableOutput_ExitCode(t *testing.T) {
 	// Create a simple valid fixture
 	tmpDir := t.TempDir()
 	fixturePath := filepath.Join(tmpDir, "test.csl")
+	//nolint:gosec // G306: Test file with non-sensitive content
 	err := os.WriteFile(fixturePath, []byte("app: myapp"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create fixture: %v", err)
@@ -175,6 +183,7 @@ func TestNonWritableOutput_ExitCode(t *testing.T) {
 	// Try to write to a non-writable path (directory without write permission)
 	outputPath := "/root/test-output.json" // Root directory typically not writable by regular users
 
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(binPath, "build", "--path", fixturePath, "--out", outputPath)
 	err = cmd.Run()
 

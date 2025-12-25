@@ -238,7 +238,7 @@ type concurrencyTestRegistry struct {
 	providers map[string]compiler.Provider
 }
 
-func (r *concurrencyTestRegistry) Register(alias string, constructor compiler.ProviderConstructor) {
+func (r *concurrencyTestRegistry) Register(_ string, _ compiler.ProviderConstructor) {
 	// Not used in concurrency tests
 }
 
@@ -248,7 +248,7 @@ func (r *concurrencyTestRegistry) registerConcurrent(alias string, provider comp
 	r.providers[alias] = provider
 }
 
-func (r *concurrencyTestRegistry) GetProvider(ctx context.Context, alias string) (compiler.Provider, error) {
+func (r *concurrencyTestRegistry) GetProvider(_ context.Context, alias string) (compiler.Provider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

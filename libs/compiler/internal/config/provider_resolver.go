@@ -44,7 +44,7 @@ func NewLockfileProviderResolver(lockfilePath, manifestPath string, baseDirFunc 
 // Note: This implementation assumes a 1:1 mapping between provider type and alias
 // for simplicity. In practice, multiple aliases could share the same type.
 // For the initial implementation, we use type as a lookup key.
-func (r *LockfileProviderResolver) ResolveBinaryPath(ctx context.Context, providerType string) (string, error) {
+func (r *LockfileProviderResolver) ResolveBinaryPath(_ context.Context, providerType string) (string, error) {
 	// Get all providers and find one matching the type
 	// In the current design, we use type as the lookup key
 	// The compiler will call this when creating a provider from a type
@@ -72,12 +72,8 @@ func (r *LockfileProviderResolver) ResolveBinaryPath(ctx context.Context, provid
 				if err := ValidateChecksum(binaryPath, p.Checksum); err != nil {
 					return "", fmt.Errorf("provider binary checksum validation failed for %s: %w", providerType, err)
 				}
-			} else {
-				// Warn if no checksum is present (security risk)
-				// In production, this should be a hard error
-				// For now, we'll allow it but log a warning
-				// TODO: Make checksum mandatory in a future version
 			}
+			// TODO: Make checksum mandatory in a future version
 
 			return binaryPath, nil
 		}

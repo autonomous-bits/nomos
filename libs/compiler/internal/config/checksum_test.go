@@ -15,7 +15,7 @@ func TestValidateChecksum_ValidChecksum(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "test-binary")
 	content := []byte("test content for checksum validation")
 
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0644); err != nil { //nolint:gosec // G306: Test file permissions are intentionally 0644
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -38,7 +38,7 @@ func TestValidateChecksum_MismatchChecksum(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "test-binary")
 	content := []byte("original content")
 
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0644); err != nil { //nolint:gosec // G306: Test file permissions are intentionally 0644
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -50,7 +50,7 @@ func TestValidateChecksum_MismatchChecksum(t *testing.T) {
 
 	// Modify file content
 	modifiedContent := []byte("modified content - different from original")
-	if err := os.WriteFile(filePath, modifiedContent, 0644); err != nil {
+	if err := os.WriteFile(filePath, modifiedContent, 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to modify test file: %v", err)
 	}
 
@@ -73,7 +73,7 @@ func TestValidateChecksum_EmptyChecksum(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test-binary")
 
-	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -105,7 +105,7 @@ func TestValidateChecksum_InvalidFormat(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test-binary")
 
-	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte("content"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestComputeChecksum_ValidFile(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "test-binary")
 	content := []byte("test content")
 
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -191,13 +191,13 @@ func TestComputeChecksum_DifferentContentDifferentChecksum(t *testing.T) {
 
 	// Create first file
 	file1 := filepath.Join(tmpDir, "file1")
-	if err := os.WriteFile(file1, []byte("content A"), 0644); err != nil {
+	if err := os.WriteFile(file1, []byte("content A"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create file1: %v", err)
 	}
 
 	// Create second file with different content
 	file2 := filepath.Join(tmpDir, "file2")
-	if err := os.WriteFile(file2, []byte("content B"), 0644); err != nil {
+	if err := os.WriteFile(file2, []byte("content B"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create file2: %v", err)
 	}
 
@@ -224,7 +224,7 @@ func TestRoundTrip_ComputeAndValidate(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "test-binary")
 	content := []byte("binary content for round-trip test")
 
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to create test file: %v", err)
 	}
 

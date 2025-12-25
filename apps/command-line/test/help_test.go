@@ -12,6 +12,7 @@ func TestHelpText(t *testing.T) {
 	// Build CLI binary for testing
 	binPath := buildCLI(t)
 
+	//nolint:gosec,noctx // G204: Test code with controlled binary path; context not needed
 	cmd := exec.Command(binPath, "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -46,6 +47,7 @@ func TestBuildHelpText(t *testing.T) {
 	// Build CLI binary for testing
 	binPath := buildCLI(t)
 
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(binPath, "build", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -128,6 +130,7 @@ func TestHelpConsistency(t *testing.T) {
 	// Build CLI binary for testing
 	binPath := buildCLI(t)
 
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command(binPath, "build", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {

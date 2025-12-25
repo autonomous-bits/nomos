@@ -125,14 +125,14 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 	if err != nil {
 		return nil, fmt.Errorf("GitHub API request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Log the response status
 	c.debugf("GitHub API response: HTTP %d", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusNotFound {
 		// Try alternate version format (add/remove "v" prefix)
-		altVersion := version
+		var altVersion string
 		if strings.HasPrefix(version, "v") {
 			altVersion = strings.TrimPrefix(version, "v")
 		} else {
@@ -157,7 +157,7 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 		altResp, err := c.httpClient.Do(altReq)
 		if err != nil || altResp.StatusCode != http.StatusOK {
 			if altResp != nil {
-				altResp.Body.Close()
+				_ = altResp.Body.Close()
 			}
 			return nil, &AssetNotFoundError{
 				Owner:   owner,
@@ -165,7 +165,7 @@ func (c *Client) fetchRelease(ctx context.Context, owner, repo, version string) 
 				Version: version,
 			}
 		}
-		defer altResp.Body.Close()
+		defer func() { _ = altResp.Body.Close() }()
 		resp = altResp
 	}
 

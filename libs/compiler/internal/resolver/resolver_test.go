@@ -24,7 +24,7 @@ func newFakeProvider() *fakeProvider {
 	}
 }
 
-func (f *fakeProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (f *fakeProvider) Fetch(_ context.Context, path []string) (any, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

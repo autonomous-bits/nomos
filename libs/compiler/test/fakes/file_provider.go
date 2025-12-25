@@ -1,3 +1,5 @@
+// Package fakes provides test doubles (fakes, mocks) for the compiler package.
+// These test implementations are used throughout the compiler test suite.
 package fakes
 
 import (
@@ -27,7 +29,7 @@ func NewFakeFileProvider(baseDir string) *FakeFileProvider {
 }
 
 // Init implements compiler.Provider.Init.
-func (f *FakeFileProvider) Init(ctx context.Context, opts compiler.ProviderInitOptions) error {
+func (f *FakeFileProvider) Init(_ context.Context, opts compiler.ProviderInitOptions) error {
 	f.InitCount++
 
 	// Override base directory if provided in config
@@ -45,7 +47,7 @@ func (f *FakeFileProvider) Init(ctx context.Context, opts compiler.ProviderInitO
 
 // Fetch implements compiler.Provider.Fetch.
 // For file provider, path should be a single element: the filename.
-func (f *FakeFileProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (f *FakeFileProvider) Fetch(_ context.Context, path []string) (any, error) {
 	f.FetchCount++
 
 	if len(path) == 0 {

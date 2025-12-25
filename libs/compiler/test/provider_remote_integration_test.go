@@ -14,7 +14,7 @@ type fakeResolver struct {
 	entries map[string]string
 }
 
-func (f *fakeResolver) ResolveBinaryPath(ctx context.Context, providerType string) (string, error) {
+func (f *fakeResolver) ResolveBinaryPath(_ context.Context, providerType string) (string, error) {
 	path, ok := f.entries[providerType]
 	if !ok {
 		return "", compiler.ErrProviderNotRegistered
@@ -66,7 +66,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		typeRegistry := compiler.NewProviderTypeRegistryWithResolver(resolver, manager)
 
 		inProcessCalled := false
-		typeRegistry.RegisterType("testprovider", func(config map[string]any) (compiler.Provider, error) {
+		typeRegistry.RegisterType("testprovider", func(_ map[string]any) (compiler.Provider, error) {
 			inProcessCalled = true
 			return fakes.NewFakeProvider("testprovider"), nil
 		})

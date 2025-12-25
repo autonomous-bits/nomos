@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -18,7 +19,9 @@ import (
 // 3. Map keys throughout the output are consistently ordered
 func TestDeterministicJSON_Integration(t *testing.T) {
 	// Build the CLI binary first
-	buildCmd := exec.Command("go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
+	ctx := context.Background()
+	//nolint:gosec // G204: Test code with controlled input
+	buildCmd := exec.CommandContext(ctx, "go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
 	buildCmd.Dir = ".."
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build CLI: %v\nOutput: %s", err, output)
@@ -39,6 +42,7 @@ middle:
 	a: 1
 	m: 2
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(fixturePath, []byte(fixtureContent), 0644); err != nil {
 		t.Fatalf("failed to create fixture: %v", err)
 	}
@@ -51,6 +55,7 @@ middle:
 	for i := 0; i < 10; i++ {
 		outFile := filepath.Join(tmpDir, "output-"+string(rune('0'+i))+".json")
 
+		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 		cmd := exec.Command("../../bin/nomos-test", "build", "-p", fixturePath, "-f", "json", "-o", outFile)
 		cmd.Dir = ".."
 
@@ -59,6 +64,7 @@ middle:
 		}
 
 		// Read and parse the output file
+		//nolint:gosec // G304: Reading test output file from controlled location
 		content, err := os.ReadFile(outFile)
 		if err != nil {
 			t.Fatalf("run %d: failed to read output: %v", i, err)
@@ -102,7 +108,9 @@ middle:
 // TestJSONStructure_KeyOrdering tests that JSON output has sorted map keys.
 func TestJSONStructure_KeyOrdering(t *testing.T) {
 	// Build the CLI binary
-	buildCmd := exec.Command("go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
+	ctx := context.Background()
+	//nolint:gosec // G204: Test code with controlled input
+	buildCmd := exec.CommandContext(ctx, "go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
 	buildCmd.Dir = ".."
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build CLI: %v\nOutput: %s", err, output)
@@ -121,11 +129,13 @@ alpha:
 middle:
 	name: "center"
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(fixturePath, []byte(fixtureContent), 0644); err != nil {
 		t.Fatalf("failed to create fixture: %v", err)
 	}
 
 	// Run CLI and capture stdout
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command("../../bin/nomos-test", "build", "-p", fixturePath, "-f", "json")
 	cmd.Dir = ".."
 	stdoutOutput, err := cmd.CombinedOutput()
@@ -162,7 +172,9 @@ func indexOf(s, substr string) int {
 // result in exit code 2 as specified in the PRD.
 func TestNonWritableOutput_ExitsWithCode2(t *testing.T) {
 	// Build the CLI binary
-	buildCmd := exec.Command("go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
+	ctx := context.Background()
+	//nolint:gosec // G204: Test code with controlled input
+	buildCmd := exec.CommandContext(ctx, "go", "build", "-o", "../../../bin/nomos-test", "./cmd/nomos")
 	buildCmd.Dir = ".."
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to build CLI: %v\nOutput: %s", err, output)
@@ -175,6 +187,7 @@ func TestNonWritableOutput_ExitsWithCode2(t *testing.T) {
 	fixtureContent := `config:
 	name: "test"
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(fixturePath, []byte(fixtureContent), 0644); err != nil {
 		t.Fatalf("failed to create fixture: %v", err)
 	}
@@ -183,6 +196,7 @@ func TestNonWritableOutput_ExitsWithCode2(t *testing.T) {
 	tmpDir := t.TempDir()
 	invalidOutput := tmpDir // directory, not a file
 
+	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 	cmd := exec.Command("../../bin/nomos-test", "build", "-p", fixturePath, "-f", "json", "-o", invalidOutput)
 	cmd.Dir = ".."
 	output, err := cmd.CombinedOutput()

@@ -23,10 +23,10 @@ type Client struct {
 //
 // Example:
 //
-//	client := downloader.NewClient(ctx, &downloader.ClientOptions{
+//	client := downloader.NewClient(&downloader.ClientOptions{
 //		GitHubToken: os.Getenv("GITHUB_TOKEN"),
 //	})
-func NewClient(ctx context.Context, opts *ClientOptions) *Client {
+func NewClient(opts *ClientOptions) *Client {
 	if opts == nil {
 		opts = DefaultClientOptions()
 	}

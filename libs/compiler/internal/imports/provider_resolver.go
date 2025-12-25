@@ -198,7 +198,7 @@ func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath stri
 
 	// Register a constructor that returns the already-initialized provider instance
 	// This avoids double-initialization when the registry's GetProvider is called
-	registry.Register(src.Alias, func(opts ProviderInitOptions) (Provider, error) {
+	registry.Register(src.Alias, func(_ ProviderInitOptions) (Provider, error) {
 		// Return the cached, already-initialized provider
 		// The registry will call Init on it, but we'll wrap it to make Init a no-op
 		return &alreadyInitializedProvider{provider: provider}, nil
@@ -213,7 +213,7 @@ type alreadyInitializedProvider struct {
 	provider Provider
 }
 
-func (p *alreadyInitializedProvider) Init(ctx context.Context, opts ProviderInitOptions) error {
+func (p *alreadyInitializedProvider) Init(_ context.Context, _ ProviderInitOptions) error {
 	// No-op: provider is already initialized
 	return nil
 }

@@ -14,7 +14,7 @@ func TestResolveReferences_Integration(t *testing.T) {
 	t.Run("resolves references in data", func(t *testing.T) {
 		// Setup provider registry with test provider
 		registry := NewProviderRegistry()
-		registry.Register("config", func(opts ProviderInitOptions) (Provider, error) {
+		registry.Register("config", func(_ ProviderInitOptions) (Provider, error) {
 			return &testProvider{
 				responses: map[string]any{
 					"db/host": "localhost",
@@ -160,7 +160,7 @@ func TestResolveReferences_Integration(t *testing.T) {
 		}
 
 		registry := NewProviderRegistry()
-		registry.Register("source", func(opts ProviderInitOptions) (Provider, error) {
+		registry.Register("source", func(_ ProviderInitOptions) (Provider, error) {
 			return provider, nil
 		})
 
@@ -215,11 +215,11 @@ type testProvider struct {
 	fetchCount int
 }
 
-func (p *testProvider) Init(ctx context.Context, opts ProviderInitOptions) error {
+func (p *testProvider) Init(_ context.Context, _ ProviderInitOptions) error {
 	return nil
 }
 
-func (p *testProvider) Fetch(ctx context.Context, path []string) (any, error) {
+func (p *testProvider) Fetch(_ context.Context, path []string) (any, error) {
 	p.fetchCount++
 
 	// Build key from path

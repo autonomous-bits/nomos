@@ -75,7 +75,7 @@ func TestResolveAsset_ExactPatternMatch(t *testing.T) {
 			defer server.Close()
 
 			// Create client with test server
-			client := NewClient(context.Background(), &ClientOptions{
+			client := NewClient(&ClientOptions{
 				BaseURL: server.URL,
 			})
 
@@ -118,7 +118,7 @@ func TestResolveAsset_AutoDetectOSArch(t *testing.T) {
 	server := newMockGitHubServer(t, spec.Owner, spec.Repo, spec.Version, releaseAssets)
 	defer server.Close()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		BaseURL: server.URL,
 	})
 
@@ -178,7 +178,7 @@ func TestResolveAsset_SubstringFallback(t *testing.T) {
 			server := newMockGitHubServer(t, tt.spec.Owner, tt.spec.Repo, tt.spec.Version, tt.releaseAssets)
 			defer server.Close()
 
-			client := NewClient(context.Background(), &ClientOptions{
+			client := NewClient(&ClientOptions{
 				BaseURL: server.URL,
 			})
 
@@ -214,7 +214,7 @@ func TestResolveAsset_NotFound(t *testing.T) {
 	server := newMockGitHubServer(t, spec.Owner, spec.Repo, spec.Version, releaseAssets)
 	defer server.Close()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		BaseURL: server.URL,
 	})
 
@@ -279,7 +279,7 @@ func TestResolveAsset_VersionNormalization(t *testing.T) {
 			server := newMockGitHubServerWithTag(t, spec.Owner, spec.Repo, tt.releaseTagName, releaseAssets)
 			defer server.Close()
 
-			client := NewClient(context.Background(), &ClientOptions{
+			client := NewClient(&ClientOptions{
 				BaseURL: server.URL,
 			})
 
@@ -292,10 +292,8 @@ func TestResolveAsset_VersionNormalization(t *testing.T) {
 				if asset == nil {
 					t.Fatal("expected asset, got nil")
 				}
-			} else {
-				if err == nil {
-					t.Fatal("expected error, got nil")
-				}
+			} else if err == nil {
+				t.Fatal("expected error, got nil")
 			}
 		})
 	}
@@ -329,7 +327,7 @@ func TestResolveAsset_InvalidSpec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewClient(context.Background(), nil)
+			client := NewClient(nil)
 
 			asset, err := client.ResolveAsset(context.Background(), tt.spec)
 
@@ -360,6 +358,7 @@ func newMockGitHubServer(t *testing.T, owner, repo, version string, assetNames [
 func newMockGitHubServerWithTag(t *testing.T, owner, repo, tag string, assetNames []string) *httptest.Server {
 	t.Helper()
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Mock GET /repos/:owner/:repo/releases/tags/:tag
 		expectedPath := "/repos/" + owner + "/" + repo + "/releases/tags/" + tag
@@ -379,7 +378,7 @@ func newMockGitHubServerWithTag(t *testing.T, owner, repo, tag string, assetName
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(release)
+			_ = json.NewEncoder(w).Encode(release) //nolint:errcheck // test helper, error not critical
 			return
 		}
 
@@ -401,13 +400,13 @@ func newMockGitHubServerWithTag(t *testing.T, owner, repo, tag string, assetName
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(release)
+			_ = json.NewEncoder(w).Encode(release) //nolint:errcheck // test helper, error not critical
 			return
 		}
 
 		// Not found
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "Not Found"}) //nolint:errcheck // test helper
 	}))
 }
 

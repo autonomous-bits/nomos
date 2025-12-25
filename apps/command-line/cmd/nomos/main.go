@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	exitSuccess  = 0
 	exitError    = 1
 	exitUsageErr = 2
 )

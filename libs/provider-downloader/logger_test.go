@@ -13,7 +13,7 @@ type testLogger struct {
 	messages []string
 }
 
-func (l *testLogger) Debugf(format string, args ...interface{}) {
+func (l *testLogger) Debugf(format string, _ ...interface{}) {
 	l.messages = append(l.messages, format)
 }
 
@@ -22,6 +22,7 @@ func TestClient_WithLogger(t *testing.T) {
 	// Arrange: Setup a logger and test server
 	logger := &testLogger{}
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := `{
 			"tag_name": "v1.0.0",
@@ -40,7 +41,7 @@ func TestClient_WithLogger(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 		BaseURL:    server.URL,
 		Logger:     logger,
@@ -96,6 +97,7 @@ func TestClient_WithLogger(t *testing.T) {
 // TestClient_WithoutLogger verifies that no panics occur when logger is nil.
 func TestClient_WithoutLogger(t *testing.T) {
 	// Arrange: Create client without logger
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := `{
 			"tag_name": "v1.0.0",
@@ -114,7 +116,7 @@ func TestClient_WithoutLogger(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 		BaseURL:    server.URL,
 		// Logger is nil (default)

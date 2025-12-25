@@ -27,7 +27,7 @@ func TestFakeProviderServer_Init_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -84,7 +84,7 @@ func TestFakeProviderServer_Init_Error(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -140,7 +140,7 @@ func TestFakeProviderServer_Fetch_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -213,7 +213,7 @@ func TestFakeProviderServer_Fetch_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -255,7 +255,7 @@ func TestFakeProviderServer_Fetch_CustomError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -298,7 +298,7 @@ func TestFakeProviderServer_Info_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -339,7 +339,7 @@ func TestFakeProviderServer_Health_OK(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -378,7 +378,7 @@ func TestFakeProviderServer_Health_Degraded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -412,7 +412,7 @@ func TestFakeProviderServer_Shutdown_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -471,7 +471,7 @@ func TestFakeProviderServer_StructMapping_ComplexTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 
@@ -550,7 +550,7 @@ func TestFakeProviderServer_Reset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck // Test cleanup
 
 	client := providerv1.NewProviderServiceClient(conn)
 

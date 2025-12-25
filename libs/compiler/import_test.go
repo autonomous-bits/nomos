@@ -38,7 +38,7 @@ func TestCompile_SimpleImport(t *testing.T) {
 
 	// Load expected golden file
 	goldenPath := filepath.Join("testdata", "imports", "expected.golden.json")
-	goldenData, err := os.ReadFile(goldenPath)
+	goldenData, err := os.ReadFile(goldenPath) //nolint:gosec // G304: Test golden file with fixed path
 	if err != nil {
 		t.Fatalf("failed to read golden file: %v", err)
 	}
@@ -74,12 +74,12 @@ func TestCompile_ImportCycle(t *testing.T) {
 	file2 := filepath.Join(tmpDir, "b.csl")
 
 	// a.csl imports b.csl
-	if err := os.WriteFile(file1, []byte("import: b.csl\n\nconfig:\n  value: 'a'"), 0644); err != nil {
+	if err := os.WriteFile(file1, []byte("import: b.csl\n\nconfig:\n  value: 'a'"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to write file1: %v", err)
 	}
 
 	// b.csl imports a.csl (creates cycle)
-	if err := os.WriteFile(file2, []byte("import: a.csl\n\nconfig:\n  value: 'b'"), 0644); err != nil {
+	if err := os.WriteFile(file2, []byte("import: a.csl\n\nconfig:\n  value: 'b'"), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to write file2: %v", err)
 	}
 

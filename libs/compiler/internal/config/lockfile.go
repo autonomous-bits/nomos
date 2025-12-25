@@ -125,7 +125,7 @@ func (l *Lockfile) Save(path string) error {
 
 	// Create parent directory if needed
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil { //nolint:gosec // G301: Standard directory permissions for config directory
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
@@ -136,7 +136,7 @@ func (l *Lockfile) Save(path string) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil { //nolint:gosec // G306: Lockfile contains checksums and paths, 0600 for security
 		return fmt.Errorf("failed to write lockfile: %w", err)
 	}
 
@@ -145,7 +145,7 @@ func (l *Lockfile) Save(path string) error {
 
 // LoadLockfile reads and parses a lockfile from the specified path.
 func LoadLockfile(path string) (*Lockfile, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: Lockfile path from known config directory
 	if err != nil {
 		return nil, fmt.Errorf("failed to read lockfile: %w", err)
 	}

@@ -31,11 +31,11 @@ func TestLockfileProviderResolver_ResolveBinaryPath(t *testing.T) {
 
 	// Create the provider binary (empty file for testing)
 	providerDir := filepath.Join(tmpDir, "providers", "file", "0.2.0", "darwin-arm64")
-	if err := os.MkdirAll(providerDir, 0755); err != nil {
+	if err := os.MkdirAll(providerDir, 0755); err != nil { //nolint:gosec // G301: Test fixture directory
 		t.Fatalf("failed to create provider directory: %v", err)
 	}
 	providerPath := filepath.Join(providerDir, "provider")
-	if err := os.WriteFile(providerPath, []byte{}, 0755); err != nil {
+	if err := os.WriteFile(providerPath, []byte{}, 0755); err != nil { //nolint:gosec // G306: Test provider binary requires executable permissions
 		t.Fatalf("failed to create provider binary: %v", err)
 	}
 

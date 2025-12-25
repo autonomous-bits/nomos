@@ -18,6 +18,7 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	expectedChecksum := computeSHA256(providerContent)
 
 	// Setup httptest server that serves the fake binary
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.WriteHeader(http.StatusOK)
@@ -29,7 +30,7 @@ func TestDownloadAndInstall_Success(t *testing.T) {
 	destDir := t.TempDir()
 
 	// Create client with test server
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 		BaseURL:    server.URL,
 	})
@@ -98,6 +99,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 	wrongChecksum := "deadbeef0000000000000000000000000000000000000000000000000000000"
 
 	// Setup httptest server
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(providerContent)
@@ -106,7 +108,7 @@ func TestDownloadAndInstall_ChecksumMismatch(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -154,6 +156,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 	providerContent := []byte("retry-test-content")
 	expectedChecksum := computeSHA256(providerContent)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
 		if attemptCount < 3 {
@@ -169,7 +172,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient:    server.Client(),
 		RetryAttempts: 3,
 		RetryDelay:    1 * time.Millisecond, // Fast retries for tests
@@ -204,6 +207,7 @@ func TestDownloadAndInstall_PartialResponse(t *testing.T) {
 func TestDownloadAndInstall_NetworkError(t *testing.T) {
 	// Arrange: Server always fails
 	attemptCount := 0
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
 		w.WriteHeader(http.StatusInternalServerError)
@@ -212,7 +216,7 @@ func TestDownloadAndInstall_NetworkError(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient:    server.Client(),
 		RetryAttempts: 3,
 		RetryDelay:    1 * time.Millisecond,
@@ -250,6 +254,7 @@ func TestDownloadAndInstall_Timeout(t *testing.T) {
 	// Arrange: Server that hangs/delays response
 	providerContent := []byte("slow-provider-content")
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate slow server by sleeping longer than the context timeout
 		time.Sleep(200 * time.Millisecond)
@@ -260,7 +265,7 @@ func TestDownloadAndInstall_Timeout(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -298,6 +303,7 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 	providerContent := []byte("slow-but-successful")
 	expectedChecksum := computeSHA256(providerContent)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate moderate delay
 		time.Sleep(50 * time.Millisecond)
@@ -308,7 +314,7 @@ func TestDownloadAndInstall_SlowDownload(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 

@@ -114,7 +114,7 @@ func TestMergeSemantics_ArrayReplacement(t *testing.T) {
 	baseContent := `items:
   tags: 'tag1,tag2,tag3'
 `
-	if err := os.WriteFile(baseFile, []byte(baseContent), 0644); err != nil {
+	if err := os.WriteFile(baseFile, []byte(baseContent), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to write base file: %v", err)
 	}
 
@@ -122,7 +122,7 @@ func TestMergeSemantics_ArrayReplacement(t *testing.T) {
 	overrideContent := `items:
   tags: 'tagA,tagB'
 `
-	if err := os.WriteFile(overrideFile, []byte(overrideContent), 0644); err != nil {
+	if err := os.WriteFile(overrideFile, []byte(overrideContent), 0644); err != nil { //nolint:gosec // G306: Test fixture file
 		t.Fatalf("failed to write override file: %v", err)
 	}
 
@@ -171,7 +171,7 @@ func TestMergeSemantics_GoldenOutput(t *testing.T) {
 
 	// If GOLDEN_UPDATE is set, update the golden file
 	if os.Getenv("GOLDEN_UPDATE") == "1" {
-		if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil {
+		if err := os.WriteFile(goldenPath, actualJSON, 0644); err != nil { //nolint:gosec // G306: Test golden file
 			t.Fatalf("failed to write golden file: %v", err)
 		}
 		t.Logf("Updated golden file: %s", goldenPath)
@@ -179,7 +179,7 @@ func TestMergeSemantics_GoldenOutput(t *testing.T) {
 	}
 
 	// Read golden file
-	expectedJSON, err := os.ReadFile(goldenPath)
+	expectedJSON, err := os.ReadFile(goldenPath) //nolint:gosec // G304: Test golden file with known path
 	if err != nil {
 		t.Fatalf("failed to read golden file: %v (run with GOLDEN_UPDATE=1 to create)", err)
 	}

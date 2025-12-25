@@ -17,6 +17,7 @@ func TestInitCommand_MissingVersion(t *testing.T) {
 	type: 'file'
 	directory: './configs'
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -46,6 +47,7 @@ func TestInitCommand_ParsesOwnerRepoFormat(t *testing.T) {
 	version: '1.0.0'
 	directory: './data'
 `
+	//nolint:gosec // G306: Test fixture file creation, 0644 permissions are appropriate
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -89,6 +91,7 @@ func TestInitCommand_DryRun(t *testing.T) {
 	version: '1.0.0'
 	directory: './data'
 `
+	//nolint:gosec // G306: Test fixture file creation, 0644 permissions are appropriate
 	if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}

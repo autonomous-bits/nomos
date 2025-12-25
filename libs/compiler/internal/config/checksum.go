@@ -23,11 +23,15 @@ func ValidateChecksum(filePath, expectedChecksum string) error {
 	expectedHash := expectedChecksum[7:]
 
 	// Open file
-	f, err := os.Open(filePath)
+	f, err := os.Open(filePath) //nolint:gosec // G304: File path from lockfile/config, validated by caller
 	if err != nil {
 		return fmt.Errorf("failed to open file for checksum validation: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	// Compute SHA256
 	hasher := sha256.New()
@@ -47,11 +51,15 @@ func ValidateChecksum(filePath, expectedChecksum string) error {
 // ComputeChecksum computes the SHA256 checksum of a file and returns it in the format "sha256:hexdigest".
 // This is useful for generating checksums when creating lockfiles.
 func ComputeChecksum(filePath string) (string, error) {
-	f, err := os.Open(filePath)
+	f, err := os.Open(filePath) //nolint:gosec // G304: File path from lockfile/config, validated by caller
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, f); err != nil {

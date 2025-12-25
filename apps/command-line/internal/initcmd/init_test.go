@@ -176,6 +176,7 @@ func TestWriteLockFile_AtomicWrite(t *testing.T) {
 
 	// Verify lockfile exists and is readable
 	lockPath := filepath.Join(nomosDir, "providers.lock.json")
+	//nolint:gosec // G304: Test code reading test-generated lockfile
 	data, err := os.ReadFile(lockPath)
 	if err != nil {
 		t.Fatalf("failed to read lockfile: %v", err)
@@ -224,6 +225,7 @@ func TestReadLockFile_SkipsIdenticalProvider(t *testing.T) {
 	// For now, we just test that reading the lockfile works.
 
 	lockPath := filepath.Join(".nomos", "providers.lock.json")
+	//nolint:gosec // G304: Test code reading test-generated lockfile
 	data, err := os.ReadFile(lockPath)
 	if err != nil {
 		t.Fatalf("failed to read lockfile: %v", err)

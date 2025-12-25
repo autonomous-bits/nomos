@@ -22,7 +22,9 @@ import (
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/resolver"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/validator"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
-) // Options configures a compilation run.
+)
+
+// Options configures a compilation run.
 type Options struct {
 	// Path specifies the input file or directory to compile.
 	Path string
@@ -376,7 +378,7 @@ func initializeProvidersFromSources(ctx context.Context, inputFiles []string, op
 			}
 
 			// Register the provider
-			opts.ProviderRegistry.Register(sourceDecl.Alias, func(opts ProviderInitOptions) (Provider, error) {
+			opts.ProviderRegistry.Register(sourceDecl.Alias, func(_ ProviderInitOptions) (Provider, error) {
 				return provider, nil
 			})
 		}

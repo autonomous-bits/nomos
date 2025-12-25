@@ -18,12 +18,12 @@ type myProvider struct {
 	// your state here
 }
 
-func (p *myProvider) Init(ctx context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
+func (p *myProvider) Init(_ context.Context, _ *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	// Initialize provider with config from req.Config
 	return &providerv1.InitResponse{}, nil
 }
 
-func (p *myProvider) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
+func (p *myProvider) Fetch(_ context.Context, _ *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
 	// Fetch data at req.Path
 	value, err := structpb.NewStruct(map[string]interface{}{
 		"key": "value",
@@ -35,7 +35,7 @@ func (p *myProvider) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*
 	return &providerv1.FetchResponse{Value: value}, nil
 }
 
-func (p *myProvider) Info(ctx context.Context, req *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
+func (p *myProvider) Info(_ context.Context, _ *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
 	return &providerv1.InfoResponse{
 		Alias:   "my-provider",
 		Version: "1.0.0",
@@ -43,14 +43,14 @@ func (p *myProvider) Info(ctx context.Context, req *providerv1.InfoRequest) (*pr
 	}, nil
 }
 
-func (p *myProvider) Health(ctx context.Context, req *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
+func (p *myProvider) Health(_ context.Context, _ *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
 	return &providerv1.HealthResponse{
 		Status:  providerv1.HealthResponse_STATUS_OK,
 		Message: "provider is healthy",
 	}, nil
 }
 
-func (p *myProvider) Shutdown(ctx context.Context, req *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
+func (p *myProvider) Shutdown(_ context.Context, _ *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
 	// Cleanup resources
 	return &providerv1.ShutdownResponse{}, nil
 }
@@ -64,7 +64,7 @@ func verifyREADMEExampleCompiles() {
 }
 
 // TestREADMEExampleCompiles ensures the README code example compiles
-func TestREADMEExampleCompiles(t *testing.T) {
+func TestREADMEExampleCompiles(_ *testing.T) {
 	// This test verifies that the README example code compiles
 	// by calling the verification function
 	verifyREADMEExampleCompiles()

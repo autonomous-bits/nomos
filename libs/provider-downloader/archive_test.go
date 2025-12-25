@@ -23,6 +23,7 @@ func TestDownloadAndInstall_TarGzExtraction(t *testing.T) {
 	expectedArchiveChecksum := computeSHA256(archiveBytes)
 
 	// Setup httptest server that serves the tar.gz archive
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/gzip")
 		w.WriteHeader(http.StatusOK)
@@ -32,7 +33,7 @@ func TestDownloadAndInstall_TarGzExtraction(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -96,6 +97,7 @@ func TestDownloadAndInstall_TarGzWithNestedDirectories(t *testing.T) {
 
 	expectedChecksum := computeSHA256(archiveBytes)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archiveBytes)
@@ -104,7 +106,7 @@ func TestDownloadAndInstall_TarGzWithNestedDirectories(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -150,6 +152,7 @@ func TestDownloadAndInstall_TarGzCorrupted(t *testing.T) {
 	// Arrange: Create corrupted gzip data
 	corruptedData := []byte("not-a-valid-gzip-archive-just-random-bytes")
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(corruptedData)
@@ -158,7 +161,7 @@ func TestDownloadAndInstall_TarGzCorrupted(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -199,6 +202,7 @@ func TestDownloadAndInstall_TarGzBinaryNotFound(t *testing.T) {
 
 	expectedChecksum := computeSHA256(archiveBytes)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archiveBytes)
@@ -207,7 +211,7 @@ func TestDownloadAndInstall_TarGzBinaryNotFound(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -249,6 +253,7 @@ func TestDownloadAndInstall_TarGzMultipleExecutables(t *testing.T) {
 
 	expectedChecksum := computeSHA256(archiveBytes)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archiveBytes)
@@ -257,7 +262,7 @@ func TestDownloadAndInstall_TarGzMultipleExecutables(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -297,6 +302,7 @@ func TestDownloadAndInstall_TgzExtension(t *testing.T) {
 
 	expectedChecksum := computeSHA256(archiveBytes)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(archiveBytes)
@@ -305,7 +311,7 @@ func TestDownloadAndInstall_TgzExtension(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -341,6 +347,7 @@ func TestDownloadAndInstall_NonArchiveFile(t *testing.T) {
 	providerContent := []byte("plain-binary-content")
 	expectedChecksum := computeSHA256(providerContent)
 
+	//nolint:revive // unused parameter 'r' required by http.HandlerFunc signature
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(providerContent)
@@ -349,7 +356,7 @@ func TestDownloadAndInstall_NonArchiveFile(t *testing.T) {
 
 	destDir := t.TempDir()
 
-	client := NewClient(context.Background(), &ClientOptions{
+	client := NewClient(&ClientOptions{
 		HTTPClient: server.Client(),
 	})
 
@@ -389,16 +396,16 @@ func createTarGzArchive(t *testing.T, files map[string][]byte) []byte {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
+	defer func() { _ = tmpFile.Close() }()
 
 	// Create gzip writer
 	gzw := gzip.NewWriter(tmpFile)
-	defer gzw.Close()
+	defer func() { _ = gzw.Close() }()
 
 	// Create tar writer
 	tw := tar.NewWriter(gzw)
-	defer tw.Close()
+	defer func() { _ = tw.Close() }()
 
 	// Add files to archive
 	for name, content := range files {

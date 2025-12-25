@@ -35,7 +35,7 @@ func newTestServer() *testServer {
 	}
 }
 
-func (s *testServer) Init(ctx context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
+func (s *testServer) Init(_ context.Context, req *providerv1.InitRequest) (*providerv1.InitResponse, error) {
 	if s.initialized {
 		return nil, status.Error(codes.FailedPrecondition, "provider already initialized")
 	}
@@ -51,7 +51,7 @@ func (s *testServer) Init(ctx context.Context, req *providerv1.InitRequest) (*pr
 	return &providerv1.InitResponse{}, nil
 }
 
-func (s *testServer) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
+func (s *testServer) Fetch(_ context.Context, req *providerv1.FetchRequest) (*providerv1.FetchResponse, error) {
 	if !s.initialized {
 		return nil, status.Error(codes.FailedPrecondition, "provider not initialized")
 	}
@@ -78,7 +78,7 @@ func (s *testServer) Fetch(ctx context.Context, req *providerv1.FetchRequest) (*
 	return &providerv1.FetchResponse{Value: data}, nil
 }
 
-func (s *testServer) Info(ctx context.Context, req *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
+func (s *testServer) Info(_ context.Context, _ *providerv1.InfoRequest) (*providerv1.InfoResponse, error) {
 	return &providerv1.InfoResponse{
 		Alias:   s.storedAlias,
 		Version: "1.0.0-test",
@@ -86,14 +86,14 @@ func (s *testServer) Info(ctx context.Context, req *providerv1.InfoRequest) (*pr
 	}, nil
 }
 
-func (s *testServer) Health(ctx context.Context, req *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
+func (s *testServer) Health(_ context.Context, _ *providerv1.HealthRequest) (*providerv1.HealthResponse, error) {
 	return &providerv1.HealthResponse{
 		Status:  s.healthStatus,
 		Message: fmt.Sprintf("provider is %v", s.healthStatus.String()),
 	}, nil
 }
 
-func (s *testServer) Shutdown(ctx context.Context, req *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
+func (s *testServer) Shutdown(_ context.Context, _ *providerv1.ShutdownRequest) (*providerv1.ShutdownResponse, error) {
 	s.shutdownRequested = true
 	return &providerv1.ShutdownResponse{}, nil
 }
@@ -103,6 +103,7 @@ func startTestGRPCServer(t *testing.T) (providerv1.ProviderServiceClient, *testS
 	t.Helper()
 
 	// Create listener on random port
+	//nolint:noctx // Test helper uses simple net.Listen for test server setup
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
@@ -115,9 +116,8 @@ func startTestGRPCServer(t *testing.T) (providerv1.ProviderServiceClient, *testS
 
 	// Start server in background
 	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			// Expected when server is stopped
-		}
+		//nolint:errcheck,revive // Error is expected when server stops gracefully during test cleanup
+		_ = grpcServer.Serve(listener)
 	}()
 
 	// Create client connection
@@ -131,7 +131,9 @@ func startTestGRPCServer(t *testing.T) (providerv1.ProviderServiceClient, *testS
 	client := providerv1.NewProviderServiceClient(conn)
 
 	cleanup := func() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			t.Logf("warning: failed to close connection: %v", err)
+		}
 		grpcServer.Stop()
 	}
 

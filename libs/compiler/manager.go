@@ -1,7 +1,3 @@
-// Package providerproc manages external provider subprocesses and gRPC communication.
-//
-// This package provides a Manager that can start provider executables,
-// establish gRPC connections, and expose them via the Provider interface.
 package compiler
 
 import (
@@ -54,7 +50,7 @@ func NewManager() *Manager {
 // Returns:
 //   - Provider instance that delegates to the gRPC service
 //   - Error if the subprocess cannot be started or connection fails
-func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, opts ProviderInitOptions) (Provider, error) {
+func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, _ ProviderInitOptions) (Provider, error) {
 	// Check if process already exists (fast path)
 	m.mu.RLock()
 	if proc, ok := m.processes[alias]; ok {
@@ -128,7 +124,7 @@ func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath stri
 	healthClient := providerv1.NewProviderServiceClient(conn)
 	_, err = healthClient.Health(ctx, &providerv1.HealthRequest{})
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		_ = cmd.Process.Kill()
 		return nil, fmt.Errorf("provider health check failed: %w", err)
 	}

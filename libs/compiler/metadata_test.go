@@ -89,19 +89,15 @@ func TestMetadata_JSONSerialization(t *testing.T) {
 	appProv, ok := unmarshaled.PerKeyProvenance["app"]
 	if !ok {
 		t.Error("Expected provenance entry for 'app' key")
-	} else {
-		if appProv.Source != "/path/to/app.csl" {
-			t.Errorf("Expected app source '/path/to/app.csl', got '%s'", appProv.Source)
-		}
+	} else if appProv.Source != "/path/to/app.csl" {
+		t.Errorf("Expected app source '/path/to/app.csl', got '%s'", appProv.Source)
 	}
 
 	dbProv, ok := unmarshaled.PerKeyProvenance["database"]
 	if !ok {
 		t.Error("Expected provenance entry for 'database' key")
-	} else {
-		if dbProv.ProviderAlias != "env" {
-			t.Errorf("Expected database provider alias 'env', got '%s'", dbProv.ProviderAlias)
-		}
+	} else if dbProv.ProviderAlias != "env" {
+		t.Errorf("Expected database provider alias 'env', got '%s'", dbProv.ProviderAlias)
 	}
 }
 

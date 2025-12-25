@@ -23,18 +23,16 @@ func TestBuildCommand_Integration(t *testing.T) {
 		wantStderrCont string
 	}{
 		{
-			name: "basic invocation with valid fixture",
-			args: []string{"build", "-p", "testdata/fixture-basic/test.csl", "-f", "json"},
-			setupFixture: func(t *testing.T) string {
-				return createBasicFixture(t)
-			},
+			name:           "basic invocation with valid fixture",
+			args:           []string{"build", "-p", "testdata/fixture-basic/test.csl", "-f", "json"},
+			setupFixture:   createBasicFixture,
 			wantExitCode:   0,
 			wantStdoutCont: "config", // Should output JSON with config section
 		},
 		{
 			name: "help flag shows usage",
 			args: []string{"build", "--help"},
-			setupFixture: func(t *testing.T) string {
+			setupFixture: func(_ *testing.T) string {
 				return "" // No fixture needed
 			},
 			wantExitCode:   0,
@@ -43,18 +41,16 @@ func TestBuildCommand_Integration(t *testing.T) {
 		{
 			name: "missing path flag returns exit code 2",
 			args: []string{"build"},
-			setupFixture: func(t *testing.T) string {
+			setupFixture: func(_ *testing.T) string {
 				return "" // No fixture needed
 			},
 			wantExitCode:   2,
 			wantStderrCont: "path is required",
 		},
 		{
-			name: "invalid format returns exit code 2",
-			args: []string{"build", "-p", "test.csl", "-f", "xml"},
-			setupFixture: func(t *testing.T) string {
-				return createBasicFixture(t)
-			},
+			name:           "invalid format returns exit code 2",
+			args:           []string{"build", "-p", "test.csl", "-f", "xml"},
+			setupFixture:   createBasicFixture,
 			wantExitCode:   2,
 			wantStderrCont: "format",
 		},
@@ -78,6 +74,7 @@ func TestBuildCommand_Integration(t *testing.T) {
 				}
 			}
 
+			//nolint:gosec,noctx // G204: Test code with controlled binary path and args; context not needed
 			// Run the CLI
 			cmd := exec.Command(binPath, tt.args...)
 			stdout, stderr, exitCode := runCommand(t, cmd)
@@ -111,6 +108,7 @@ func buildCLI(t *testing.T) string {
 	binPath := filepath.Join(tmpDir, "nomos")
 
 	// Build from the apps/command-line directory
+	//nolint:gosec,noctx // G204: Test helper, controlled input; context not needed for build
 	cmd := exec.Command("go", "build", "-o", binPath, "./cmd/nomos")
 	cmd.Dir = ".." // One level up from test/ to apps/command-line/
 	if output, err := cmd.CombinedOutput(); err != nil {
@@ -157,6 +155,7 @@ func createBasicFixture(t *testing.T) string {
 	name: "test"
 	value: 42
 `
+	//nolint:gosec // G306: Test file with non-sensitive content
 	if err := os.WriteFile(fixturePath, []byte(content), 0644); err != nil {
 		t.Fatalf("failed to create fixture: %v", err)
 	}

@@ -15,7 +15,7 @@ func TestCompile_UnresolvedReference(t *testing.T) {
 
 	// Create registry without the "nonexistent" provider
 	registry := NewProviderRegistry()
-	registry.Register("file", func(opts ProviderInitOptions) (Provider, error) {
+	registry.Register("file", func(_ ProviderInitOptions) (Provider, error) {
 		return nil, stderrors.New("not needed for this test")
 	})
 
@@ -68,7 +68,7 @@ func TestCompile_UnresolvedReference_WithSuggestion(t *testing.T) {
 
 	// Create registry with "file" provider (correct spelling)
 	registry := NewProviderRegistry()
-	registry.Register("file", func(opts ProviderInitOptions) (Provider, error) {
+	registry.Register("file", func(_ ProviderInitOptions) (Provider, error) {
 		return nil, stderrors.New("not needed")
 	})
 
