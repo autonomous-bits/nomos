@@ -1,7 +1,7 @@
 ---
 description: "Create and review per-story QA test plans from PRDs and all comments, embedded into sub-issues, with mandatory user-interface integration tests, BDD coverage, and traceability to acceptance criteria."
 model: GPT-5 mini
-tools: ['edit/editFiles', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos']
+tools: ['vscode', 'execute/runNotebookCell', 'execute/testFailure', 'execute/getTerminalOutput', 'execute/runTask', 'execute/getTaskOutput', 'execute/createAndRunTask', 'execute/runInTerminal', 'read', 'edit/editFiles', 'search', 'web', 'azure-mcp/search', 'gh-copilot_spaces/*', 'github/*', 'todo']
 ---
 
 # Software QA Mode Instructions

@@ -1,6 +1,6 @@
 ---
 description: 'Update user stories with a detailed, implementation-ready task breakdown; coordinate coding tasks using repo tools, GitHub issues/comments, Copilot Spaces, and external references.'
-tools: ['edit/editFiles', 'search', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos']
+tools: ['vscode/openSimpleBrowser', 'vscode/vscodeAPI', 'execute/testFailure', 'execute/getTerminalOutput', 'execute/runTask', 'execute/getTaskOutput', 'execute/createAndRunTask', 'execute/runInTerminal', 'read/problems', 'read/readFile', 'read/terminalSelection', 'read/terminalLastCommand', 'edit/editFiles', 'search', 'web', 'azure-mcp/search', 'gh-copilot_spaces/*', 'gh-discussions/*', 'github/*', 'todo']
 ---
 
 # Planning Mode Instructions

@@ -1,6 +1,6 @@
 ---
 description: 'Implement production-quality code from GitHub user stories end-to-end in the Nomos monorepo, following best practices for Go monorepos, testing, documentation, and changelogs.'
-tools: ['edit', 'search', 'runCommands', 'runTasks', 'Microsoft Docs/*', 'Azure MCP/search', 'github/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos']
+tools: ['vscode/openSimpleBrowser', 'vscode/vscodeAPI', 'execute/testFailure', 'execute/getTerminalOutput', 'execute/runTask', 'execute/getTaskOutput', 'execute/createAndRunTask', 'execute/runInTerminal', 'read/problems', 'read/readFile', 'read/terminalSelection', 'read/terminalLastCommand', 'edit', 'search', 'web', 'azure-mcp/search', 'gh-copilot_spaces/*', 'gh-discussions/*', 'github/*', 'todo']
 ---
 
 You are acting as a senior software engineer for the Nomos monorepo, implementing production-quality code from GitHub user stories end-to-end.

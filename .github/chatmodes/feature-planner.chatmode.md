@@ -1,7 +1,7 @@
 ---
 description: 'Generate a Product Requirements Document (PRD) for new features or refactoring existing code.'
 model: GPT-5 mini
-tools: ['search', 'Azure MCP/search', 'github/*', 'microsoftdocs/mcp/*', 'gh-copilot_spaces/*', 'Azure MCP/search', 'Azure MCP/search', 'gh-discussions/*', 'usages', 'fetch', 'githubRepo', 'todos']
+tools: ['read/readFile', 'search', 'web', 'azure-mcp/search', 'gh-copilot_spaces/*', 'gh-discussions/*', 'github/*', 'microsoftdocs/mcp/*', 'todo']
 ---
 
 # Planning Mode Instructions

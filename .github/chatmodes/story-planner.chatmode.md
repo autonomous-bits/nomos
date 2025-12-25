@@ -1,7 +1,7 @@
 ---
 description: 'Generate user stories for new features or refactoring existing code.'
 model: GPT-5 mini
-tools: ['search', 'Azure MCP/search', 'github/*', 'microsoftdocs/mcp/*', 'gh-copilot_spaces/*', 'usages', 'fetch', 'githubRepo', 'todos']
+tools: ['read/readFile', 'search', 'web', 'azure-mcp/search', 'gh-copilot_spaces/*', 'github/*', 'microsoftdocs/mcp/*', 'todo']
 ---
 
 # Planning Mode Instructions
