@@ -1,89 +1,173 @@
-# AGENTS: apps/command-line
+# Nomos CLI Agent-Specific Patterns
 
-This document explains the local structure and development workflow for the `apps/command-line` module. It is a companion to the repository-level guidance in `docs/architecture/go-monorepo-structure.md` but scoped to this specific application.
+> **Note**: For comprehensive CLI development guidance, see `.github/agents/cli-module.agent.md`  
+> For task coordination, start with `.github/agents/nomos.agent.md`
 
-Purpose
--------
-The `command-line` module contains the Nomos CLI application. It's an executable-focused module that depends on shared libraries in `libs/` (for example `libs/compiler` and `libs/parser`). This file documents the on-disk layout, common developer tasks (build, test, run), and guidance for local changes.
+## Purpose
 
-Repository layout (local)
--------------------------
+This document contains **Nomos-specific** patterns for the CLI module. General CLI development practices (command routing, flag parsing, testing) are covered in `.github/agents/cli-module.agent.md`.
 
-Typical files and directories you will find in this module:
-- `go.mod` / `go.sum` — module declaration and dependency pins for this CLI.
-- `cmd/nomos/main.go` — the main package(s) that build the CLI executable.
-- `internal/` — application-specific packages that are not intended for external import (e.g., CLI wiring, configuration, and helpers).
-- `pkg/` (optional) — exported packages intended for reuse by other modules or tests.
-- `test/` — integration or end-to-end tests that exercise the CLI binary.
-- `README.md`, `CHANGELOG.md` — module-level documentation and history.
+## Nomos-Specific Patterns
 
-Example layout:
+### Command Structure
 
+The Nomos CLI uses a **simple switch-based routing** (not Cobra) with three core commands:
+- `build` — compile `.csl` files to configuration snapshots
+- `init` — discover and install provider dependencies
+- `help` — show usage information
+
+Command structure reflects **offline-first philosophy**: network operations (provider fetches) are explicit via `init`, not automatic during `build`.
+
+### Configuration File Handling
+
+#### Input Files
+- `.csl` files (Nomos script language)
+- UTF-8 lexicographic ordering via `internal/traverse` (ensures deterministic builds)
+- Depth-first directory traversal
+- **Reproducibility guarantee**: identical file sets produce bit-identical output
+
+#### Provider Configuration
 ```
-apps/command-line/
-├── go.mod
-├── go.sum
-├── cmd/
-│   └── nomos/
-│       └── main.go
-├── internal/
-│   ├── cli/
-│   ├── config/
-│   └── runner/
-├── pkg/        # optional
-├── test/
-└── README.md
+.nomos/
+  providers.lock.json          # version lockfile
+  providers/
+    {type}/
+      {version}/
+        {os-arch}/
+          provider             # installed binary
 ```
 
-How this module fits in the monorepo
------------------------------------
+**Lockfile format:**
+```json
+{
+  "providers": [
+    {
+      "type": "autonomous-bits/nomos-provider-aws",
+      "version": "1.2.3",
+      "path": ".nomos/providers/...",
+      "os": "darwin",
+      "arch": "arm64",
+      "checksum": "sha256:..."
+    }
+  ]
+}
+```
 
-- This module is an application that imports libraries from `libs/` (for example `github.com/autonomous-bits/nomos/libs/compiler`).
-- During local development use the repository `go.work` to link local modules so you don't need replace directives.
+#### Output Formats
+- JSON, YAML, HCL (via `internal/serialize`)
+- **Deterministic serialization**: sorted keys, canonical formatting
+- Used for Terraform/IaC tool integration
 
-Common developer tasks
-----------------------
+### Provider Commands
 
-Build the CLI locally
-1. From repository root (recommended): ensure `go.work` includes this module and the libs:
+#### `nomos init`
+Extract provider requirements from `.csl` files and install:
 
-	go work use ./apps/command-line
-2. Build the CLI executable:
+```bash
+nomos init config.csl              # install providers
+nomos init --dry-run config.csl    # preview without installing
+nomos init --force config.csl      # overwrite existing
+nomos init --upgrade config.csl    # upgrade to latest versions
+```
 
-	cd apps/command-line && go build -o ../../bin/nomos ./cmd/nomos
-Run the CLI
+**Cross-platform installs:**
+```bash
+nomos init --os linux --arch amd64 config.csl  # install for different platform
+```
 
-	./bin/nomos <args>
-Run unit tests for the module
+**Flow:**
+1. Parse `.csl` files for `source:` declarations
+2. Collect unique provider requirements (type + version)
+3. Fetch from GitHub Releases via `libs/provider-downloader`
+4. Write `.nomos/providers.lock.json`
+5. Install binaries to `.nomos/providers/{type}/{version}/{os-arch}/`
 
-	cd apps/command-line
-	go test ./... -v
+#### Provider Discovery Pattern
+Parser extracts from `.csl` syntax:
+```nomos
+source:
+  alias: 'aws'
+  type: 'autonomous-bits/nomos-provider-aws'
+  version: '1.2.3'
+```
 
-Run integration/e2e tests
-Integration tests often build the binary and invoke it. From repository root:
+### Build Command Specifics
 
-	cd apps/command-line
-	go test ./test -v
+#### Offline-First Philosophy
+- Default: fail if providers missing (deterministic, CI-friendly)
+- `--allow-missing-provider`: tolerate fetch failures
+- `--timeout-per-provider`: network timeout control (`5s`, `1m`)
+- `--max-concurrent-providers`: limit concurrent fetches (default: 4)
 
-Working with shared libraries
-- Prefer `go.work` at repository root for local development so imports resolve to local `libs/*` modules.
-- If you need to iterate quickly on both CLI and library code, edit the library in `libs/` and run the CLI build/test; the `go.work` setup should pick up local changes.
+#### Variable Substitution
+```bash
+nomos build -p config.csl --var env=prod --var region=us-west
+```
+Passed to compiler as `vars` map for parameterized configurations.
 
-Best practices and notes
-------------------------
+#### Strict Mode
+```bash
+nomos build --strict config.csl
+```
+Treats warnings as errors (exit code 1). Useful for CI pipelines.
 
-- Keep `internal/` packages focused on application concerns (parsing flags, command wiring, I/O). Shared logic should live in `libs/`.
-- CLI commands should be thin: parse args, validate inputs, delegate to library APIs.
-- For reproducible builds, avoid embedding ephemeral build-time replace directives in `go.mod`; use `go.work` for local workflows.
-- Maintain small, focused tests for `internal/` packages and put full end-to-end tests under `test/`.
+### Reference Syntax
+Nomos supports cross-provider references:
+```nomos
+app:
+  config: reference:alias:filename.path.to.value
+```
+Compiled by `libs/compiler` but affects CLI examples and documentation.
 
-Versioning and releases
------------------------
+### Build Tags
 
-- This app is versioned by tagging at the repository level using the module path (see `docs/architecture/go-monorepo-structure.md`). Typical tag: `apps/command-line/v1.0.0`.
-- Release artifacts (binaries) can be produced using a root-level `Makefile` or `goreleaser` configuration.
+**None currently used** — CLI is platform-agnostic. Provider binaries are platform-specific (handled by `libs/provider-downloader`).
 
-If you need help
----------------
+### Test Organization
 
-If you're unsure where to place new code, open a short PR describing the change and label it `needs-architecture-review` so we can keep module boundaries clean.
+#### Hermetic Testing
+- Test fixtures in `testdata/`
+- Mock provider registries (avoid network calls)
+- Example: `internal/initcmd/init_hermetic_test.go`
+
+#### Integration Tests
+- Located in `test/` directory
+- Build binary and invoke with test inputs
+- Verify output matches expected snapshots
+- Test provider installation flows
+
+#### Deterministic Test Fixtures
+- Use consistent file ordering (UTF-8 lexicographic)
+- Snapshot-based output verification
+- Ensures reproducible test results across platforms
+
+### Internal Package Structure
+
+Nomos-specific internal packages:
+- `internal/traverse/` — deterministic `.csl` file discovery
+- `internal/serialize/` — deterministic output formatting (JSON/YAML/HCL)
+- `internal/diagnostics/` — Nomos error/warning formatting
+- `internal/initcmd/` — provider discovery and installation logic
+- `internal/flags/` — CLI flag parsing (simple, not Cobra)
+- `internal/options/` — compiler options builder from CLI flags
+
+### Exit Codes
+
+Nomos CLI exit codes:
+- `0` — success
+- `1` — compilation/provider errors
+- `2` — usage/flag parsing errors
+
+**Strict mode**: warnings cause exit code `1`.
+
+### Output Conventions
+
+- Diagnostics (errors/warnings) → **stderr**
+- Compilation results → **stdout** (or file via `-o`)
+- Status messages (verbose mode) → **stderr**
+- Deterministic serialization for all output formats
+
+### Module Versioning
+
+Tagged as `apps/command-line/v1.x.x` for releases.  
+See `docs/RELEASE.md` for version tagging strategy.

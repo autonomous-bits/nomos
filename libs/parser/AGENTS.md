@@ -1,83 +1,137 @@
-# AGENTS: libs/parser
+# Nomos Parser Agent-Specific Patterns
 
-This document explains the `libs/parser` module layout and development guidance. It is scoped to the parser library which provides parsing capabilities for Nomos language sources. It complements repository-level guidance in `docs/architecture/go-monorepo-structure.md` but focuses on the local module.
+> **Note**: For comprehensive parser development guidance, see `.github/agents/parser-module.agent.md`  
+> For task coordination, start with `.github/agents/nomos.agent.md`
 
-Purpose
--------
+## Nomos-Specific Patterns
 
-The `libs/parser` module is responsible for turning Nomos source text into an AST or token stream suitable for further processing by the `libs/compiler` module. The parser should offer a clear programmatic API and stable data structures for downstream consumers.
+### Test Data Organization
 
-Repository layout (local)
--------------------------
-
-Common files and directories:
-
-- `go.mod` / `go.sum` — module declaration and dependencies.
-- `pkg/` or `parser.go` — public API surface (e.g., `Parse(reader io.Reader) (*AST, error)`).
-- `internal/` — implementation details such as scanner/lexer, grammar-driven code, tree walkers, and helpers.
-- `grammar/` — generated parser code or grammar definitions if using a generator (optional).
-- `test/` and `testdata/` — unit and integration tests for parser behavior and edge cases.
-- `examples/` — example programs demonstrating how to use the parser API.
-
-Example layout:
+The Nomos parser uses a structured testdata directory for different test types:
 
 ```
-libs/parser/
-├── go.mod
-├── go.sum
-├── parser.go          # public entry points
-├── pkg/               # optional public packages with AST definitions
-├── grammar/           # grammar files or generated parser code
-├── internal/
-│   ├── scanner/
-│   └── tree/
-├── test/
-└── testdata/
+testdata/
+├── fixtures/       # Input .csl files for testing
+│   ├── simple.csl
+│   ├── references.csl
+│   └── nested.csl
+├── golden/         # Expected AST outputs (JSON)
+│   ├── simple.csl.json
+│   └── ...
+└── errors/         # Error test cases
+    ├── invalid_syntax.csl
+    └── ...
 ```
 
-Public API contract (suggested)
--------------------------------
+**Golden Test Pattern**:
+1. Parse input file from `fixtures/`
+2. Serialize AST to canonical JSON using `testutil.CanonicalJSON()`
+3. Compare with golden file in `golden/`
+4. Auto-generate golden file if missing (requires manual verification)
 
-Provide a simple, dependency-light API for the parser:
+**Error Test Pattern**:
+- Test files in `errors/` directory
+- Assertions on `ParseError.Kind()`, message content, and location
+- Verify error messages are actionable and user-friendly
 
-- `Parse(r io.Reader) (*AST, error)` — parse input and return an AST
-- `ParseFile(path string) (*AST, error)` — convenience for filesystem-based inputs
-- AST data structures — well-documented, stable shapes used by the compiler
+### Performance Benchmarks
 
-Design notes
-------------
+The parser includes benchmarks specific to Nomos configuration file characteristics:
 
-- Keep parsing concerns separate: lexical scanning should be in its own package (e.g., `internal/scanner`).
-- If you use a parser generator, keep generated code under `grammar/` and check-in only when appropriate (or provide a clear generate step).
-- Export only the types and functions necessary for consumers; place helpers under `internal/`.
+**Benchmark Suite** (`parser_bench_test.go`):
+- `BenchmarkParse_Small` - ~100 bytes input (minimal config)
+- `BenchmarkParse_Medium` - ~6KB input (100 sections)
+- `BenchmarkParse_Large` - ~1MB input (simulated large configuration)
+- `BenchmarkParseFile` - Filesystem I/O overhead for .csl files
+- `BenchmarkParser_Reuse` - Instance reuse with `sync.Pool`
 
-Developer tasks
----------------
+**Performance Goals**:
+- Small files (<1KB): Sub-millisecond parsing
+- Medium files (~10KB): <5ms parsing
+- Large files (~1MB): <100ms parsing
+- Parser instance reuse reduces allocation overhead
 
-Run unit tests
+**Run Benchmarks**:
+```bash
+cd libs/parser
+go test -bench=. -benchmem -run=^$ ./...
+```
 
-   cd libs/parser
-   go test ./... -v
+### Build Tags
 
-Run parser integration tests
+Currently, the Nomos parser module does not use custom build tags. All tests run in standard mode.
 
-   cd libs/parser
-   go test ./test -v
+### Error Message Patterns
 
-Working with the compiler
--------------------------
+Nomos parser errors follow a specific format with actionable guidance:
 
-- The `libs/compiler` module should import `github.com/autonomous-bits/nomos/libs/parser` to obtain an AST or token stream. Keep the AST public types small and documented so the compiler can analyze them.
-- Avoid two-way imports. If `libs/parser` needs semantic helpers, factor those into `libs/common` or move into `internal/` under the appropriate module.
+**Error Structure**:
+```
+<filename>:<line>:<col>: <kind>: <concise description>
 
-Best practices
---------------
+<context line with error>
+    ^
+<detailed explanation or hint>
+```
 
-- Keep parser error messages deterministic and rich (include line/column, source snippet).
-- Maintain a `testdata/` directory with representative Nomos source examples and negative test cases.
-- If you adopt a generator (e.g., ANTLR, pigeon), include a `make generate` or `go:generate` instructions and document the workflow.
+**Error Kinds**:
+1. **LexError** - Tokenization failures (invalid characters, unterminated strings)
+2. **SyntaxError** - Grammar violations, malformed structures
+3. **IOError** - File system or I/O failures
 
-If you need help
----------------
+**Nomos-Specific Error Messages**:
+- Top-level `reference:` statements include migration hint to inline references
+- `source` declarations require non-empty string `alias` field validation
+- Keywords `source` and `import` must be followed by `:` with helpful error
 
-Open a PR describing parser changes, include sample inputs in `testdata/`, and add or update tests demonstrating the expected AST shape or parse errors.
+**Error Formatting**:
+Use `FormatParseError(err, sourceText)` to generate multi-line output with context and caret marker (rune-aware for UTF-8).
+
+### Nomos Language Constructs
+
+The parser implements these Nomos-specific language features:
+
+**Source Declarations** - Provider configuration:
+```
+source:
+  alias: myProvider
+  type: terraform
+```
+
+**Import Statements** - Module imports:
+```
+import:baseConfig:./base.csl
+```
+
+**Section Declarations** - Configuration blocks:
+```
+database:
+  host: localhost
+  port: 5432
+```
+
+**Inline References** - Value-level references:
+```
+app:
+  db_host: reference:base:database.host
+```
+
+### Deprecated Syntax Handling
+
+**Deprecated**: Top-level `reference:` statements are no longer supported.
+
+**Parser Behavior**: Returns `SyntaxError` with migration hint when encountering:
+```
+reference:alias:path.to.value
+```
+
+**Migration Path**: Convert to inline references in value positions (see "Inline References" above).
+
+### Coverage HTML Report
+
+The module includes a checked-in `coverage.html` file for visual coverage inspection. This is regenerated during CI or manually via:
+
+```bash
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
+```

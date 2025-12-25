@@ -1,119 +1,128 @@
-# Agent Instructions: libs/provider/downloader
+# Nomos Provider Downloader Agent-Specific Patterns
 
-## Module Purpose
+> **Note**: For comprehensive guidance, see `.github/agents/provider-downloader-module.agent.md`  
+> For task coordination, start with `.github/agents/nomos.agent.md`
 
-This library provides reusable functionality for resolving, downloading, and installing provider binaries from GitHub Releases. It is consumed by `nomos init` and other tools managing provider lifecycles.
+## Nomos-Specific Patterns
 
-## Layout
+### Provider Binary Naming Convention
+Nomos providers follow specific naming patterns that the resolver must handle:
+
+**Standard format:** `nomos-provider-{name}-{os}-{arch}`
+- Example: `nomos-provider-file-linux-amd64`
+- Example: `nomos-provider-terraform-darwin-arm64`
+
+**Alternative format:** `{repo}-{os}-{arch}` for non-standard repos
+- Example: `test-provider-linux-amd64`
+
+**Resolution priority:**
+1. `{repo}-{os}-{arch}` (exact match)
+2. `nomos-provider-{os}-{arch}` (standard pattern)
+3. `{repo}-{os}` (arch-agnostic fallback)
+4. Substring matching with OS/arch verification
+
+### Installation Path Structure
+Providers are installed in a predictable directory structure:
 
 ```
-downloader/
-├── go.mod              # Module definition
-├── README.md           # User documentation
-├── CHANGELOG.md        # Version history
-├── AGENTS.md           # This file
-├── doc.go              # Package-level documentation
-├── types.go            # Public types (ProviderSpec, AssetInfo, etc.)
-├── client.go           # Client and public API methods
-├── errors.go           # Typed errors
-├── resolver.go         # GitHub Release asset resolver (internal)
-├── download.go         # Streaming downloader with retry (internal)
-├── checksum.go         # SHA256 verification helpers (internal)
-├── install.go          # Atomic install logic (internal)
-├── client_test.go      # Unit tests for client API
-├── resolver_test.go    # Unit tests for resolver
-├── download_test.go    # Unit tests for downloader
-└── integration_test.go # Hermetic httptest-based integration tests
+.nomos/providers/{owner}/{repo}/{version}/provider
 ```
 
-## Development Standards
-
-- **Go version**: 1.25.3
-- **TDD**: Write tests before implementation (Red → Green → Refactor)
-- **No network calls in unit tests**: Use httptest for all GitHub API interactions
-- **Testable design**: Accept interfaces, return concrete types
-- **Documentation**: Every exported symbol must have GoDoc comments
-- **Error handling**: Use typed errors and wrap with context
-
-## Build and Test
-
-```bash
-# Run all tests
-go test ./...
-
-# Run with coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-
-# Run specific tests
-go test -run TestClient_NewClient ./...
-
-# Run with race detector
-go test -race ./...
-
-# Benchmarks
-go test -bench=. -benchmem
+**Examples:**
+```
+.nomos/providers/autonomous-bits/nomos-provider-file/1.0.0/provider
+.nomos/providers/autonomous-bits/nomos-provider-terraform/2.1.0/provider
 ```
 
-## API Design Principles
+**Key behaviors:**
+- Directory structure created atomically during installation
+- Binary always named `provider` (no extension)
+- Permissions set to `0755` (executable)
+- Atomic rename ensures partial installations don't corrupt state
 
-1. **Context-aware**: All public methods accept context.Context as first parameter
-2. **Options pattern**: Use functional options or struct options for configuration
-3. **Typed errors**: Define sentinel errors for common failure modes
-4. **Atomic operations**: Install operations must be atomic (download → verify → rename)
-5. **Auto-detection**: Auto-detect OS/Arch when not specified in ProviderSpec
-6. **Retry logic**: Handle transient failures with exponential backoff
+### Version Resolution Logic
+Nomos-specific version resolution handles both prefixed and non-prefixed versions:
 
-## Implementation Guidelines
+**Auto-normalization:**
+- User specifies `"1.0.0"` → tries both `"1.0.0"` and `"v1.0.0"`
+- User specifies `"v1.0.0"` → tries both `"v1.0.0"` and `"1.0.0"`
+- Empty or `"latest"` → fetches latest GitHub Release
 
-### Public API Surface (keep minimal)
+**GitHub API integration:**
+- Uses GitHub Releases API to fetch release metadata
+- Parses release assets for OS/arch matching
+- Falls back to substring matching if exact pattern fails
+- Respects GitHub rate limits (authenticated: 5000/hr, anonymous: 60/hr)
 
-- `NewClient(ctx, opts) *Client`
-- `(*Client) ResolveAsset(ctx, spec) (AssetInfo, error)`
-- `(*Client) DownloadAndInstall(ctx, asset, dest) (InstallResult, error)`
+### Integration with Nomos Init
+The `nomos init` command orchestrates provider lifecycle:
 
-### Internal Helpers (not exported)
+1. **Parse provider declarations** from config files
+2. **Resolve provider versions** using this library
+3. **Download and verify** provider binaries with checksum validation
+4. **Install providers** in `.nomos/providers/{owner}/{repo}/{version}/`
+5. **Update lockfiles** with resolved versions and checksums
 
-- Asset name inference based on common patterns
-- GitHub API client wrapper
-- Checksum verification
-- File I/O with atomic rename
+**Example integration:**
+```go
+// From nomos init command
+client := downloader.NewClient(ctx, &downloader.ClientOptions{
+    RetryAttempts: 3,
+    GitHubToken:   os.Getenv("GITHUB_TOKEN"),
+})
 
-### Error Types
+spec := &downloader.ProviderSpec{
+    Owner:   "autonomous-bits",
+    Repo:    "nomos-provider-file",
+    Version: "1.0.0",
+    // OS/Arch auto-detected from runtime.GOOS/GOARCH
+}
 
-Define typed errors for:
-- Asset not found
-- Checksum mismatch
-- Invalid spec
-- Rate limit exceeded
-- Network failure
+asset, err := client.ResolveAsset(ctx, spec)
+// ... handle error
 
-### Testing Strategy
+destDir := filepath.Join(".nomos/providers", spec.Owner, spec.Repo, asset.Version)
+result, err := client.DownloadAndInstall(ctx, asset, destDir)
+// ... lockfile updated with result.Checksum
+```
 
-1. **Unit tests**: Test each function in isolation with mocks/fakes
-2. **Integration tests**: Use httptest to emulate GitHub API responses
-3. **Edge cases**: Test missing fields, invalid checksums, network errors
-4. **Benchmarks**: Measure performance of resolution and download logic
+### Caching Strategy
+Currently **not implemented** - all downloads are fresh. Future caching considerations:
 
-## Dependencies
+**Planned cache structure:**
+```
+.nomos/cache/providers/{checksum}/provider
+```
 
-- Standard library only for v1
-- No external dependencies unless absolutely necessary
-- If adding dependencies, justify in PR description
+**Cache key:** SHA256 checksum of the binary (ensures integrity)
 
-## Related Modules
+**Cache invalidation:**
+- By checksum (content-addressed)
+- Manual cleanup via `nomos clean` command
+- Cache size limits (future enhancement)
 
-- `libs/compiler`: Consumer of this library
-- `apps/command-line`: Uses this library via `nomos init`
-- `libs/provider-proto`: Provider gRPC protocol definition
+**Design rationale:**
+- Checksum-based cache prevents version conflicts
+- Shared cache across projects on same machine
+- Safe to delete entire cache directory anytime
 
-## PRD Reference
+### Build Tags
+**Currently:** No build tags used in this module.
 
-Feature: #68 — Init: download providers from GitHub Releases (remove --from)  
-User Story: #69 — provider/downloader: public API and scaffolding
+**All functionality is cross-platform using standard library:**
+- `runtime.GOOS` and `runtime.GOARCH` for platform detection
+- `net/http` for GitHub API calls
+- `crypto/sha256` for checksum verification
+- `os.Rename` with cross-filesystem fallback
 
-## Questions?
+**If build tags become necessary:**
+- Document in this section
+- Use `//go:build` directive (not `// +build`)
+- Test all build tag combinations in CI
 
-- Check feature docs: `docs/architecture/nomos-external-providers-feature-breakdown.md`
-- Check provider authoring guide: `docs/guides/provider-authoring-guide.md`
-- Check Go monorepo structure: `docs/architecture/go-monorepo-structure.md`
+## Related Resources
+
+- **Feature docs**: `docs/architecture/nomos-external-providers-feature-breakdown.md`
+- **Provider authoring**: `docs/guides/provider-authoring-guide.md`
+- **Go monorepo structure**: `docs/architecture/go-monorepo-structure.md`
+- **PRD references**: Issue #68, User Story #69
