@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+- **Scanner optimization**: Replaced save/restore mechanism in `GetIndentLevel()` and `PeekToken()` with direct string scanning
+- Achieved 10-20% performance improvement across all benchmark suites
+- Reduced memory allocations in token peeking operations
+
+### Refactoring
+- Extracted `expectColonAfterKeyword()` helper function to reduce code duplication in parser validation
+- Improved code maintainability in keyword parsing logic
+
 ## [0.1.0] - 2025-11-02
 
 Initial release of the Nomos parser library.

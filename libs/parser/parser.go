@@ -129,6 +129,19 @@ func (p *Parser) parseStatements(s *scanner.Scanner) ([]ast.Stmt, error) {
 	return statements, nil
 }
 
+// expectColonAfterKeyword validates that a colon follows a keyword and consumes it.
+// This helper reduces code duplication in keyword parsing.
+func (p *Parser) expectColonAfterKeyword(s *scanner.Scanner, keyword string) error {
+	if s.PeekChar() != ':' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			fmt.Sprintf("invalid syntax: '%s' keyword must be followed by ':'", keyword))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+		return err
+	}
+	_ = s.Expect(':') // Consume colon (already validated)
+	return nil
+}
+
 // parseStatement parses a single statement.
 func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 	startLine, startCol := s.Line(), s.Column()
@@ -173,13 +186,9 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 	s.ConsumeToken() // consume "source"
 
 	// Validate colon after keyword
-	if s.PeekChar() != ':' {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'source' keyword must be followed by ':'")
-		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+	if err := p.expectColonAfterKeyword(s, "source"); err != nil {
 		return nil, err
 	}
-	_ = s.Expect(':') // Error already checked via PeekChar
 
 	// Parse configuration block (indented key-value pairs)
 	config, err := p.parseConfigBlock(s)
@@ -242,13 +251,9 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*
 	s.ConsumeToken() // consume "import"
 
 	// Validate colon after keyword
-	if s.PeekChar() != ':' {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'import' keyword must be followed by ':'")
-		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+	if err := p.expectColonAfterKeyword(s, "import"); err != nil {
 		return nil, err
 	}
-	_ = s.Expect(':') // Error already checked via PeekChar
 
 	alias := s.ReadIdentifier()
 
