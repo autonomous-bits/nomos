@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Comprehensive error code documentation in proto comments for all RPC methods
+  - Init: InvalidArgument, FailedPrecondition, Unavailable, PermissionDenied
+  - Fetch: NotFound, InvalidArgument, FailedPrecondition, PermissionDenied, DeadlineExceeded, Unavailable
+  - Info, Health, Shutdown: Internal error handling guidance
+  - Error documentation appears in generated Go code for provider developers
+- Reserved field ranges (4-10 or 1-10) to all message definitions for future-proofing
+  - Prevents accidental field number reuse in protocol evolution
+  - Follows protobuf best practices for backward compatibility
+- `STATUS_STARTING` enum value to HealthResponse.Status
+  - Indicates provider is still initializing (useful for lengthy startup periods)
+  - Allows compiler to distinguish between "not ready yet" and "unhealthy"
 - Comprehensive gRPC integration tests with real client-server communication
 - Test coverage for all RPC methods (Init, Fetch, Info, Health, Shutdown)
 - Error handling tests with gRPC status codes (InvalidArgument, FailedPrecondition, NotFound)
