@@ -33,7 +33,15 @@ Useful targets (run `make help` for the full list):
 - `make build` – Build all applications
 - `make build-cli` – Build the CLI app to `bin/nomos`
 - `make test` / `make test-race` – Run tests across all modules
+- `make test-unit` – Run only unit tests (faster)
+- `make test-integration` – Run only integration tests
+- `make test-coverage` – Generate coverage reports (HTML)
 - `make test-module MODULE=libs/parser` – Test a single module
+- `make fmt` – Format all Go code
+- `make mod-tidy` – Tidy all module dependencies
+- `make install` – Install nomos binary to GOPATH/bin
+- `make lint` – Run linters (requires golangci-lint)
+- `make watch` – Auto-rebuild on file changes (requires air)
 - `make work-sync` – Sync Go workspace dependencies
 
 ## Branching Strategy
@@ -114,8 +122,41 @@ Integration tests are:
 - Allowed longer timeouts and may have external dependencies
 
 ## Linting & Formatting
-- Go formatting: standard `gofmt` via your editor/tools.
+- Go formatting: standard `gofmt` via your editor/tools or `make fmt`.
 - Lint: `golangci-lint` (optional but recommended). Run `make lint`.
+- EditorConfig: The repo includes `.editorconfig` for consistent formatting across editors.
+
+## Development Tools (Optional)
+
+### Pre-commit Hooks with Lefthook
+We provide `.lefthook.yml` for automated pre-commit checks:
+
+```bash
+# Install lefthook
+go install github.com/evilmartians/lefthook@latest
+
+# Setup hooks
+lefthook install
+```
+
+This will automatically run on every commit:
+- `make fmt` – Format code
+- `make mod-tidy` – Tidy dependencies
+- `make lint` – Run linters
+- Conventional commit message validation
+
+### Watch Mode for Development
+Auto-rebuild on file changes using Air:
+
+```bash
+# Install air
+go install github.com/cosmtrek/air@latest
+
+# Start watch mode
+make watch
+```
+
+The CLI will automatically rebuild when you modify source files in `apps/` or `libs/`.
 
 ## Project Structure
 - `apps/command-line` – Nomos CLI

@@ -2,7 +2,7 @@
 
 **Generated:** 2025-12-25  
 **Last Updated:** 2025-12-26  
-**Status:** Phase 4 Complete (Compiler refactoring with clean architecture)  
+**Status:** Phase 5.1-5.2 Complete (Makefile enhancements and development tooling)  
 **Estimated Total Effort:** ~10-12 weeks (1 developer)
 
 ---
@@ -512,41 +512,47 @@ This plan consolidates findings from comprehensive analysis of all Nomos modules
 
 ### 5.1 Makefile Enhancements
 
-- [ ] **Dynamic module discovery**
-  - [ ] Add module discovery using `find` commands
-  - [ ] Replace hardcoded module lists
-  - [ ] Prevent future oversights
+- [x] **Dynamic module discovery**
+  - [x] Add module discovery using `find` commands
+  - [x] Replace hardcoded module lists
+  - [x] Prevent future oversights
   - **Effort:** 30 minutes | **Impact:** HIGH
+  - **Status:** ✅ Completed - Uses `find` to discover all modules dynamically
 
-- [ ] **Add missing Makefile targets**
-  - [ ] Add `test-integration` target
-  - [ ] Add `test-coverage` target with threshold
-  - [ ] Add `fmt` target for formatting
-  - [ ] Add `mod-tidy` target
-  - [ ] Add `install` target for local CLI installation
+- [x] **Add missing Makefile targets**
+  - [x] Add `test-integration` target
+  - [x] Add `test-coverage` target with threshold
+  - [x] Add `fmt` target for formatting
+  - [x] Add `mod-tidy` target
+  - [x] Add `install` target for local CLI installation
   - **Effort:** 1 hour | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - All targets added and tested
 
-- [ ] **Fix lint target**
-  - [ ] Remove `|| true` that swallows errors
-  - [ ] Reference `.golangci.yml` config
+- [x] **Fix lint target**
+  - [x] Remove `|| true` that swallows errors
+  - [x] Reference `.golangci.yml` config
   - **Effort:** 5 minutes | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - Lint now properly fails on errors
 
 ### 5.2 Development Tooling
 
-- [ ] **Add `.editorconfig`**
-  - [ ] Create `.editorconfig` at repo root
-  - [ ] Define Go, YAML, Markdown formatting rules
+- [x] **Add `.editorconfig`**
+  - [x] Create `.editorconfig` at repo root
+  - [x] Define Go, YAML, Markdown formatting rules
   - **Effort:** 5 minutes | **Impact:** MEDIUM
+  - **Status:** ✅ Completed - Includes Go, YAML, JSON, Markdown, Shell, Proto configs
 
-- [ ] **Add pre-commit hooks (optional)**
-  - [ ] Create `.lefthook.yml` with fmt, lint, mod-tidy hooks
-  - [ ] Document setup in `CONTRIBUTING.md`
+- [x] **Add pre-commit hooks (optional)**
+  - [x] Create `.lefthook.yml` with fmt, lint, mod-tidy hooks
+  - [x] Document setup in `CONTRIBUTING.md`
   - **Effort:** 1 hour | **Impact:** LOW (optional)
+  - **Status:** ✅ Completed - Includes pre-commit, pre-push, and commit-msg hooks
 
-- [ ] **Add watch mode helper (optional)**
-  - [ ] Create `.air.toml` for auto-rebuild
-  - [ ] Add `watch` target to Makefile
+- [x] **Add watch mode helper (optional)**
+  - [x] Create `.air.toml` for auto-rebuild
+  - [x] Add `watch` target to Makefile
   - **Effort:** 30 minutes | **Impact:** LOW (optional)
+  - **Status:** ✅ Completed - Watch mode configured with auto-rebuild
 
 ### 5.3 Parser Optimizations
 
