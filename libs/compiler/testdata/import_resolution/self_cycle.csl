@@ -1,0 +1,9 @@
+source:
+  alias: 'files'
+  type: 'file'
+  directory: '.'
+
+import:files:self_cycle.csl
+
+data:
+  value: 'self-referencing'

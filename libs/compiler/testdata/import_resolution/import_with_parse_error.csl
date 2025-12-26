@@ -1,0 +1,9 @@
+source:
+  alias: 'files'
+  type: 'file'
+  directory: '.'
+
+import:files:parse_error.csl
+
+data:
+  value: 'valid-but-imports-invalid'

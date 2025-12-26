@@ -1,0 +1,13 @@
+source:
+  alias: 'base_configs'
+  type: 'file'
+  directory: '.'
+
+import:base_configs:simple_base.csl
+
+database:
+  host: 'prod-db.example.com'
+  name: 'production_db'
+
+server:
+  port: 9090

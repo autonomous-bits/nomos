@@ -11,32 +11,40 @@ func TestLockfileProviderResolver_ResolveBinaryPath(t *testing.T) {
 	// Create a temporary directory for test files
 	tmpDir := t.TempDir()
 
-	// Create lockfile
-	lockfilePath := filepath.Join(tmpDir, "providers.lock.json")
-	lockfile := &Lockfile{
-		Providers: []Provider{
-			{
-				Alias:   "configs",
-				Type:    "file",
-				Version: "0.2.0",
-				OS:      "darwin",
-				Arch:    "arm64",
-				Path:    "file/0.2.0/darwin-arm64/provider",
-			},
-		},
-	}
-	if err := lockfile.Save(lockfilePath); err != nil {
-		t.Fatalf("failed to save lockfile: %v", err)
-	}
-
-	// Create the provider binary (empty file for testing)
+	// Create the provider binary first (so we can compute its checksum)
 	providerDir := filepath.Join(tmpDir, "providers", "file", "0.2.0", "darwin-arm64")
 	if err := os.MkdirAll(providerDir, 0755); err != nil { //nolint:gosec // G301: Test fixture directory
 		t.Fatalf("failed to create provider directory: %v", err)
 	}
 	providerPath := filepath.Join(providerDir, "provider")
-	if err := os.WriteFile(providerPath, []byte{}, 0755); err != nil { //nolint:gosec // G306: Test provider binary requires executable permissions
+	providerContent := []byte("test provider binary")
+	if err := os.WriteFile(providerPath, providerContent, 0755); err != nil { //nolint:gosec // G306: Test provider binary requires executable permissions
 		t.Fatalf("failed to create provider binary: %v", err)
+	}
+
+	// Compute checksum for the provider binary
+	checksum, err := ComputeChecksum(providerPath)
+	if err != nil {
+		t.Fatalf("failed to compute checksum: %v", err)
+	}
+
+	// Create lockfile with checksum
+	lockfilePath := filepath.Join(tmpDir, "providers.lock.json")
+	lockfile := &Lockfile{
+		Providers: []Provider{
+			{
+				Alias:    "configs",
+				Type:     "file",
+				Version:  "0.2.0",
+				OS:       "darwin",
+				Arch:     "arm64",
+				Path:     "file/0.2.0/darwin-arm64/provider",
+				Checksum: checksum,
+			},
+		},
+	}
+	if err := lockfile.Save(lockfilePath); err != nil {
+		t.Fatalf("failed to save lockfile: %v", err)
 	}
 
 	// Create resolver
@@ -109,6 +117,214 @@ func TestLockfileProviderResolver_ResolveBinaryPath(t *testing.T) {
 			t.Errorf("expected error message starting with %q, got %q", expectedMsg, err.Error())
 		}
 	})
+}
+
+func TestLockfileProviderResolver_ChecksumValidation(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a provider binary with known content
+	providerDir := filepath.Join(tmpDir, "providers", "file", "0.2.0", "darwin-arm64")
+	if err := os.MkdirAll(providerDir, 0755); err != nil { //nolint:gosec // G301: Test fixture directory
+		t.Fatalf("failed to create provider directory: %v", err)
+	}
+	providerPath := filepath.Join(providerDir, "provider")
+	providerContent := []byte("test provider binary content")
+	if err := os.WriteFile(providerPath, providerContent, 0755); err != nil { //nolint:gosec // G306: Test provider binary requires executable permissions
+		t.Fatalf("failed to create provider binary: %v", err)
+	}
+
+	// Compute the correct checksum
+	correctChecksum, err := ComputeChecksum(providerPath)
+	if err != nil {
+		t.Fatalf("failed to compute checksum: %v", err)
+	}
+
+	t.Run("succeeds with valid checksum", func(t *testing.T) {
+		lockfilePath := filepath.Join(tmpDir, "valid-checksum.lock.json")
+		lockfile := &Lockfile{
+			Providers: []Provider{
+				{
+					Alias:    "configs",
+					Type:     "file",
+					Version:  "0.2.0",
+					OS:       "darwin",
+					Arch:     "arm64",
+					Path:     "file/0.2.0/darwin-arm64/provider",
+					Checksum: correctChecksum,
+				},
+			},
+		}
+		if err := lockfile.Save(lockfilePath); err != nil {
+			t.Fatalf("failed to save lockfile: %v", err)
+		}
+
+		baseDirFunc := func() string {
+			return filepath.Join(tmpDir, "providers")
+		}
+		resolver, err := NewLockfileProviderResolver(lockfilePath, "", baseDirFunc)
+		if err != nil {
+			t.Fatalf("failed to create resolver: %v", err)
+		}
+
+		ctx := context.Background()
+		binaryPath, err := resolver.ResolveBinaryPath(ctx, "file")
+		if err != nil {
+			t.Fatalf("expected success with valid checksum, got error: %v", err)
+		}
+
+		if binaryPath != providerPath {
+			t.Errorf("expected path %q, got %q", providerPath, binaryPath)
+		}
+	})
+
+	t.Run("fails with invalid checksum", func(t *testing.T) {
+		// Use a different checksum (tampered binary scenario)
+		invalidChecksum := "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+		lockfilePath := filepath.Join(tmpDir, "invalid-checksum.lock.json")
+		lockfile := &Lockfile{
+			Providers: []Provider{
+				{
+					Alias:    "configs",
+					Type:     "file",
+					Version:  "0.2.0",
+					OS:       "darwin",
+					Arch:     "arm64",
+					Path:     "file/0.2.0/darwin-arm64/provider",
+					Checksum: invalidChecksum,
+				},
+			},
+		}
+		if err := lockfile.Save(lockfilePath); err != nil {
+			t.Fatalf("failed to save lockfile: %v", err)
+		}
+
+		baseDirFunc := func() string {
+			return filepath.Join(tmpDir, "providers")
+		}
+		resolver, err := NewLockfileProviderResolver(lockfilePath, "", baseDirFunc)
+		if err != nil {
+			t.Fatalf("failed to create resolver: %v", err)
+		}
+
+		ctx := context.Background()
+		_, err = resolver.ResolveBinaryPath(ctx, "file")
+		if err == nil {
+			t.Fatal("expected error with invalid checksum, got nil")
+		}
+
+		// Error should mention checksum validation failure
+		errMsg := err.Error()
+		if !contains(errMsg, "checksum validation failed") && !contains(errMsg, "mismatch") {
+			t.Errorf("expected error to mention checksum validation failure, got: %v", err)
+		}
+	})
+
+	t.Run("fails with missing checksum", func(t *testing.T) {
+		lockfilePath := filepath.Join(tmpDir, "missing-checksum.lock.json")
+		lockfile := &Lockfile{
+			Providers: []Provider{
+				{
+					Alias:    "configs",
+					Type:     "file",
+					Version:  "0.2.0",
+					OS:       "darwin",
+					Arch:     "arm64",
+					Path:     "file/0.2.0/darwin-arm64/provider",
+					Checksum: "", // Missing checksum
+				},
+			},
+		}
+		if err := lockfile.Save(lockfilePath); err != nil {
+			t.Fatalf("failed to save lockfile: %v", err)
+		}
+
+		baseDirFunc := func() string {
+			return filepath.Join(tmpDir, "providers")
+		}
+		resolver, err := NewLockfileProviderResolver(lockfilePath, "", baseDirFunc)
+		if err != nil {
+			t.Fatalf("failed to create resolver: %v", err)
+		}
+
+		ctx := context.Background()
+		_, err = resolver.ResolveBinaryPath(ctx, "file")
+		if err == nil {
+			t.Fatal("expected error with missing checksum, got nil")
+		}
+
+		// Error should mention missing checksum and security risk
+		errMsg := err.Error()
+		if !contains(errMsg, "no checksum") && !contains(errMsg, "security risk") {
+			t.Errorf("expected error to mention missing checksum and security risk, got: %v", err)
+		}
+	})
+
+	t.Run("fails when binary is modified after lockfile creation", func(t *testing.T) {
+		// This simulates a real attack scenario where the binary is replaced
+		lockfilePath := filepath.Join(tmpDir, "tampered-binary.lock.json")
+		lockfile := &Lockfile{
+			Providers: []Provider{
+				{
+					Alias:    "configs",
+					Type:     "file",
+					Version:  "0.2.0",
+					OS:       "darwin",
+					Arch:     "arm64",
+					Path:     "file/0.2.0/darwin-arm64/provider",
+					Checksum: correctChecksum, // Checksum of original content
+				},
+			},
+		}
+		if err := lockfile.Save(lockfilePath); err != nil {
+			t.Fatalf("failed to save lockfile: %v", err)
+		}
+
+		// Modify the provider binary (simulate tampering)
+		tamperedContent := []byte("malicious modified content")
+		if err := os.WriteFile(providerPath, tamperedContent, 0755); err != nil { //nolint:gosec // G306: Test provider binary
+			t.Fatalf("failed to tamper with provider binary: %v", err)
+		}
+
+		baseDirFunc := func() string {
+			return filepath.Join(tmpDir, "providers")
+		}
+		resolver, err := NewLockfileProviderResolver(lockfilePath, "", baseDirFunc)
+		if err != nil {
+			t.Fatalf("failed to create resolver: %v", err)
+		}
+
+		ctx := context.Background()
+		_, err = resolver.ResolveBinaryPath(ctx, "file")
+		if err == nil {
+			t.Fatal("expected error when binary is tampered, got nil")
+		}
+
+		// Error should mention checksum mismatch
+		errMsg := err.Error()
+		if !contains(errMsg, "mismatch") || !contains(errMsg, "tampered") {
+			t.Errorf("expected error to mention checksum mismatch and tampering, got: %v", err)
+		}
+
+		// Restore original content for other tests
+		if err := os.WriteFile(providerPath, providerContent, 0755); err != nil { //nolint:gosec // G306: Test provider binary
+			t.Fatalf("failed to restore provider binary: %v", err)
+		}
+	})
+}
+
+// contains is a helper function to check if a string contains a substring.
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && anyContains(s, substr))
+}
+
+func anyContains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func TestNewLockfileProviderResolver_Errors(t *testing.T) {

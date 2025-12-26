@@ -1,0 +1,6 @@
+config:
+  level: 1
+  value: 'level1'
+
+network:
+  timeout: 30

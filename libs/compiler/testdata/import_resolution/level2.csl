@@ -1,0 +1,13 @@
+source:
+  alias: 'files'
+  type: 'file'
+  directory: '.'
+
+import:files:level1.csl
+
+config:
+  level: 2
+  value: 'level2'
+  
+network:
+  retries: 3
