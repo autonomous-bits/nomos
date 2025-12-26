@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Progress reporting**: `ProgressCallback` option for download progress updates
+  - Add `ProgressCallback` field to `ClientOptions` for receiving download progress
+  - Callback signature: `func(downloaded, total int64)`
+  - Called periodically during download with bytes downloaded and total size
+  - Useful for CLI progress indicators and UI integration
+  - Comprehensive tests for progress callback functionality
+- **Configurable HTTP timeout**: `HTTPTimeout` field in `ClientOptions`
+  - Make HTTP client timeout configurable (previously hardcoded to 30s)
+  - Default: 30 seconds
+  - Sensible zero-value handling (falls back to default)
+  - Tests for custom, default, and zero timeout values
 - **Caching support**: Optional binary caching to avoid redundant downloads
   - Cache keyed by SHA256 checksum
   - Only caches when `AssetInfo.Checksum` is provided
@@ -47,13 +58,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic retry on 5xx errors, timeouts, and connection issues
   - File reset between retries to ensure clean download attempts
   - Context cancellation support throughout download lifecycle
-- Comprehensive unit test suite with httptest-based hermetic testing (85.5% coverage, up from 81.6%)
+- Comprehensive unit test suite with httptest-based hermetic testing (85.9% coverage, up from 81.8%)
 - Additional unit tests for timeout handling (context deadline exceeded, slow but successful downloads)
 - Public `testutil` package with `BinaryFixture` utilities for generating deterministic test binaries with SHA256 checksums
   - `CreateBinaryFixture(t, size, prefix)` generates reproducible test binaries
   - `CreateCorruptedFixture(t, size, prefix)` creates fixtures for testing checksum validation failures
 
 ### Changed
+- **Code modernization**: Replaced custom `contains()` function with `strings.Contains()` from stdlib
+  - Reduces code duplication and uses idiomatic Go
+  - Applied across `download.go` and `internal/archive` package
+  - Maintains backward compatibility
 - Refactored archive extraction logic into separate `internal/archive` package
 - Improved code organization with cleaner separation of concerns
 - Enhanced README with caching and archive extraction documentation

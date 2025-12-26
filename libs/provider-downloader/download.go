@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/autonomous-bits/nomos/libs/provider-downloader/internal/archive"
@@ -206,11 +207,25 @@ func (c *Client) attemptDownload(ctx context.Context, url string, w io.Writer) (
 		return "", 0, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, resp.Status)
 	}
 
+	// Get total size from Content-Length header (0 if not available)
+	totalSize := resp.ContentLength
+
 	// Stream response body to file while computing checksum
 	hasher := sha256.New()
 	multiWriter := io.MultiWriter(w, hasher)
 
-	written, err := io.Copy(multiWriter, resp.Body)
+	// Wrap writer with progress reporting if callback is set
+	var written int64
+	if c.progressCallback != nil {
+		pw := &progressWriter{
+			writer:   multiWriter,
+			callback: c.progressCallback,
+			total:    totalSize,
+		}
+		written, err = io.Copy(pw, resp.Body)
+	} else {
+		written, err = io.Copy(multiWriter, resp.Body)
+	}
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to stream download: %w", err)
 	}
@@ -236,33 +251,19 @@ func isRetryable(err error) bool {
 	// - Timeout errors
 	// - Incomplete reads (io.ErrUnexpectedEOF)
 	// - 5xx server errors
-	if contains(errStr, "connection") ||
-		contains(errStr, "timeout") ||
-		contains(errStr, "unexpected EOF") ||
-		contains(errStr, "status 5") {
+	if strings.Contains(errStr, "connection") ||
+		strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "unexpected EOF") ||
+		strings.Contains(errStr, "status 5") {
 		return true
 	}
 
 	return false
 }
 
-// contains is a simple string contains helper.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && findSubstring(s, substr)
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
 // needsExtraction checks if the asset file needs to be extracted.
 func needsExtraction(filename string) bool {
-	return contains(filename, ".tar.gz") || contains(filename, ".tgz") || contains(filename, ".zip")
+	return strings.Contains(filename, ".tar.gz") || strings.Contains(filename, ".tgz") || strings.Contains(filename, ".zip")
 }
 
 // getCachePath returns the cache path for a given checksum.
@@ -317,4 +318,23 @@ func (c *Client) saveToCache(providerPath, checksum string) error {
 
 	c.debugf("Saved to cache: %s", cachePath)
 	return nil
+}
+
+// progressWriter wraps an io.Writer and calls a callback function
+// to report download progress.
+type progressWriter struct {
+	writer     io.Writer
+	callback   ProgressCallback
+	downloaded int64
+	total      int64
+}
+
+// Write implements io.Writer and calls the progress callback.
+func (pw *progressWriter) Write(p []byte) (int, error) {
+	n, err := pw.writer.Write(p)
+	pw.downloaded += int64(n)
+	if pw.callback != nil {
+		pw.callback(pw.downloaded, pw.total)
+	}
+	return n, err
 }

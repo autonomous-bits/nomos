@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ZipExtractor extracts provider binaries from zip archives.
@@ -69,7 +70,7 @@ func (e *ZipExtractor) Extract(archivePath, destDir string) (string, error) {
 		// Priority: exact "provider" match > "nomos-provider-*" match
 		if baseName == "provider" {
 			providerPath = target
-		} else if providerPath == "" && contains(baseName, "nomos-provider-") {
+		} else if providerPath == "" && strings.Contains(baseName, "nomos-provider-") {
 			fallbackPath = target
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // TarGzExtractor extracts provider binaries from tar.gz archives.
@@ -75,7 +76,7 @@ func (e *TarGzExtractor) Extract(archivePath, destDir string) (string, error) {
 		// Priority: exact "provider" match > "nomos-provider-*" match
 		if baseName == "provider" {
 			providerPath = target
-		} else if providerPath == "" && contains(baseName, "nomos-provider-") {
+		} else if providerPath == "" && strings.Contains(baseName, "nomos-provider-") {
 			fallbackPath = target
 		}
 	}

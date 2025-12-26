@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -186,7 +187,7 @@ func TestDownloadAndInstall_TarGzCorrupted(t *testing.T) {
 
 	// Verify error message mentions extraction or gzip
 	errMsg := err.Error()
-	if !contains(errMsg, "extract") && !contains(errMsg, "gzip") {
+	if !strings.Contains(errMsg, "extract") && !strings.Contains(errMsg, "gzip") {
 		t.Errorf("expected error message to mention extraction or gzip, got: %s", errMsg)
 	}
 }
@@ -236,7 +237,7 @@ func TestDownloadAndInstall_TarGzBinaryNotFound(t *testing.T) {
 
 	// Verify error message
 	errMsg := err.Error()
-	if !contains(errMsg, "provider binary not found") {
+	if !strings.Contains(errMsg, "provider binary not found") {
 		t.Errorf("expected error message about provider binary not found, got: %s", errMsg)
 	}
 }

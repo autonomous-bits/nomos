@@ -10,13 +10,14 @@ import (
 // Client handles resolving, downloading, and installing provider binaries
 // from GitHub Releases.
 type Client struct {
-	httpClient    *http.Client
-	githubToken   string
-	baseURL       string
-	retryAttempts int
-	retryDelay    time.Duration
-	logger        Logger
-	cacheDir      string
+	httpClient       *http.Client
+	githubToken      string
+	baseURL          string
+	retryAttempts    int
+	retryDelay       time.Duration
+	logger           Logger
+	cacheDir         string
+	progressCallback ProgressCallback
 }
 
 // NewClient creates a new downloader client with the given options.
@@ -34,8 +35,12 @@ func NewClient(opts *ClientOptions) *Client {
 
 	httpClient := opts.HTTPClient
 	if httpClient == nil {
+		timeout := opts.HTTPTimeout
+		if timeout <= 0 {
+			timeout = 30 * time.Second
+		}
 		httpClient = &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: timeout,
 			Transport: &http.Transport{
 				MaxIdleConns:        10,
 				MaxIdleConnsPerHost: 10,
@@ -60,13 +65,14 @@ func NewClient(opts *ClientOptions) *Client {
 	}
 
 	return &Client{
-		httpClient:    httpClient,
-		githubToken:   opts.GitHubToken,
-		baseURL:       baseURL,
-		retryAttempts: retryAttempts,
-		retryDelay:    retryDelay,
-		logger:        opts.Logger,
-		cacheDir:      opts.CacheDir,
+		httpClient:       httpClient,
+		githubToken:      opts.GitHubToken,
+		baseURL:          baseURL,
+		retryAttempts:    retryAttempts,
+		retryDelay:       retryDelay,
+		logger:           opts.Logger,
+		cacheDir:         opts.CacheDir,
+		progressCallback: opts.ProgressCallback,
 	}
 }
 

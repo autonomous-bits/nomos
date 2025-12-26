@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -422,7 +423,7 @@ func TestIntegration_ContextCancellation(t *testing.T) {
 	}
 
 	// Should be a context deadline exceeded error
-	if !contains(err.Error(), "context") {
+	if !strings.Contains(err.Error(), "context") {
 		t.Logf("Warning: expected context error, got: %v", err)
 	}
 }
