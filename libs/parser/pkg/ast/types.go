@@ -84,9 +84,9 @@ func (i *ImportStmt) stmt()            {}
 // This type will be removed in a future major version (v2.0.0).
 // Example (deprecated syntax): reference:folder:config.key
 type ReferenceStmt struct {
-	Alias      string     `json:\"alias\"`
-	Path       string     `json:\"path\"`
-	SourceSpan SourceSpan `json:\"source_span\"`
+	Alias      string     `json:"alias"`
+	Path       string     `json:"path"`
+	SourceSpan SourceSpan `json:"source_span"`
 }
 
 // Span implements Node for ReferenceStmt.
