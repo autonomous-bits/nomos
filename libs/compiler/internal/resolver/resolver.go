@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -24,16 +25,14 @@ var (
 	ErrProviderNotRegistered = errors.New("provider not registered")
 )
 
-// Provider defines the minimal interface required for reference resolution.
-// This interface is satisfied by compiler.Provider.
-type Provider interface {
-	Fetch(ctx context.Context, path []string) (any, error)
-}
+// Provider is an alias to core.Provider for backward compatibility.
+// Resolvers work with the core Provider interface.
+type Provider = core.Provider
 
 // ProviderRegistry provides access to registered providers.
 // This interface is satisfied by compiler.ProviderRegistry.
 type ProviderRegistry interface {
-	GetProvider(alias string) (Provider, error)
+	GetProvider(alias string) (core.Provider, error)
 }
 
 // ResolverOptions configures the reference resolver.

@@ -22,14 +22,16 @@ func TestMergeSemantics_Integration(t *testing.T) {
 	registry := compiler.NewProviderRegistry()
 
 	// Compile the directory with base.csl and override.csl
-	snapshot, err := compiler.Compile(context.Background(), compiler.Options{
+	result := compiler.Compile(context.Background(), compiler.Options{
 		Path:             testdataDir,
 		ProviderRegistry: registry,
 	})
 
-	if err != nil {
-		t.Fatalf("Compile failed: %v", err)
+	if result.HasErrors() {
+		t.Fatalf("Compile failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Verify that files were discovered in correct order
 	expectedFiles := []string{
@@ -130,14 +132,16 @@ func TestMergeSemantics_ArrayReplacement(t *testing.T) {
 	}
 
 	registry := compiler.NewProviderRegistry()
-	snapshot, err := compiler.Compile(context.Background(), compiler.Options{
+	result := compiler.Compile(context.Background(), compiler.Options{
 		Path:             tmpDir,
 		ProviderRegistry: registry,
 	})
 
-	if err != nil {
-		t.Fatalf("Compile failed: %v", err)
+	if result.HasErrors() {
+		t.Fatalf("Compile failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	items, ok := snapshot.Data["items"].(map[string]any)
 	if !ok {
@@ -155,14 +159,16 @@ func TestMergeSemantics_GoldenOutput(t *testing.T) {
 	testdataDir := filepath.Join("..", "testdata", "merge_semantics")
 
 	registry := compiler.NewProviderRegistry()
-	snapshot, err := compiler.Compile(context.Background(), compiler.Options{
+	result := compiler.Compile(context.Background(), compiler.Options{
 		Path:             testdataDir,
 		ProviderRegistry: registry,
 	})
 
-	if err != nil {
-		t.Fatalf("Compile failed: %v", err)
+	if result.HasErrors() {
+		t.Fatalf("Compile failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Marshal to JSON for comparison
 	actualJSON, err := json.MarshalIndent(snapshot.Data, "", "  ")

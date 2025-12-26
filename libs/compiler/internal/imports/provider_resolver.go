@@ -6,33 +6,26 @@ import (
 	"fmt"
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
-// Provider is a minimal interface for fetching data.
-type Provider interface {
-	Fetch(ctx context.Context, path []string) (any, error)
-	Init(ctx context.Context, opts ProviderInitOptions) error
-}
+// Provider is an alias to core.Provider for backward compatibility.
+type Provider = core.Provider
 
-// ProviderInitOptions contains initialization parameters for a provider.
-type ProviderInitOptions struct {
-	Alias          string
-	Config         map[string]any
-	SourceFilePath string // Path to the .csl file containing the source declaration
-}
+// ProviderInitOptions is an alias to core.ProviderInitOptions for backward compatibility.
+type ProviderInitOptions = core.ProviderInitOptions
+
+// ProviderConstructor is an alias to core.ProviderConstructor for backward compatibility.
+type ProviderConstructor = core.ProviderConstructor
 
 // ProviderRegistry manages provider instances.
-type ProviderRegistry interface {
-	GetProvider(ctx context.Context, alias string) (Provider, error)
-	Register(alias string, constructor func(ProviderInitOptions) (Provider, error))
-}
+// This is the same interface as core.ProviderRegistry, kept here for clarity.
+type ProviderRegistry = core.ProviderRegistry
 
 // ProviderTypeRegistry manages provider type constructors.
-type ProviderTypeRegistry interface {
-	CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error)
-}
+type ProviderTypeRegistry = core.ProviderTypeRegistry
 
 // ExtractedData represents parsed file data with imports extracted.
 type ExtractedData struct {

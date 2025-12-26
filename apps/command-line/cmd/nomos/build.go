@@ -102,7 +102,13 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 
 	// Call compiler
 	ctx := context.Background()
-	snapshot, compileErr := compiler.Compile(ctx, opts)
+	result := compiler.Compile(ctx, opts)
+
+	snapshot := result.Snapshot
+	var compileErr error
+	if result.HasErrors() {
+		compileErr = result.Error()
+	}
 
 	// Create diagnostics formatter
 	useColor := shouldUseColor()

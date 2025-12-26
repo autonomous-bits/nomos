@@ -27,12 +27,14 @@ func TestParserIntegration_ValidFile(t *testing.T) {
 	}
 
 	// Act
-	snapshot, err := compiler.Compile(context.Background(), opts)
+	result := compiler.Compile(context.Background(), opts)
 
 	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Should have no errors in metadata
 	if len(snapshot.Metadata.Errors) != 0 {
@@ -59,12 +61,10 @@ func TestParserIntegration_InvalidFile(t *testing.T) {
 	}
 
 	// Act
-	snapshot, err := compiler.Compile(context.Background(), opts)
+	result := compiler.Compile(context.Background(), opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no fatal error, got %v", err)
-	}
+	// Assert - can have errors collected in result without fatal error
+	snapshot := result.Snapshot
 
 	// Should have errors in metadata
 	if len(snapshot.Metadata.Errors) == 0 {
@@ -105,12 +105,10 @@ func TestParserIntegration_MultipleFiles(t *testing.T) {
 	}
 
 	// Act
-	snapshot, err := compiler.Compile(context.Background(), opts)
+	result := compiler.Compile(context.Background(), opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no fatal error, got %v", err)
-	}
+	// Assert - can have errors collected in result without fatal error
+	snapshot := result.Snapshot
 
 	// Should have 2 input files
 	if len(snapshot.Metadata.InputFiles) != 2 {

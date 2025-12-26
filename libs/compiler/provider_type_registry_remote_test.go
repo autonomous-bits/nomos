@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 )
 
 // TestProviderTypeRegistry_CreateRemoteProvider tests creating providers via resolver + manager.
@@ -45,7 +46,7 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 
 		// Register an in-process constructor
 		inProcessCalled := false
-		registry.RegisterType("test", func(_ map[string]any) (compiler.Provider, error) {
+		registry.RegisterType("test", func(_ map[string]any) (core.Provider, error) {
 			inProcessCalled = true
 			return &fakeProvider{}, nil
 		})
@@ -65,10 +66,10 @@ func TestProviderTypeRegistry_CreateRemoteProvider(t *testing.T) {
 	})
 }
 
-// fakeProvider implements compiler.Provider for testing.
+// fakeProvider implements core.Provider for testing.
 type fakeProvider struct{}
 
-func (f *fakeProvider) Init(_ context.Context, _ compiler.ProviderInitOptions) error {
+func (f *fakeProvider) Init(_ context.Context, _ core.ProviderInitOptions) error {
 	return nil
 }
 

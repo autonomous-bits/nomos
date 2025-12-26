@@ -1,45 +1,52 @@
 package compiler
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"os"
-	"os/exec"
-	"strconv"
-	"strings"
-	"sync"
+	"time"
 
-	providerv1 "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go/nomos/provider/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/providers"
 )
 
-// providerProcess represents a running provider subprocess.
-type providerProcess struct {
-	cmd    *exec.Cmd
-	client *Client
-	alias  string
+// ManagerOptions configures the Manager behavior.
+type ManagerOptions struct {
+	// ShutdownTimeout is the maximum time to wait for graceful provider shutdown.
+	// After this timeout, providers are forcefully terminated.
+	// Default: 5 seconds.
+	ShutdownTimeout time.Duration
 }
 
 // Manager manages the lifecycle of external provider subprocesses.
 // It starts providers on-demand, caches them per alias, and handles
-// graceful shutdown.
+// graceful shutdown with configurable timeouts.
+//
+// This is a public wrapper around the internal implementation.
 type Manager struct {
-	mu        sync.RWMutex
-	processes map[string]*providerProcess // keyed by alias
+	impl *providers.Manager
 }
 
-// NewManager creates a new Manager instance.
+// NewManager creates a new Manager instance with default options.
 func NewManager() *Manager {
 	return &Manager{
-		processes: make(map[string]*providerProcess),
+		impl: providers.NewManager(nil),
+	}
+}
+
+// NewManagerWithOptions creates a new Manager instance with the given options.
+func NewManagerWithOptions(opts ManagerOptions) *Manager {
+	providerOpts := &providers.ManagerOptions{
+		ShutdownTimeout: opts.ShutdownTimeout,
+	}
+	return &Manager{
+		impl: providers.NewManager(providerOpts),
 	}
 }
 
 // GetProvider returns a Provider instance for the given alias.
 // If the provider subprocess is not already running, it starts it
 // and establishes a gRPC connection.
+//
+// On error, any partially initialized resources (subprocess, connection) are cleaned up.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout
@@ -50,136 +57,14 @@ func NewManager() *Manager {
 // Returns:
 //   - Provider instance that delegates to the gRPC service
 //   - Error if the subprocess cannot be started or connection fails
-func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, _ ProviderInitOptions) (Provider, error) {
-	// Check if process already exists (fast path)
-	m.mu.RLock()
-	if proc, ok := m.processes[alias]; ok {
-		m.mu.RUnlock()
-		return proc.client, nil
-	}
-	m.mu.RUnlock()
-
-	// Start process (hold write lock)
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Double-check after acquiring write lock
-	if proc, ok := m.processes[alias]; ok {
-		return proc.client, nil
-	}
-
-	// Verify binary exists
-	if _, err := os.Stat(binaryPath); err != nil {
-		return nil, fmt.Errorf("provider binary not found at %s: %w", binaryPath, err)
-	}
-
-	// Start the subprocess
-	cmd := exec.CommandContext(ctx, binaryPath)
-	cmd.Stderr = os.Stderr // Capture provider stderr
-
-	// Create a pipe to read stdout (provider will print port)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start provider process: %w", err)
-	}
-
-	// Read the port from stdout
-	// Provider should print: PROVIDER_PORT=<port>
-	scanner := bufio.NewScanner(stdout)
-	var port int
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "PROVIDER_PORT=") {
-			portStr := strings.TrimPrefix(line, "PROVIDER_PORT=")
-			port, err = strconv.Atoi(portStr)
-			if err != nil {
-				_ = cmd.Process.Kill()
-				return nil, fmt.Errorf("invalid port format: %s", portStr)
-			}
-			break
-		}
-	}
-
-	if port == 0 {
-		_ = cmd.Process.Kill()
-		return nil, fmt.Errorf("provider did not report port")
-	}
-
-	// Connect to the provider via gRPC
-	target := fmt.Sprintf("127.0.0.1:%d", port)
-	conn, err := grpc.NewClient(
-		target,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		_ = cmd.Process.Kill()
-		return nil, fmt.Errorf("failed to connect to provider: %w", err)
-	}
-
-	// Verify connection by calling Health
-	healthClient := providerv1.NewProviderServiceClient(conn)
-	_, err = healthClient.Health(ctx, &providerv1.HealthRequest{})
-	if err != nil {
-		_ = conn.Close()
-		_ = cmd.Process.Kill()
-		return nil, fmt.Errorf("provider health check failed: %w", err)
-	}
-
-	// Create client
-	client := NewClient(conn, alias)
-
-	// Store process
-	proc := &providerProcess{
-		cmd:    cmd,
-		client: client,
-		alias:  alias,
-	}
-	m.processes[alias] = proc
-
-	return client, nil
+func (m *Manager) GetProvider(ctx context.Context, alias string, binaryPath string, opts core.ProviderInitOptions) (core.Provider, error) {
+	return m.impl.GetProvider(ctx, alias, binaryPath, opts)
 }
 
 // Shutdown gracefully shuts down all running provider processes.
-// It calls the Shutdown RPC on each provider and waits for processes to exit.
-// If a process doesn't exit within the context deadline, it is forcefully terminated.
+// It first attempts graceful shutdown by calling the Shutdown RPC on each provider
+// and waiting up to ShutdownTimeout for the process to exit.
+// If a process doesn't exit within the timeout, it is forcefully terminated.
 func (m *Manager) Shutdown(ctx context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var errs []error
-
-	for alias, proc := range m.processes {
-		// Call Shutdown RPC (best effort)
-		_, err := proc.client.client.Shutdown(ctx, &providerv1.ShutdownRequest{})
-		if err != nil {
-			// Log but don't fail on RPC error
-			errs = append(errs, fmt.Errorf("shutdown RPC failed for %s (continuing): %w", alias, err))
-		}
-
-		// Close gRPC connection
-		if err := proc.client.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("failed to close connection for %s: %w", alias, err))
-		}
-
-		// Kill the process (since we closed the connection, it should exit)
-		// Use Kill instead of waiting to avoid hangs
-		if proc.cmd.Process != nil {
-			if err := proc.cmd.Process.Kill(); err != nil {
-				errs = append(errs, fmt.Errorf("failed to kill process %s: %w", alias, err))
-			}
-		}
-	}
-
-	// Clear processes map
-	m.processes = make(map[string]*providerProcess)
-
-	if len(errs) > 0 {
-		return fmt.Errorf("shutdown errors: %v", errs)
-	}
-
-	return nil
+	return m.impl.Shutdown(ctx)
 }

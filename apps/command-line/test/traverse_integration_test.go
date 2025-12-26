@@ -77,10 +77,12 @@ func TestTraverseIntegration_OrderedFilesPassedToCompiler(t *testing.T) {
 		Vars:             make(map[string]any),
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("Compile failed: %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("Compile failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Check for compilation errors or warnings
 	if len(snapshot.Metadata.Errors) > 0 {

@@ -57,10 +57,12 @@ func TestCompile_MetadataPopulation(t *testing.T) {
 		ProviderRegistry: registry,
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("Compile failed: %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("Compile failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Test Metadata fields
 	t.Run("InputFiles contains all .csl files", func(t *testing.T) {

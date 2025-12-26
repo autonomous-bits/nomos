@@ -39,12 +39,12 @@ func TestCompile_OptionsValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := compiler.Compile(tt.ctx, tt.opts)
-			if err == nil {
+			result := compiler.Compile(tt.ctx, tt.opts)
+			if !result.HasErrors() {
 				t.Fatalf("expected error, got nil")
 			}
-			if err.Error() != tt.expectError {
-				t.Errorf("expected error %q, got %q", tt.expectError, err.Error())
+			if result.Error().Error() != tt.expectError {
+				t.Errorf("expected error %q, got %q", tt.expectError, result.Error().Error())
 			}
 		})
 	}
@@ -60,7 +60,7 @@ func TestCompile_DeterministicDirectoryTraversal(t *testing.T) {
 	files := []string{"z.csl", "a.csl", "m.csl"}
 	for _, f := range files {
 		path := tmpDir + "/" + f
-		if err := writeFile(path, "# test"); err != nil {
+		if err := writeFile(path, "test: true"); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 	}
@@ -72,20 +72,20 @@ func TestCompile_DeterministicDirectoryTraversal(t *testing.T) {
 		ProviderRegistry: testutil.NewFakeProviderRegistry(),
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
 
 	// Verify files are in lexicographic order
 	expected := []string{tmpDir + "/a.csl", tmpDir + "/m.csl", tmpDir + "/z.csl"}
-	if len(snapshot.Metadata.InputFiles) != len(expected) {
-		t.Fatalf("expected %d files, got %d", len(expected), len(snapshot.Metadata.InputFiles))
+	if len(result.Snapshot.Metadata.InputFiles) != len(expected) {
+		t.Fatalf("expected %d files, got %d", len(expected), len(result.Snapshot.Metadata.InputFiles))
 	}
 
 	for i, expectedPath := range expected {
-		if snapshot.Metadata.InputFiles[i] != expectedPath {
-			t.Errorf("file[%d]: expected %q, got %q", i, expectedPath, snapshot.Metadata.InputFiles[i])
+		if result.Snapshot.Metadata.InputFiles[i] != expectedPath {
+			t.Errorf("file[%d]: expected %q, got %q", i, expectedPath, result.Snapshot.Metadata.InputFiles[i])
 		}
 	}
 }

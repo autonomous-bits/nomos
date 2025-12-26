@@ -29,12 +29,14 @@ func TestCompile_SimpleImport(t *testing.T) {
 	}
 
 	// Act
-	snapshot, err := Compile(context.Background(), opts)
+	result := Compile(context.Background(), opts)
 
 	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Load expected golden file
 	goldenPath := filepath.Join("testdata", "imports", "expected.golden.json")
@@ -90,12 +92,14 @@ func TestCompile_ImportCycle(t *testing.T) {
 	}
 
 	// Act
-	_, err := Compile(context.Background(), opts)
+	result := Compile(context.Background(), opts)
 
 	// Assert
-	if err == nil {
+	if !result.HasErrors() {
 		t.Fatal("expected error for circular import, got nil")
 	}
+
+	err := result.Error()
 
 	// Check if it's a cycle detection error
 	var cycleErr *validator.ErrCycleDetected

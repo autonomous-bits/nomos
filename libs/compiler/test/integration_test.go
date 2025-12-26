@@ -22,10 +22,12 @@ func TestIntegration_SmokeTest(t *testing.T) {
 		ProviderRegistry: testutil.NewFakeProviderRegistry(),
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Verify snapshot structure
 	if snapshot.Data == nil {

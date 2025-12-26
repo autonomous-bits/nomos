@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -24,6 +25,11 @@ func newFakeProvider(_ string) *fakeProvider {
 		FetchResponses: make(map[string]any),
 		fetchCalls:     make([][]string, 0),
 	}
+}
+
+func (f *fakeProvider) Init(_ context.Context, _ core.ProviderInitOptions) error {
+	// No-op for testing
+	return nil
 }
 
 func (f *fakeProvider) Fetch(_ context.Context, path []string) (any, error) {

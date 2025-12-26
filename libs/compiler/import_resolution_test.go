@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
 )
 
@@ -25,7 +26,7 @@ func newTestFileProvider(baseDir string) *testFileProvider {
 	}
 }
 
-func (f *testFileProvider) Init(_ context.Context, opts ProviderInitOptions) error {
+func (f *testFileProvider) Init(_ context.Context, opts core.ProviderInitOptions) error {
 	f.initCount++
 
 	// Override base directory if provided in config
@@ -101,12 +102,12 @@ func (f *testFileProvider) Info() (alias string, version string) {
 }
 
 // setupTestRegistry creates a registry with file provider for testing.
-func setupTestRegistry(testDir string) (ProviderRegistry, ProviderTypeRegistry) {
+func setupTestRegistry(testDir string) (ProviderRegistry, core.ProviderTypeRegistry) {
 	registry := NewProviderRegistry()
 	typeRegistry := NewProviderTypeRegistry()
 
 	// Register file provider constructor
-	typeRegistry.RegisterType("file", func(config map[string]any) (Provider, error) {
+	typeRegistry.RegisterType("file", func(config map[string]any) (core.Provider, error) {
 		baseDir := testDir
 		if dir, ok := config["directory"].(string); ok && dir != "" {
 			if !filepath.IsAbs(dir) {
@@ -272,14 +273,14 @@ func TestResolveFileImports_NoTypeRegistry(t *testing.T) {
 	// Act
 	data, err := resolveFileImports(context.Background(), filePath, opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	// Assert - should return ErrImportResolutionNotAvailable
+	if !errors.Is(err, ErrImportResolutionNotAvailable) {
+		t.Fatalf("expected ErrImportResolutionNotAvailable, got %v", err)
 	}
 
-	// Should return nil to signal fallback to regular flow
+	// Data should be nil when import resolution is not available
 	if data != nil {
-		t.Errorf("expected nil data (fallback signal), got %v", data)
+		t.Errorf("expected nil data when import resolution not available, got %v", data)
 	}
 }
 
@@ -451,7 +452,7 @@ func TestResolveFileImports_ProviderInitError(t *testing.T) {
 	typeRegistry := NewProviderTypeRegistry()
 
 	// Register file provider constructor that returns init error
-	typeRegistry.RegisterType("file", func(_ map[string]any) (Provider, error) {
+	typeRegistry.RegisterType("file", func(_ map[string]any) (core.Provider, error) {
 		return nil, fmt.Errorf("simulated init error")
 	})
 

@@ -208,9 +208,9 @@ func TestCompile_ConcurrentCalls(t *testing.T) {
 				ProviderRegistry: registry,
 			}
 
-			_, err := compiler.Compile(ctx, opts)
-			if err != nil {
-				errors <- fmt.Errorf("goroutine %d: %w", id, err)
+			result := compiler.Compile(ctx, opts)
+			if result.HasErrors() {
+				errors <- fmt.Errorf("goroutine %d: %w", id, result.Error())
 			}
 		}(i)
 	}

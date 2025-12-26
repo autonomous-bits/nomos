@@ -57,13 +57,15 @@ server:
 	}
 
 	startTime := time.Now()
-	snapshot, err := compiler.Compile(ctx, opts)
+	result := compiler.Compile(ctx, opts)
 	duration := time.Since(startTime)
 
 	// Assert compilation succeeded
-	if err != nil {
-		t.Fatalf("compilation failed: %v", err)
+	if result.HasErrors() {
+		t.Fatalf("compilation failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Validate snapshot structure (Snapshot is a struct, not pointer)
 	if snapshot.Data == nil {
@@ -188,10 +190,12 @@ cache:
 		ProviderRegistry: registry,
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("compilation failed: %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("compilation failed: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Validate references were resolved
 	if db, ok := snapshot.Data["database"].(map[string]any); ok {
@@ -253,15 +257,18 @@ func TestSmoke_SnapshotDeterminism(t *testing.T) {
 		ProviderRegistry: registry,
 	}
 
-	snapshot1, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("first compilation failed: %v", err)
+	result1 := compiler.Compile(ctx, opts)
+	if result1.HasErrors() {
+		t.Fatalf("first compilation failed: %v", result1.Error())
 	}
 
-	snapshot2, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("second compilation failed: %v", err)
+	result2 := compiler.Compile(ctx, opts)
+	if result2.HasErrors() {
+		t.Fatalf("second compilation failed: %v", result2.Error())
 	}
+
+	snapshot1 := result1.Snapshot
+	snapshot2 := result2.Snapshot
 
 	// Compare data sections (exclude metadata as it contains timestamps)
 	data1JSON, err := json.Marshal(snapshot1.Data)
@@ -318,15 +325,15 @@ func TestSmoke_ErrorHandling(t *testing.T) {
 		ProviderRegistry: registry,
 	}
 
-	_, err := compiler.Compile(ctx, opts)
+	result := compiler.Compile(ctx, opts)
 
 	// Assert compilation failed
-	if err == nil {
+	if !result.HasErrors() {
 		t.Fatal("expected compilation error for non-existent file, got nil")
 	}
 
 	// Verify error message contains useful information
-	errMsg := err.Error()
+	errMsg := result.Error().Error()
 	if errMsg == "" {
 		t.Error("error message is empty")
 	}

@@ -95,10 +95,12 @@ func TestIntegration_HTTPProvider(t *testing.T) {
 		ProviderRegistry: registry,
 	}
 
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Verify snapshot was created
 	if snapshot.Data == nil {
@@ -135,7 +137,7 @@ func TestIntegration_NetworkTimeout(t *testing.T) {
 
 	// Create config file with reference to slow provider
 	configFile := filepath.Join(tmpDir, "config.csl")
-	configContent := `# Config with slow provider
+	configContent := `// Config with slow provider
 timeout_test: true
 `
 	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
@@ -153,16 +155,18 @@ timeout_test: true
 
 	// Compilation should succeed since we're not actually fetching from the provider
 	// This test validates that the provider infrastructure respects context timeouts
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
 		// If we get a context deadline exceeded error, that's acceptable
 		// since the context was cancelled
 		if ctx.Err() != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			t.Logf("Expected timeout occurred: %v", err)
+			t.Logf("Expected timeout occurred: %v", result.Error())
 			return
 		}
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Verify snapshot was created
 	if snapshot.Data == nil {

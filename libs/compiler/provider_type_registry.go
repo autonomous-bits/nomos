@@ -4,43 +4,24 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 )
 
-// ProviderTypeConstructor creates a Provider from configuration.
-// Unlike ProviderConstructor which is called during GetProvider, this is called
-// when processing source declarations in .csl files.
-type ProviderTypeConstructor func(config map[string]any) (Provider, error)
-
-// ProviderTypeRegistry manages provider type constructors.
-// This allows creating providers dynamically from source declarations in .csl files.
-// Provider types use owner/repo format for proper namespacing (e.g., "autonomous-bits/nomos-provider-file").
-type ProviderTypeRegistry interface {
-	// RegisterType registers a provider type constructor.
-	// Example: RegisterType("autonomous-bits/nomos-provider-file", NewFileProvider)
-	RegisterType(typeName string, constructor ProviderTypeConstructor)
-
-	// CreateProvider creates a provider instance of the given type with the provided config.
-	// Returns an error if the type is not registered.
-	// The context is used for provider initialization and should respect cancellation.
-	CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error)
-
-	// IsTypeRegistered checks if a provider type is registered.
-	IsTypeRegistered(typeName string) bool
-
-	// RegisteredTypes returns all registered provider type names.
-	RegisteredTypes() []string
-}
+// ProviderTypeConstructor is an alias for core.ProviderTypeConstructor for backward compatibility.
+// Deprecated: Use core.ProviderTypeConstructor directly.
+type ProviderTypeConstructor = core.ProviderTypeConstructor
 
 // providerTypeRegistry is the default implementation of ProviderTypeRegistry.
 type providerTypeRegistry struct {
 	mu           sync.RWMutex
-	constructors map[string]ProviderTypeConstructor
+	constructors map[string]core.ProviderTypeConstructor
 	resolver     ProviderResolver // optional: resolves types to binary paths
 	manager      ProviderManager  // optional: manages provider subprocesses
 }
 
 // NewProviderTypeRegistry creates a new ProviderTypeRegistry.
-func NewProviderTypeRegistry() ProviderTypeRegistry {
+func NewProviderTypeRegistry() core.ProviderTypeRegistry {
 	return &providerTypeRegistry{
 		constructors: make(map[string]ProviderTypeConstructor),
 	}
@@ -51,9 +32,9 @@ func NewProviderTypeRegistry() ProviderTypeRegistry {
 // When a provider type is requested, the registry first checks for a registered in-process
 // constructor. If none is found and a resolver+manager are available, it attempts to
 // locate and start an external provider binary.
-func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager ProviderManager) ProviderTypeRegistry {
+func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager ProviderManager) core.ProviderTypeRegistry {
 	return &providerTypeRegistry{
-		constructors: make(map[string]ProviderTypeConstructor),
+		constructors: make(map[string]core.ProviderTypeConstructor),
 		resolver:     resolver,
 		manager:      manager,
 	}
@@ -65,19 +46,19 @@ func NewProviderTypeRegistryWithResolver(resolver ProviderResolver, manager Prov
 //
 // The provider manager lifecycle is handled automatically - subprocesses will be
 // cleaned up by the OS when the parent process exits.
-func NewProviderTypeRegistryWithLockfile(resolver ProviderResolver) ProviderTypeRegistry {
+func NewProviderTypeRegistryWithLockfile(resolver ProviderResolver) core.ProviderTypeRegistry {
 	// Create the provider manager internally
 	manager := NewManager()
 
 	return &providerTypeRegistry{
-		constructors: make(map[string]ProviderTypeConstructor),
+		constructors: make(map[string]core.ProviderTypeConstructor),
 		resolver:     resolver,
 		manager:      manager,
 	}
 }
 
 // RegisterType implements ProviderTypeRegistry.RegisterType.
-func (r *providerTypeRegistry) RegisterType(typeName string, constructor ProviderTypeConstructor) {
+func (r *providerTypeRegistry) RegisterType(typeName string, constructor core.ProviderTypeConstructor) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -85,7 +66,7 @@ func (r *providerTypeRegistry) RegisterType(typeName string, constructor Provide
 }
 
 // CreateProvider implements ProviderTypeRegistry.CreateProvider.
-func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error) {
+func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName string, config map[string]any) (core.Provider, error) {
 	// First, check for in-process constructor
 	r.mu.RLock()
 	constructor, hasConstructor := r.constructors[typeName]
@@ -109,7 +90,7 @@ func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName stri
 		}
 
 		// Use the provider type as the alias for now (can be refined later)
-		opts := ProviderInitOptions{
+		opts := core.ProviderInitOptions{
 			Alias:  typeName,
 			Config: config,
 		}
