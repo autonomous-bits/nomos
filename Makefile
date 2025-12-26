@@ -1,4 +1,5 @@
 .PHONY: help build test test-race lint work-sync clean build-cli test-module build-module
+.PHONY: test-unit test-integration test-integration-module
 .PHONY: release-lib list-tags release-check
 
 # Default target
@@ -9,8 +10,11 @@ help:
 	@echo "  build-cli         - Build the CLI application"
 	@echo "  build-module      - Build a specific module (usage: make build-module MODULE=libs/compiler)"
 	@echo "  test              - Run all tests across all modules"
+	@echo "  test-unit         - Run only unit tests (excludes integration tests)"
+	@echo "  test-integration  - Run all integration tests across all modules"
 	@echo "  test-race         - Run tests with race detector"
 	@echo "  test-module       - Test a specific module (usage: make test-module MODULE=libs/compiler)"
+	@echo "  test-integration-module - Run integration tests for a specific module"
 	@echo "  lint              - Run linters across all modules"
 	@echo "  work-sync         - Sync Go workspace dependencies"
 	@echo "  clean             - Clean build artifacts"
@@ -52,6 +56,22 @@ test: work-sync
 		(cd $$dir && go test -v ./...) || exit 1; \
 	done
 
+# Run unit tests only (exclude integration tests)
+test-unit: work-sync
+	@echo "Running unit tests across workspace (excluding integration tests)..."
+	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
+		echo "Testing $$dir (unit tests only)..."; \
+		(cd $$dir && go test -v -short ./...) || exit 1; \
+	done
+
+# Run integration tests only
+test-integration: work-sync
+	@echo "Running integration tests across workspace..."
+	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader; do \
+		echo "Testing $$dir (integration tests)..."; \
+		(cd $$dir && go test -v -tags=integration ./...) || exit 1; \
+	done
+
 # Run tests with race detector
 test-race: work-sync
 	@echo "Running tests with race detector..."
@@ -68,6 +88,15 @@ test-module: work-sync
 	fi
 	@echo "Testing module $(MODULE)..."
 	@cd $(MODULE) && go test -v ./...
+
+# Run integration tests for specific module
+test-integration-module: work-sync
+	@if [ -z "$(MODULE)" ]; then \
+		echo "Error: MODULE variable not set. Usage: make test-integration-module MODULE=libs/compiler"; \
+		exit 1; \
+	fi
+	@echo "Running integration tests for module $(MODULE)..."
+	@cd $(MODULE) && go test -v -tags=integration ./...
 
 # Lint all modules
 lint:

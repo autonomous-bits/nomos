@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,8 +23,13 @@ func TestInitCommand_MissingVersion(t *testing.T) {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Act: run init command
-	err := runInit([]string{cslPath})
+	// Act: run init command via Cobra
+	rootCmd.SetArgs([]string{"init", cslPath})
+	var stdout, stderr bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	err := rootCmd.Execute()
+	rootCmd.SetArgs(nil) // reset for other tests
 
 	// Assert: expect error about missing version
 	if err == nil {
@@ -61,9 +67,14 @@ func TestInitCommand_ParsesOwnerRepoFormat(t *testing.T) {
 		t.Fatalf("failed to chdir: %v", err)
 	}
 
-	// Act: run init (will fail to download without network, but should parse correctly)
+	// Act: run init via Cobra (will fail to download without network, but should parse correctly)
 	// For this test, we just verify the error message indicates it tried to download
-	err := runInit([]string{cslPath})
+	rootCmd.SetArgs([]string{"init", cslPath})
+	var stdout, stderr bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	err := rootCmd.Execute()
+	rootCmd.SetArgs(nil) // reset for other tests
 
 	// Assert: error mentions GitHub or network (indicates it parsed owner/repo correctly)
 	// We expect an error because we don't have a mock GitHub server in unit tests
@@ -105,8 +116,13 @@ func TestInitCommand_DryRun(t *testing.T) {
 		t.Fatalf("failed to chdir: %v", err)
 	}
 
-	// Act: run init with --dry-run
-	err := runInit([]string{"--dry-run", cslPath})
+	// Act: run init with --dry-run via Cobra
+	rootCmd.SetArgs([]string{"init", "--dry-run", cslPath})
+	var stdout, stderr bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	err := rootCmd.Execute()
+	rootCmd.SetArgs(nil) // reset for other tests
 
 	// Assert: no error
 	if err != nil {

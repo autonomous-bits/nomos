@@ -1,4 +1,4 @@
-package fakes
+package testutil
 
 import (
 	"context"

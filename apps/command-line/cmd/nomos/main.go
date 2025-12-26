@@ -6,51 +6,14 @@ import (
 	"os"
 )
 
-const (
-	exitError    = 1
-	exitUsageErr = 2
-)
-
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	// Setup color output based on flags
+	setupColorOutput()
+
+	// Execute root command
+	if err := Execute(); err != nil {
+		// Cobra already prints the error, but we control the exit code
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(exitError)
+		os.Exit(1)
 	}
-}
-
-func run(args []string) error {
-	// Parse command - for now we only support "build"
-	if len(args) == 0 {
-		return usageError("no command specified. Use 'nomos build --help' for usage.")
-	}
-
-	command := args[0]
-	commandArgs := args[1:]
-
-	switch command {
-	case "build":
-		return runBuild(commandArgs)
-	case "init":
-		return runInit(commandArgs)
-	case "help", "--help", "-h":
-		printHelp()
-		return nil
-	default:
-		return usageError(fmt.Sprintf("unknown command: %s", command))
-	}
-}
-
-func runBuild(args []string) error {
-	return buildCommand(args)
-}
-
-func printUsage() {
-	printHelp()
-}
-
-func usageError(msg string) error {
-	fmt.Fprintf(os.Stderr, "%s\n\n", msg)
-	printUsage()
-	os.Exit(exitUsageErr)
-	return nil // unreachable, but satisfies type checker
 }

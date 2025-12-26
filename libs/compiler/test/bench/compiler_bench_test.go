@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
 
 // BenchmarkMergeSmall benchmarks deep-merge of small configuration maps.
@@ -117,7 +117,7 @@ func BenchmarkReferenceResolution(b *testing.B) {
 			ctx := context.Background()
 
 			// Create fake provider with responses
-			provider := fakes.NewFakeProvider("test")
+			provider := testutil.NewFakeProvider("test")
 			for i := 0; i < tt.numRefs; i++ {
 				path := fmt.Sprintf("config/key%d", i)
 				provider.FetchResponses[path] = fmt.Sprintf("value%d", i)
@@ -157,9 +157,8 @@ func BenchmarkCompileEmpty(b *testing.B) {
 	tmpDir := b.TempDir()
 	ctx := context.Background()
 
-	registry := &benchProviderRegistry{
-		provider: fakes.NewFakeProvider("test"),
-	}
+	registry := testutil.NewFakeProviderRegistry()
+	registry.AddProvider("test", testutil.NewFakeProvider("test"))
 
 	opts := compiler.Options{
 		Path:             tmpDir,
@@ -186,21 +185,4 @@ func generateLargeConfig(keysPerLevel int, depth int) map[string]any {
 		result[key] = generateLargeConfig(keysPerLevel/2, depth-1)
 	}
 	return result
-}
-
-// benchProviderRegistry is a minimal provider registry for benchmarks.
-type benchProviderRegistry struct {
-	provider compiler.Provider
-}
-
-func (r *benchProviderRegistry) Register(_ string, _ compiler.ProviderConstructor) {
-	// No-op for benchmarks
-}
-
-func (r *benchProviderRegistry) GetProvider(_ context.Context, _ string) (compiler.Provider, error) {
-	return r.provider, nil
-}
-
-func (r *benchProviderRegistry) RegisteredAliases() []string {
-	return []string{"test"}
 }

@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Caching support**: Optional binary caching to avoid redundant downloads
+  - Cache keyed by SHA256 checksum
+  - Only caches when `AssetInfo.Checksum` is provided
+  - Configure via `ClientOptions.CacheDir`
+  - Cache hit avoids network calls entirely
+  - Comprehensive cache tests (hit/miss/disabled scenarios)
+- **Archive extraction**: Automatic extraction of provider binaries from archives
+  - Support for `.tar.gz`, `.tgz`, and `.zip` formats
+  - Automatic format detection based on file extension
+  - Searches for `provider` or `nomos-provider-*` binaries in archives
+  - Refactored into `internal/archive` package with `Extractor` interface
+  - Separate `TarGzExtractor` and `ZipExtractor` implementations
+- **Integration test suite**: Comprehensive end-to-end testing
+  - Full download → extract → install flow testing
+  - Multiple provider sequence downloads
+  - Concurrent download tests with race detection
+  - Archive extraction integration tests
+  - Cache efficiency tests
+  - Context cancellation tests
 - Initial public API with `NewClient`, `ResolveAsset`, and `DownloadAndInstall`
 - Core types: `ClientOptions`, `ProviderSpec`, `AssetInfo`, `InstallResult`
 - Typed errors for common failure modes (`ErrAssetNotFound`, `ErrChecksumMismatch`, etc.)
@@ -28,10 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic retry on 5xx errors, timeouts, and connection issues
   - File reset between retries to ensure clean download attempts
   - Context cancellation support throughout download lifecycle
-- Comprehensive unit test suite with httptest-based hermetic testing (81.6% coverage)
+- Comprehensive unit test suite with httptest-based hermetic testing (85.5% coverage, up from 81.6%)
 - Additional unit tests for timeout handling (context deadline exceeded, slow but successful downloads)
 - Public `testutil` package with `BinaryFixture` utilities for generating deterministic test binaries with SHA256 checksums
   - `CreateBinaryFixture(t, size, prefix)` generates reproducible test binaries
   - `CreateCorruptedFixture(t, size, prefix)` creates fixtures for testing checksum validation failures
+
+### Changed
+- Refactored archive extraction logic into separate `internal/archive` package
+- Improved code organization with cleaner separation of concerns
+- Enhanced README with caching and archive extraction documentation
 
 [Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/provider/downloader/v0.0.0...HEAD

@@ -128,16 +128,24 @@ func TestFormatter_PrintErrors(t *testing.T) {
 	output := buf.String()
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 
-	if len(lines) != 2 {
-		t.Fatalf("Expected 2 lines of output, got %d", len(lines))
+	// Expect 3 lines: "Errors:" header + 2 error lines
+	if len(lines) != 3 {
+		t.Fatalf("Expected 3 lines of output (header + 2 errors), got %d", len(lines))
 	}
 
-	if !strings.Contains(lines[0], "app.csl:5:12:") {
-		t.Errorf("Expected first line to contain error location, got: %s", lines[0])
+	// First line should be "Errors:" header
+	if !strings.Contains(lines[0], "Errors:") {
+		t.Errorf("Expected first line to be header, got: %s", lines[0])
 	}
 
-	if !strings.Contains(lines[1], "config.csl:10:3:") {
+	// Second line should be first error
+	if !strings.Contains(lines[1], "app.csl:5:12:") {
 		t.Errorf("Expected second line to contain error location, got: %s", lines[1])
+	}
+
+	// Third line should be second error
+	if !strings.Contains(lines[2], "config.csl:10:3:") {
+		t.Errorf("Expected third line to contain error location, got: %s", lines[2])
 	}
 }
 
@@ -173,7 +181,8 @@ func TestFormatter_ColorOutput(t *testing.T) {
 	}
 
 	// Should contain ANSI color codes (red for errors)
-	if !strings.Contains(result[0], "\033[") {
+	// fatih/color uses different escape sequences
+	if !strings.Contains(result[0], "\x1b[") && !strings.Contains(result[0], "\033[") {
 		t.Errorf("Expected color codes in output, got: %s", result[0])
 	}
 }

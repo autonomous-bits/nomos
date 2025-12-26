@@ -23,5 +23,10 @@
     },
     "yaml.schemas": {
         "https://json.schemastore.org/golangci-lint.json": ".golangci.yml"
+    },
+    "gopls": {
+        "build.buildFlags": [
+            "-tags=integration"
+        ]
     }
 }

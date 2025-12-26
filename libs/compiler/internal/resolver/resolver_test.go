@@ -10,17 +10,19 @@ import (
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
-// fakeProvider implements Provider for testing.
+// fakeProvider is a minimal test double for the resolver.Provider interface.
 type fakeProvider struct {
+	FetchResponses map[string]any // Exported for test setup
+	FetchError     error          // Exported for error injection
+	FetchCount     int            // Exported for call tracking
+	fetchCalls     [][]string
 	mu             sync.Mutex
-	fetchCount     int
-	fetchResponses map[string]any
-	fetchError     error
 }
 
-func newFakeProvider() *fakeProvider {
+func newFakeProvider(_ string) *fakeProvider {
 	return &fakeProvider{
-		fetchResponses: make(map[string]any),
+		FetchResponses: make(map[string]any),
+		fetchCalls:     make([][]string, 0),
 	}
 }
 
@@ -28,55 +30,30 @@ func (f *fakeProvider) Fetch(_ context.Context, path []string) (any, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.fetchCount++
+	f.FetchCount++
+	f.fetchCalls = append(f.fetchCalls, path)
 
-	if f.fetchError != nil {
-		return nil, f.fetchError
+	if f.FetchError != nil {
+		return nil, f.FetchError
 	}
 
 	key := strings.Join(path, "/")
-	if val, ok := f.fetchResponses[key]; ok {
+	if val, ok := f.FetchResponses[key]; ok {
 		return val, nil
 	}
-
-	return nil, errors.New("path not found")
+	return nil, errors.New("not found")
 }
 
-func (f *fakeProvider) getFetchCount() int {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.fetchCount
-}
-
-func (f *fakeProvider) setResponse(path []string, value any) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	key := strings.Join(path, "/")
-	f.fetchResponses[key] = value
-}
-
-func (f *fakeProvider) setError(err error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.fetchError = err
-}
-
-// fakeProviderRegistry implements ProviderRegistry for testing.
+// fakeProviderRegistry is a minimal test double for ProviderRegistry.
 type fakeProviderRegistry struct {
-	mu        sync.RWMutex
 	providers map[string]Provider
+	mu        sync.RWMutex
 }
 
 func newFakeProviderRegistry() *fakeProviderRegistry {
 	return &fakeProviderRegistry{
 		providers: make(map[string]Provider),
 	}
-}
-
-func (r *fakeProviderRegistry) register(alias string, provider Provider) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.providers[alias] = provider
 }
 
 func (r *fakeProviderRegistry) GetProvider(alias string) (Provider, error) {
@@ -86,8 +63,13 @@ func (r *fakeProviderRegistry) GetProvider(alias string) (Provider, error) {
 	if p, ok := r.providers[alias]; ok {
 		return p, nil
 	}
+	return nil, errors.New("provider not found: " + alias)
+}
 
-	return nil, ErrProviderNotRegistered
+func (r *fakeProviderRegistry) addProvider(alias string, provider Provider) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.providers[alias] = provider
 }
 
 // TestResolveValue_ScalarPassthrough tests that scalar values pass through unchanged.
@@ -126,9 +108,9 @@ func TestResolveValue_ScalarPassthrough(t *testing.T) {
 func TestResolveValue_ReferenceExpr_BasicResolution(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setResponse([]string{"config", "name"}, "test-value")
-	registry.register("network", provider)
+	provider := newFakeProvider("network")
+	provider.FetchResponses["config/name"] = "test-value"
+	registry.addProvider("network", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,
@@ -156,8 +138,8 @@ func TestResolveValue_ReferenceExpr_BasicResolution(t *testing.T) {
 	if result != "test-value" {
 		t.Errorf("expected 'test-value', got %v", result)
 	}
-	if provider.getFetchCount() != 1 {
-		t.Errorf("expected 1 fetch call, got %d", provider.getFetchCount())
+	if provider.FetchCount != 1 {
+		t.Errorf("expected 1 fetch call, got %d", provider.FetchCount)
 	}
 }
 
@@ -165,9 +147,9 @@ func TestResolveValue_ReferenceExpr_BasicResolution(t *testing.T) {
 func TestResolveValue_ReferenceExpr_Caching(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setResponse([]string{"config", "value"}, "cached-result")
-	registry.register("source", provider)
+	provider := newFakeProvider("source")
+	provider.FetchResponses["config/value"] = "cached-result"
+	registry.addProvider("source", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,
@@ -197,8 +179,8 @@ func TestResolveValue_ReferenceExpr_Caching(t *testing.T) {
 	}
 
 	// Verify provider was only called once
-	if provider.getFetchCount() != 1 {
-		t.Errorf("expected 1 fetch call (cached), got %d", provider.getFetchCount())
+	if provider.FetchCount != 1 {
+		t.Errorf("expected 1 fetch call (cached), got %d", provider.FetchCount)
 	}
 }
 
@@ -289,9 +271,9 @@ func TestResolveValue_ReferenceExpr_AllowMissingProvider(t *testing.T) {
 func TestResolveValue_ReferenceExpr_FetchError(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setError(errors.New("network timeout"))
-	registry.register("remote", provider)
+	provider := newFakeProvider("remote")
+	provider.FetchError = errors.New("network timeout")
+	registry.addProvider("remote", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,
@@ -327,9 +309,9 @@ func TestResolveValue_ReferenceExpr_FetchError(t *testing.T) {
 func TestResolveValue_ReferenceExpr_FetchError_AllowMissing(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setError(errors.New("connection refused"))
-	registry.register("remote", provider)
+	provider := newFakeProvider("remote")
+	provider.FetchError = errors.New("connection refused")
+	registry.addProvider("remote", provider)
 
 	var warnings []string
 	resolver := New(ResolverOptions{
@@ -375,10 +357,10 @@ func TestResolveValue_ReferenceExpr_FetchError_AllowMissing(t *testing.T) {
 func TestResolveValue_Map_RecursiveResolution(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setResponse([]string{"db", "host"}, "localhost")
-	provider.setResponse([]string{"db", "port"}, 5432)
-	registry.register("config", provider)
+	provider := newFakeProvider("config")
+	provider.FetchResponses["db/host"] = "localhost"
+	provider.FetchResponses["db/port"] = 5432
+	registry.addProvider("config", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,
@@ -432,10 +414,10 @@ func TestResolveValue_Map_RecursiveResolution(t *testing.T) {
 func TestResolveValue_Slice_RecursiveResolution(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
-	provider.setResponse([]string{"hosts", "0"}, "host1.example.com")
-	provider.setResponse([]string{"hosts", "1"}, "host2.example.com")
-	registry.register("inventory", provider)
+	provider := newFakeProvider("inventory")
+	provider.FetchResponses["hosts/0"] = "host1.example.com"
+	provider.FetchResponses["hosts/1"] = "host2.example.com"
+	registry.addProvider("inventory", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,
@@ -486,9 +468,9 @@ func TestResolveValue_Slice_RecursiveResolution(t *testing.T) {
 func TestResolveValue_ContextCancellation(t *testing.T) {
 	// Setup
 	registry := newFakeProviderRegistry()
-	provider := newFakeProvider()
+	provider := newFakeProvider("slow")
 	// Don't set a response - will cause provider to block/error
-	registry.register("slow", provider)
+	registry.addProvider("slow", provider)
 
 	resolver := New(ResolverOptions{
 		ProviderRegistry: registry,

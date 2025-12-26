@@ -25,6 +25,9 @@ import (
 
 // Parser represents a parser instance. It can be reused for multiple parse operations.
 type Parser struct {
+	// sourceText stores the source text for the current parse operation.
+	// It is used for error formatting and context generation.
+	sourceText string
 	// Future: add configuration options here
 }
 
@@ -77,13 +80,13 @@ func (p *Parser) Parse(r io.Reader, filename string) (*ast.AST, error) {
 	}
 
 	// Store source text for error formatting
-	sourceText := string(content)
+	p.sourceText = string(content)
 
 	// Create scanner
-	s := scanner.New(sourceText, filename)
+	s := scanner.New(p.sourceText, filename)
 
 	// Parse statements
-	statements, err := p.parseStatements(s, sourceText)
+	statements, err := p.parseStatements(s)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +107,7 @@ func (p *Parser) Parse(r io.Reader, filename string) (*ast.AST, error) {
 }
 
 // parseStatements parses all statements in the input.
-func (p *Parser) parseStatements(s *scanner.Scanner, sourceText string) ([]ast.Stmt, error) {
+func (p *Parser) parseStatements(s *scanner.Scanner) ([]ast.Stmt, error) {
 	var statements []ast.Stmt
 
 	for !s.IsEOF() {
@@ -114,7 +117,7 @@ func (p *Parser) parseStatements(s *scanner.Scanner, sourceText string) ([]ast.S
 			break
 		}
 
-		stmt, err := p.parseStatement(s, sourceText)
+		stmt, err := p.parseStatement(s)
 		if err != nil {
 			return nil, err
 		}
@@ -127,14 +130,14 @@ func (p *Parser) parseStatements(s *scanner.Scanner, sourceText string) ([]ast.S
 }
 
 // parseStatement parses a single statement.
-func (p *Parser) parseStatement(s *scanner.Scanner, sourceText string) (ast.Stmt, error) {
+func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 	startLine, startCol := s.Line(), s.Column()
 
 	// Check for invalid characters first
 	ch := s.PeekChar()
 	if ch == '!' || ch == '@' || ch == '#' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: unexpected character '%c'", ch))
-		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
 	}
 
@@ -149,15 +152,15 @@ func (p *Parser) parseStatement(s *scanner.Scanner, sourceText string) (ast.Stmt
 
 	switch token {
 	case "source":
-		return p.parseSourceDecl(s, startLine, startCol, sourceText)
+		return p.parseSourceDecl(s, startLine, startCol)
 	case "import":
-		return p.parseImportStmt(s, startLine, startCol, sourceText)
+		return p.parseImportStmt(s, startLine, startCol)
 	case "reference":
-		return nil, p.parseReferenceStmt(s, startLine, startCol, sourceText)
+		return nil, p.parseReferenceStmt(s, startLine, startCol)
 	default:
 		// Try to parse as a section declaration
 		if ch != '\n' && ch != '\r' && !s.IsEOF() {
-			return p.parseSectionDecl(s, startLine, startCol, sourceText)
+			return p.parseSectionDecl(s, startLine, startCol)
 		}
 		// Skip unknown/empty lines
 		s.SkipToNextLine()
@@ -166,14 +169,14 @@ func (p *Parser) parseStatement(s *scanner.Scanner, sourceText string) (ast.Stmt
 }
 
 // parseSourceDecl parses a source declaration.
-func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.SourceDecl, error) {
+func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*ast.SourceDecl, error) {
 	s.ConsumeToken() // consume "source"
 
 	// Validate colon after keyword
 	if s.PeekChar() != ':' {
 		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
 			"invalid syntax: 'source' keyword must be followed by ':'")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
 		return nil, err
 	}
 	_ = s.Expect(':') // Error already checked via PeekChar
@@ -189,7 +192,7 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 	if !ok {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 			"invalid syntax: 'source' declaration requires an 'alias' field")
-		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
 	}
 
@@ -198,7 +201,7 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 	if !ok {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 			"invalid syntax: 'source' alias must be a string literal, not a reference")
-		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
 	}
 
@@ -206,7 +209,7 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 	if alias == "" {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 			"invalid syntax: 'source' declaration requires a non-empty 'alias' field")
-		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
 	}
 
@@ -235,14 +238,14 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int, so
 }
 
 // parseImportStmt parses an import statement.
-func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.ImportStmt, error) {
+func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*ast.ImportStmt, error) {
 	s.ConsumeToken() // consume "import"
 
 	// Validate colon after keyword
 	if s.PeekChar() != ':' {
 		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
 			"invalid syntax: 'import' keyword must be followed by ':'")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
 		return nil, err
 	}
 	_ = s.Expect(':') // Error already checked via PeekChar
@@ -253,7 +256,7 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, so
 	if alias == "" {
 		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
 			"invalid syntax: 'import' statement requires an alias")
-		err.SetSnippet(generateSnippetFromSource(sourceText, s.Line(), s.Column()))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
 		return nil, err
 	}
 
@@ -284,22 +287,22 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int, so
 // parseReferenceStmt parses a reference statement.
 // NOTE: Top-level reference statements are deprecated (BREAKING CHANGE).
 // Users should use inline references in value positions instead.
-func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int, sourceText string) error {
+func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int) error {
 	// Reject top-level reference statements with a migration message
 	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 		"invalid syntax: top-level 'reference:' statements are no longer supported. Use inline references instead.\n"+
 			"Example: Instead of a top-level 'reference:alias:path', use 'key: reference:alias:path' in a value position.")
-	err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+	err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 	return err
 }
 
 // parseSectionDecl parses a configuration section.
-func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int, sourceText string) (*ast.SectionDecl, error) {
+func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (*ast.SectionDecl, error) {
 	name := s.ReadIdentifier()
 	if s.PeekChar() != ':' {
 		// Not a valid section declaration - this is invalid syntax
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: expected ':' after identifier '%s'", name))
-		err.SetSnippet(generateSnippetFromSource(sourceText, startLine, startCol))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
 	}
 	_ = s.Expect(':') // Error already checked via PeekChar

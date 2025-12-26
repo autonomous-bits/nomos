@@ -1,9 +1,10 @@
-package parser
+package parser_test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/autonomous-bits/nomos/libs/parser"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -184,7 +185,7 @@ app:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tree, err := Parse(strings.NewReader(strings.TrimSpace(tt.input)), "test.csl")
+			tree, err := parser.Parse(strings.NewReader(strings.TrimSpace(tt.input)), "test.csl")
 
 			if tt.wantErr {
 				if err == nil {

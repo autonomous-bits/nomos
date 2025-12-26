@@ -1,0 +1,151 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-commits:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Validate commit messages
+        run: |
+          echo "Validating commit messages against Conventional Commits + Gitmoji format..."
+          echo ""
+          
+          # Get list of commits in the PR
+          COMMITS=$(git log --format="%H" origin/${{ github.base_ref }}..${{ github.sha }})
+          
+          # Conventional commit types
+          VALID_TYPES="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security|wip"
+          
+          # Common gitmojis (subset of most used ones)
+          GITMOJIS="✨|🐛|📝|🎨|⚡️|♻️|🔧|👷|🚀|🐳|🧪|🚧|🛠️|🔒"
+          
+          FAILED=0
+          
+          for commit in $COMMITS; do
+            MESSAGE=$(git log --format=%B -n 1 $commit)
+            SUBJECT=$(echo "$MESSAGE" | head -n 1)
+            
+            echo "Checking commit: $commit"
+            echo "  Subject: $SUBJECT"
+            
+            # Check format: <type>[(scope)][!]: <gitmoji> <description>
+            # Pattern explanation:
+            # - Starts with type (feat, fix, etc.)
+            # - Optional scope in parentheses
+            # - Optional breaking change indicator (!)
+            # - Colon and space
+            # - Contains one of the gitmojis
+            # - Followed by space and description
+            if echo "$SUBJECT" | grep -qE "^($VALID_TYPES)(\([a-z0-9_-]+\))?!?: ($GITMOJIS) .+"; then
+              echo "  ✓ Valid format"
+            else
+              echo "  ✗ Invalid format"
+              echo ""
+              echo "Expected format: <type>[(scope)][!]: <gitmoji> <description>"
+              echo ""
+              echo "Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security, wip"
+              echo ""
+              echo "Common gitmojis:"
+              echo "  ✨ feat     - New feature"
+              echo "  🐛 fix      - Bug fix"
+              echo "  📝 docs     - Documentation"
+              echo "  🎨 style    - Code style/formatting"
+              echo "  ⚡️ perf     - Performance improvement"
+              echo "  ♻️ refactor - Code refactoring"
+              echo "  🔧 chore    - Maintenance/tooling"
+              echo "  👷 ci       - CI/CD changes"
+              echo "  🚀 deploy   - Deployment"
+              echo "  🐳 docker   - Docker changes"
+              echo "  🧪 test     - Tests"
+              echo "  🚧 wip      - Work in progress"
+              echo "  🛠️ build    - Build system"
+              echo "  🔒 security - Security fix"
+              echo ""
+              echo "Examples:"
+              echo "  feat(parser): ✨ add support for nested maps"
+              echo "  fix(compiler): 🐛 resolve import cycle detection"
+              echo "  docs: 📝 update installation instructions"
+              echo "  feat(cli)!: ✨ redesign command structure"
+              echo ""
+              echo "Breaking changes should use '!' after type/scope or include 'BREAKING CHANGE:' in footer."
+              echo ""
+              echo "See: .github/instructions/commit-messages.instructions.md"
+              echo ""
+              FAILED=1
+            fi
+            echo ""
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            echo "❌ Commit message validation failed"
+            echo ""
+            echo "Please update your commit messages to follow the Conventional Commits + Gitmoji format."
+            echo "You can amend your last commit with: git commit --amend"
+            echo "Or reword multiple commits with: git rebase -i origin/${{ github.base_ref }}"
+            exit 1
+          fi
+          
+          echo "✅ All commit messages follow the required format"
+
+  validate-changelog:
+    name: Validate CHANGELOG Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for CHANGELOG updates
+        run: |
+          echo "Checking if CHANGELOG files need updates..."
+          
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }})
+          
+          # Check each module for code changes
+          MODULES=("apps/command-line" "libs/compiler" "libs/parser" "libs/provider-downloader" "libs/provider-proto")
+          NEEDS_CHANGELOG=0
+          MISSING_CHANGELOG=()
+          
+          for module in "${MODULES[@]}"; do
+            # Check if there are code changes in this module (excluding CHANGELOG.md itself)
+            if echo "$CHANGED_FILES" | grep -q "^$module/" && ! echo "$CHANGED_FILES" | grep -q "^$module/testdata/" && ! echo "$CHANGED_FILES" | grep -q "^$module/test/"; then
+              # Check if CHANGELOG.md was updated
+              if ! echo "$CHANGED_FILES" | grep -q "^$module/CHANGELOG.md"; then
+                echo "⚠️  Code changes in $module but CHANGELOG.md not updated"
+                MISSING_CHANGELOG+=("$module")
+                NEEDS_CHANGELOG=1
+              else
+                echo "✓ $module CHANGELOG.md updated"
+              fi
+            fi
+          done
+          
+          if [ $NEEDS_CHANGELOG -eq 1 ]; then
+            echo ""
+            echo "⚠️  The following modules have code changes but no CHANGELOG updates:"
+            for module in "${MISSING_CHANGELOG[@]}"; do
+              echo "   - $module"
+            done
+            echo ""
+            echo "If your changes are user-visible, please update the [Unreleased] section in the CHANGELOG.md file(s)."
+            echo "If changes are internal-only (tests, refactoring, CI), this warning can be ignored."
+            echo ""
+            echo "This is a warning only and will not fail the build."
+          else
+            echo ""
+            echo "✅ CHANGELOG validation passed"
+          fi

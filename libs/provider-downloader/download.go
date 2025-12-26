@@ -1,8 +1,6 @@
 package downloader
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,17 +10,22 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/autonomous-bits/nomos/libs/provider-downloader/internal/archive"
 )
 
 // downloadAndInstall downloads a provider binary from the given AssetInfo
 // and installs it atomically to the destination directory.
 //
 // The process:
-//  1. Creates a temporary file
-//  2. Streams the HTTP response body to the temp file while computing SHA256
-//  3. Verifies checksum if provided in AssetInfo
-//  4. Sets executable permissions (0755)
-//  5. Atomically renames to final destination
+//  1. Checks cache if caching is enabled
+//  2. Creates a temporary file
+//  3. Streams the HTTP response body to the temp file while computing SHA256
+//  4. Verifies checksum if provided in AssetInfo
+//  5. Extracts archive if needed
+//  6. Sets executable permissions (0755)
+//  7. Atomically renames to final destination
+//  8. Saves to cache if caching is enabled
 //
 // Returns InstallResult with path, checksum, and size on success.
 // Returns ChecksumMismatchError if checksums don't match.
@@ -32,6 +35,17 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 	//nolint:gosec // G301: Standard directory permissions (0755) are appropriate for provider installation directories
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Check cache first if caching is enabled
+	if c.cacheDir != "" && asset.Checksum != "" {
+		cachedPath := c.getCachePath(asset.Checksum)
+		if _, err := os.Stat(cachedPath); err == nil {
+			c.debugf("Cache hit: %s", cachedPath)
+			// Copy from cache to destination
+			return c.installFromCache(cachedPath, destDir, asset.Checksum)
+		}
+		c.debugf("Cache miss: %s", cachedPath)
 	}
 
 	// Create temporary directory for download
@@ -80,7 +94,14 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		}
 		defer func() { _ = os.RemoveAll(extractDir) }() // Best effort cleanup
 
-		extractedPath, err := extractArchive(tmpPath, extractDir, asset.Name)
+		// Get appropriate extractor
+		extractor, err := archive.GetExtractor(asset.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get extractor: %w", err)
+		}
+
+		// Extract archive
+		extractedPath, err := extractor.Extract(tmpPath, extractDir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract archive: %w", err)
 		}
@@ -98,6 +119,15 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 	finalPath := filepath.Join(destDir, "provider")
 	if err := os.Rename(tmpPath, finalPath); err != nil {
 		return nil, fmt.Errorf("failed to install provider: %w", err)
+	}
+
+	// Save to cache if caching is enabled AND asset had a checksum
+	// We only cache when the asset provided a checksum for verification
+	if c.cacheDir != "" && asset.Checksum != "" {
+		if err := c.saveToCache(finalPath, actualChecksum); err != nil {
+			// Log error but don't fail the installation
+			c.debugf("Failed to save to cache: %v", err)
+		}
 	}
 
 	return &InstallResult{
@@ -235,89 +265,56 @@ func needsExtraction(filename string) bool {
 	return contains(filename, ".tar.gz") || contains(filename, ".tgz") || contains(filename, ".zip")
 }
 
-// extractArchive extracts an archive file and returns the path to the extracted binary.
-// For tar.gz files, it assumes the binary is named "provider" or matches the base name without extension.
-func extractArchive(archivePath, destDir, assetName string) (string, error) {
-	if contains(assetName, ".tar.gz") || contains(assetName, ".tgz") {
-		return extractTarGz(archivePath, destDir)
-	}
-	// TODO: Add zip extraction if needed
-	return "", fmt.Errorf("unsupported archive format: %s", assetName)
+// getCachePath returns the cache path for a given checksum.
+func (c *Client) getCachePath(checksum string) string {
+	return filepath.Join(c.cacheDir, checksum)
 }
 
-// extractTarGz extracts a tar.gz archive and returns the path to the provider binary.
-func extractTarGz(archivePath, destDir string) (string, error) {
-	// Open the archive file
-	//nolint:gosec // G304: archivePath is from our own download, not user input
-	f, err := os.Open(archivePath)
+// installFromCache copies a provider binary from the cache to the destination.
+func (c *Client) installFromCache(cachedPath, destDir, checksum string) (*InstallResult, error) {
+	// Read cached file
+	//nolint:gosec // G304: cachedPath is from our controlled cache directory
+	data, err := os.ReadFile(cachedPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to open archive: %w", err)
+		return nil, fmt.Errorf("failed to read from cache: %w", err)
 	}
-	defer func() { _ = f.Close() }()
 
-	// Create gzip reader
-	gzr, err := gzip.NewReader(f)
+	// Set executable permissions
+	finalPath := filepath.Join(destDir, "provider")
+	//nolint:gosec // G306: Executable permissions (0755) required for provider binaries
+	if err := os.WriteFile(finalPath, data, 0755); err != nil {
+		return nil, fmt.Errorf("failed to install from cache: %w", err)
+	}
+
+	return &InstallResult{
+		Path:     finalPath,
+		Checksum: checksum,
+		Size:     int64(len(data)),
+	}, nil
+}
+
+// saveToCache saves a provider binary to the cache.
+func (c *Client) saveToCache(providerPath, checksum string) error {
+	// Create cache directory if needed
+	//nolint:gosec // G301: Standard directory permissions (0755) are appropriate for cache directories
+	if err := os.MkdirAll(c.cacheDir, 0755); err != nil {
+		return fmt.Errorf("failed to create cache directory: %w", err)
+	}
+
+	// Read provider binary
+	//nolint:gosec // G304: providerPath is from our controlled temp directory
+	data, err := os.ReadFile(providerPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create gzip reader: %w", err)
-	}
-	defer func() { _ = gzr.Close() }()
-
-	// Create tar reader
-	tr := tar.NewReader(gzr)
-
-	// Track all extracted files and find the provider binary
-	var providerPath string
-	var fallbackPath string // For "nomos-provider-*" names
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", fmt.Errorf("failed to read tar header: %w", err)
-		}
-
-		// Skip directories
-		if header.Typeflag == tar.TypeDir {
-			continue
-		}
-
-		// Extract file (flattened to destDir)
-		baseName := filepath.Base(header.Name)
-		target := filepath.Join(destDir, baseName)
-		//nolint:gosec // G304: target is constructed from our controlled temp directory and sanitized basename
-		//nolint:gosec // G110: Archive from trusted GitHub releases, size limited by download timeout
-		outFile, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			return "", fmt.Errorf("failed to create file %s: %w", target, err)
-		}
-
-		//nolint:gosec // G110: Archive from trusted GitHub releases, size limited by download timeout
-		if _, err := io.Copy(outFile, tr); err != nil {
-			_ = outFile.Close()
-			return "", fmt.Errorf("failed to extract file %s: %w", target, err)
-		}
-		if err := outFile.Close(); err != nil {
-			return "", fmt.Errorf("failed to close extracted file %s: %w", target, err)
-		}
-
-		// Check if this is a provider binary
-		// Priority: exact "provider" match > "nomos-provider-*" match
-		if baseName == "provider" {
-			providerPath = target
-		} else if providerPath == "" && contains(baseName, "nomos-provider-") {
-			fallbackPath = target
-		}
+		return fmt.Errorf("failed to read provider: %w", err)
 	}
 
-	// Prefer exact "provider" match, fall back to "nomos-provider-*"
-	if providerPath != "" {
-		return providerPath, nil
-	}
-	if fallbackPath != "" {
-		return fallbackPath, nil
+	// Write to cache
+	cachePath := c.getCachePath(checksum)
+	//nolint:gosec // G306: Cache files should be readable (0644) but not executable
+	if err := os.WriteFile(cachePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write to cache: %w", err)
 	}
 
-	return "", fmt.Errorf("provider binary not found in archive")
+	c.debugf("Saved to cache: %s", cachePath)
+	return nil
 }

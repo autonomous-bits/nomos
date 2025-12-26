@@ -67,10 +67,51 @@ Every PR must have a clear description and pass quality gates.
 ## Testing
 - Write tests for all features and bug fixes.
 - Run tests across the workspace:
-  - `make test` – verbose tests for apps and libs
+  - `make test` – all tests (unit + integration) for apps and libs
+  - `make test-unit` – unit tests only (faster, excludes integration tests)
+  - `make test-integration` – integration tests only across all modules
   - `make test-race` – race detector across modules
-  - `make test-module MODULE=libs/compiler` – scope to a single module
-- Integration tests live under each module's `test/` or within `apps/command-line/test/`.
+  - `make test-module MODULE=libs/compiler` – all tests for a single module
+  - `make test-integration-module MODULE=libs/compiler` – integration tests for a single module
+
+### Integration Test Conventions
+Integration tests require the `//go:build integration` build tag:
+
+```go
+//go:build integration
+// +build integration
+
+package mypackage
+
+import "testing"
+
+func TestIntegration_SomeFeature(t *testing.T) {
+    // Test code that requires:
+    // - External services (network calls)
+    // - File system operations
+    // - End-to-end workflows
+    // - Longer execution time
+}
+```
+
+**When to use integration tests:**
+- End-to-end compilation workflows
+- Real file system operations (not using temp dirs)
+- Network/HTTP requests to external services
+- Provider binary execution
+- Multi-component interactions
+
+**When to use unit tests:**
+- Pure functions and isolated logic
+- Mocked dependencies
+- Fast, deterministic tests
+- Core algorithms and data structures
+
+Integration tests are:
+- Located in module root (`*_integration_test.go`) or `test/` directories
+- Excluded from default `go test ./...` runs (use `-tags=integration` to include)
+- Run separately in CI to control execution time
+- Allowed longer timeouts and may have external dependencies
 
 ## Linting & Formatting
 - Go formatting: standard `gofmt` via your editor/tools.

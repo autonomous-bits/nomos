@@ -16,6 +16,7 @@ type Client struct {
 	retryAttempts int
 	retryDelay    time.Duration
 	logger        Logger
+	cacheDir      string
 }
 
 // NewClient creates a new downloader client with the given options.
@@ -65,6 +66,7 @@ func NewClient(opts *ClientOptions) *Client {
 		retryAttempts: retryAttempts,
 		retryDelay:    retryDelay,
 		logger:        opts.Logger,
+		cacheDir:      opts.CacheDir,
 	}
 }
 

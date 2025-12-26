@@ -8,68 +8,132 @@ import (
 	"path/filepath"
 
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/diagnostics"
-	"github.com/autonomous-bits/nomos/apps/command-line/internal/flags"
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/options"
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/serialize"
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/spf13/cobra"
 )
 
-// buildCommand executes the build subcommand.
-func buildCommand(args []string) error {
-	// Check for help flag before parsing
-	for _, arg := range args {
-		if arg == "--help" || arg == "-h" {
-			printBuildHelp()
-			os.Exit(0)
-		}
-	}
+// buildFlags holds all flags for the build command
+var buildFlags struct {
+	path                   string
+	format                 string
+	out                    string
+	vars                   []string
+	strict                 bool
+	allowMissingProvider   bool
+	timeoutPerProvider     string
+	maxConcurrentProviders int
+	verbose                bool
+}
 
-	// Parse flags
-	buildFlags, err := flags.Parse(args)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n\n", err)
-		printBuildHelp()
-		os.Exit(exitUsageErr)
+// buildCmd represents the build command
+var buildCmd = &cobra.Command{
+	Use:   "build",
+	Short: "Compile Nomos .csl files into configuration snapshots",
+	Long: `Build compiles Nomos .csl configuration scripts into versioned snapshots.
+
+The build command discovers .csl files in the specified path (file or directory),
+compiles them using the Nomos compiler, and produces deterministic output in
+JSON, YAML, or HCL format.
+
+File Discovery:
+  - If --path points to a file, only that file is compiled
+  - If --path points to a directory, all .csl files are discovered recursively
+  - Files are processed in UTF-8 lexicographic order (deterministic builds)
+
+Network Operations:
+  - Build is offline-first: providers must be installed via 'nomos init'
+  - Use --allow-missing-provider to tolerate missing providers (non-deterministic)
+
+Exit Codes:
+  0 - Success
+  1 - Compilation errors (or warnings in strict mode)
+  2 - Invalid usage or flags`,
+	RunE: buildCommand,
+}
+
+func init() {
+	// Required flags
+	buildCmd.Flags().StringVarP(&buildFlags.path, "path", "p", "", "Path to .csl file or directory (required)")
+	_ = buildCmd.MarkFlagRequired("path") // Error only occurs if flag doesn't exist
+
+	// Output flags
+	buildCmd.Flags().StringVarP(&buildFlags.format, "format", "f", "json", "Output format: json, yaml, hcl")
+	buildCmd.Flags().StringVarP(&buildFlags.out, "out", "o", "", "Output file (default: stdout)")
+
+	// Configuration flags
+	buildCmd.Flags().StringSliceVar(&buildFlags.vars, "var", nil, "Set variable: key=value (repeatable)")
+	buildCmd.Flags().BoolVar(&buildFlags.strict, "strict", false, "Treat warnings as errors")
+
+	// Provider flags
+	buildCmd.Flags().BoolVar(&buildFlags.allowMissingProvider, "allow-missing-provider", false, "Allow compilation with missing providers")
+	buildCmd.Flags().StringVar(&buildFlags.timeoutPerProvider, "timeout-per-provider", "30s", "Timeout for provider operations (e.g., 5s, 1m)")
+	buildCmd.Flags().IntVar(&buildFlags.maxConcurrentProviders, "max-concurrent-providers", 4, "Max concurrent provider operations")
+
+	// Debug flags
+	buildCmd.Flags().BoolVarP(&buildFlags.verbose, "verbose", "v", false, "Enable verbose output")
+}
+
+// buildCommand executes the build subcommand.
+func buildCommand(_ *cobra.Command, _ []string) error {
+	// Validate format
+	validFormats := map[string]bool{"json": true, "yaml": true, "hcl": true}
+	if !validFormats[buildFlags.format] {
+		return fmt.Errorf("invalid format %q, must be one of: json, yaml, hcl", buildFlags.format)
 	}
 
 	// Create provider registries (supports external providers via lockfile)
 	providerRegistry, providerTypeRegistry := options.NewProviderRegistries()
 
-	// Build compiler options using the new options package
+	// Build compiler options
 	opts, err := options.BuildOptions(options.BuildParams{
-		Path:                   buildFlags.Path,
-		Vars:                   buildFlags.Vars,
-		TimeoutPerProvider:     buildFlags.TimeoutPerProvider,
-		MaxConcurrentProviders: buildFlags.MaxConcurrentProviders,
-		AllowMissingProvider:   buildFlags.AllowMissingProvider,
+		Path:                   buildFlags.path,
+		Vars:                   buildFlags.vars,
+		TimeoutPerProvider:     buildFlags.timeoutPerProvider,
+		MaxConcurrentProviders: buildFlags.maxConcurrentProviders,
+		AllowMissingProvider:   buildFlags.allowMissingProvider,
 		ProviderRegistry:       providerRegistry,
 		ProviderTypeRegistry:   providerTypeRegistry,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n\n", err)
-		printBuildHelp()
-		os.Exit(exitUsageErr)
+		return fmt.Errorf("invalid options: %w", err)
 	}
 
 	// Call compiler
 	ctx := context.Background()
 	snapshot, compileErr := compiler.Compile(ctx, opts)
 
-	// Create diagnostics formatter (no color for now - can be enhanced later)
-	formatter := diagnostics.NewFormatter(false)
+	// Create diagnostics formatter
+	useColor := shouldUseColor()
+	formatter := diagnostics.NewFormatter(useColor)
 
 	// Handle diagnostics
 	hasErrors := len(snapshot.Metadata.Errors) > 0
 	hasWarnings := len(snapshot.Metadata.Warnings) > 0
 
-	// Print warnings
-	if hasWarnings {
+	// Print warnings (unless quiet)
+	if hasWarnings && !globalFlags.quiet {
 		formatter.PrintWarnings(os.Stderr, snapshot.Metadata.Warnings)
 	}
 
-	// Print errors
-	if hasErrors {
+	// Print errors (unless quiet)
+	if hasErrors && !globalFlags.quiet {
 		formatter.PrintErrors(os.Stderr, snapshot.Metadata.Errors)
+	}
+
+	// Print validation summary (unless quiet)
+	if !globalFlags.quiet && (hasErrors || hasWarnings) {
+		fmt.Fprintf(os.Stderr, "\n")
+		switch {
+		case hasErrors && hasWarnings:
+			fmt.Fprintf(os.Stderr, "Compilation failed: %d error(s), %d warning(s)\n",
+				len(snapshot.Metadata.Errors), len(snapshot.Metadata.Warnings))
+		case hasErrors:
+			fmt.Fprintf(os.Stderr, "Compilation failed: %d error(s)\n", len(snapshot.Metadata.Errors))
+		case hasWarnings && buildFlags.strict:
+			fmt.Fprintf(os.Stderr, "Compilation failed: %d warning(s) (strict mode)\n", len(snapshot.Metadata.Warnings))
+		}
 	}
 
 	// Check for fatal compile error
@@ -83,35 +147,36 @@ func buildCommand(args []string) error {
 	}
 
 	// If strict mode and warnings exist, exit with error code
-	if buildFlags.Strict && hasWarnings {
+	if buildFlags.strict && hasWarnings {
 		return fmt.Errorf("compilation completed with warnings (strict mode)")
 	}
 
 	// Serialize output based on format
-	output, err := serializeSnapshot(snapshot, buildFlags.Format)
+	output, err := serializeSnapshot(snapshot, buildFlags.format)
 	if err != nil {
 		return fmt.Errorf("failed to serialize output: %w", err)
 	}
 
 	// Write output
-	if buildFlags.Out != "" {
+	if buildFlags.out != "" {
 		// Ensure output directory exists
-		dir := filepath.Dir(buildFlags.Out)
+		dir := filepath.Dir(buildFlags.out)
 		if dir != "" && dir != "." {
 			if err := os.MkdirAll(dir, 0750); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: cannot create output directory: %v\n\n", err)
-				printBuildHelp()
-				os.Exit(exitUsageErr)
+				return fmt.Errorf("cannot create output directory: %w", err)
 			}
 		}
 
-		// Try to write file
-		if err := os.WriteFile(buildFlags.Out, output, 0600); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: cannot write output file: %v\n\n", err)
-			printBuildHelp()
-			os.Exit(exitUsageErr)
+		// Write file
+		if err := os.WriteFile(buildFlags.out, output, 0600); err != nil {
+			return fmt.Errorf("cannot write output file: %w", err)
+		}
+
+		if !globalFlags.quiet {
+			fmt.Fprintf(os.Stderr, "Output written to %s\n", buildFlags.out)
 		}
 	} else {
+		// Write to stdout
 		fmt.Println(string(output))
 	}
 
@@ -129,5 +194,23 @@ func serializeSnapshot(snapshot compiler.Snapshot, format string) ([]byte, error
 		return serialize.ToHCL(snapshot)
 	default:
 		return nil, fmt.Errorf("unsupported format: %s", format)
+	}
+}
+
+// shouldUseColor determines whether to colorize output based on flags and terminal
+func shouldUseColor() bool {
+	switch globalFlags.color {
+	case "always":
+		return true
+	case "never":
+		return false
+	case "auto":
+		// Check if stderr is a terminal
+		if fileInfo, err := os.Stderr.Stat(); err == nil {
+			return (fileInfo.Mode() & os.ModeCharDevice) != 0
+		}
+		return false
+	default:
+		return false
 	}
 }

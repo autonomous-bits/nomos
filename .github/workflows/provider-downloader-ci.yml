@@ -1,0 +1,141 @@
+name: Provider Downloader CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'libs/provider-downloader/**'
+      - 'libs/provider-proto/**'
+      - 'go.work'
+      - '.github/workflows/provider-downloader-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'libs/provider-downloader/**'
+      - 'libs/provider-proto/**'
+      - 'go.work'
+      - '.github/workflows/provider-downloader-ci.yml'
+      - '.github/actions/setup-provider-proto/**'
+
+jobs:
+  test:
+    name: Test Provider Downloader
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.25.3'
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
+      - name: Download dependencies
+        working-directory: libs/provider-downloader
+        run: go mod download
+      
+      - name: Run tests with coverage
+        working-directory: libs/provider-downloader
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      
+      - name: Calculate coverage
+        working-directory: libs/provider-downloader
+        run: |
+          echo "Coverage summary:"
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          echo "Coverage: $COVERAGE%"
+      
+      - name: Check coverage threshold
+        working-directory: libs/provider-downloader
+        run: |
+          THRESHOLD=80
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
+          COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
+          echo "Coverage: $COVERAGE_INT% (threshold: $THRESHOLD%)"
+          if [ "$COVERAGE_INT" -lt "$THRESHOLD" ]; then
+            echo "::error::Coverage $COVERAGE_INT% is below threshold of $THRESHOLD%"
+            exit 1
+          fi
+          echo "✓ Coverage meets threshold of $THRESHOLD%"
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./libs/provider-downloader/coverage.out
+          flags: provider-downloader
+          name: provider-downloader-coverage
+        continue-on-error: true
+
+  lint:
+    name: Lint Provider Downloader
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.25.3'
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.7.2
+      
+      - name: Run golangci-lint
+        working-directory: libs/provider-downloader
+        run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+
+  build:
+    name: Build Provider Downloader
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+      
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+      
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./libs/provider-downloader
+            go work use ./libs/provider-proto
+            go work sync
+          else
+            go work sync
+          fi
+      
+      - name: Build provider-downloader library
+        working-directory: libs/provider-downloader
+        run: go build -v ./...
+      
+      - name: Verify no integration tests in default run
+        working-directory: libs/provider-downloader
+        run: |
+          # Ensure integration-tagged tests are excluded from default test runs
+          if go test -list=. ./... 2>&1 | grep -E "TestIntegration"; then
+            echo "::warning::Integration tests may be running in default test suite"
+          else
+            echo "✓ Integration tests properly excluded from default run"
+          fi

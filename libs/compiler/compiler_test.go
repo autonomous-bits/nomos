@@ -1,59 +1,45 @@
-package compiler
+package compiler_test
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
-) // mockProviderRegistry is a minimal fake for testing.
-type mockProviderRegistry struct {
-	aliases []string
-}
 
-func (m *mockProviderRegistry) Register(alias string, _ ProviderConstructor) {
-	// No-op for basic tests
-	m.aliases = append(m.aliases, alias)
-}
-
-func (m *mockProviderRegistry) GetProvider(_ context.Context, _ string) (Provider, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (m *mockProviderRegistry) RegisteredAliases() []string {
-	return m.aliases
-}
+	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
+)
 
 // TestCompile_OptionsValidation tests that Compile validates required options.
 func TestCompile_OptionsValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		ctx         context.Context
-		opts        Options
+		opts        compiler.Options
 		expectError string
 	}{
 		{
 			name:        "nil context",
 			ctx:         nil,
-			opts:        Options{Path: "/some/path", ProviderRegistry: &mockProviderRegistry{}},
+			opts:        compiler.Options{Path: "/some/path", ProviderRegistry: testutil.NewFakeProviderRegistry()},
 			expectError: "context must not be nil",
 		},
 		{
 			name:        "empty Path",
 			ctx:         context.Background(),
-			opts:        Options{Path: "", ProviderRegistry: &mockProviderRegistry{}},
+			opts:        compiler.Options{Path: "", ProviderRegistry: testutil.NewFakeProviderRegistry()},
 			expectError: "options.Path must not be empty",
 		},
 		{
 			name:        "nil ProviderRegistry",
 			ctx:         context.Background(),
-			opts:        Options{Path: "/some/path", ProviderRegistry: nil},
+			opts:        compiler.Options{Path: "/some/path", ProviderRegistry: nil},
 			expectError: "options.ProviderRegistry must not be nil",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Compile(tt.ctx, tt.opts)
+			_, err := compiler.Compile(tt.ctx, tt.opts)
 			if err == nil {
 				t.Fatalf("expected error, got nil")
 			}
@@ -81,12 +67,12 @@ func TestCompile_DeterministicDirectoryTraversal(t *testing.T) {
 
 	// Compile the directory
 	ctx := context.Background()
-	opts := Options{
+	opts := compiler.Options{
 		Path:             tmpDir,
-		ProviderRegistry: &mockProviderRegistry{},
+		ProviderRegistry: testutil.NewFakeProviderRegistry(),
 	}
 
-	snapshot, err := Compile(ctx, opts)
+	snapshot, err := compiler.Compile(ctx, opts)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

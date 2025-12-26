@@ -94,6 +94,11 @@ type ClientOptions struct {
 	// Logger is an optional logger for debug output.
 	// If nil, no debug logging is performed.
 	Logger Logger
+
+	// CacheDir is an optional directory for caching downloaded provider binaries.
+	// If empty, caching is disabled and providers are always downloaded.
+	// Cache key is based on the asset checksum.
+	CacheDir string
 }
 
 // DefaultClientOptions returns ClientOptions with sensible defaults.

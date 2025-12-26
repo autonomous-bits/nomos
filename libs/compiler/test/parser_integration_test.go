@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package test
 
 import (
@@ -7,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
 
 // TestParserIntegration_ValidFile tests compiling a valid .csl file.
@@ -15,7 +19,7 @@ func TestParserIntegration_ValidFile(t *testing.T) {
 	goodPath := filepath.Join("..", "testdata", "parser_integration", "good.csl")
 
 	// Create fake provider registry
-	fakeRegistry := &fakeProviderRegistry{}
+	fakeRegistry := testutil.NewFakeProviderRegistry()
 
 	opts := compiler.Options{
 		Path:             goodPath,
@@ -47,7 +51,7 @@ func TestParserIntegration_InvalidFile(t *testing.T) {
 	badPath := filepath.Join("..", "testdata", "parser_integration", "bad.csl")
 
 	// Create fake provider registry
-	fakeRegistry := &fakeProviderRegistry{}
+	fakeRegistry := testutil.NewFakeProviderRegistry()
 
 	opts := compiler.Options{
 		Path:             badPath,
@@ -93,7 +97,7 @@ func TestParserIntegration_MultipleFiles(t *testing.T) {
 	dirPath := filepath.Join("..", "testdata", "parser_integration")
 
 	// Create fake provider registry
-	fakeRegistry := &fakeProviderRegistry{}
+	fakeRegistry := testutil.NewFakeProviderRegistry()
 
 	opts := compiler.Options{
 		Path:             dirPath,

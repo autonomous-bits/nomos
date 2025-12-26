@@ -1,10 +1,10 @@
-package fakes_test
+package testutil_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 	providerv1 "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go/nomos/provider/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -16,8 +16,8 @@ import (
 // TestFakeProviderServer_Init_Success tests the Init RPC method with valid inputs.
 func TestFakeProviderServer_Init_Success(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -71,10 +71,10 @@ func TestFakeProviderServer_Init_Success(t *testing.T) {
 // TestFakeProviderServer_Init_Error tests Init RPC with configured error.
 func TestFakeProviderServer_Init_Error(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 	fake.SetInitError(status.Error(codes.InvalidArgument, "invalid configuration"))
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestFakeProviderServer_Init_Error(t *testing.T) {
 // TestFakeProviderServer_Fetch_Success tests Fetch RPC with successful response.
 func TestFakeProviderServer_Fetch_Success(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 
 	// Configure a response
 	fake.SetFetchResponse([]string{"config", "database"}, map[string]any{
@@ -130,7 +130,7 @@ func TestFakeProviderServer_Fetch_Success(t *testing.T) {
 		},
 	})
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -201,9 +201,9 @@ func TestFakeProviderServer_Fetch_Success(t *testing.T) {
 // TestFakeProviderServer_Fetch_NotFound tests Fetch RPC with NotFound error.
 func TestFakeProviderServer_Fetch_NotFound(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -241,11 +241,11 @@ func TestFakeProviderServer_Fetch_NotFound(t *testing.T) {
 // TestFakeProviderServer_Fetch_CustomError tests Fetch RPC with custom configured error.
 func TestFakeProviderServer_Fetch_CustomError(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 	fake.SetFetchError([]string{"error", "path"},
 		status.Error(codes.PermissionDenied, "access denied"))
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -286,9 +286,9 @@ func TestFakeProviderServer_Fetch_CustomError(t *testing.T) {
 // TestFakeProviderServer_Info_Success tests Info RPC method.
 func TestFakeProviderServer_Info_Success(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("my-provider", "2.3.4", "custom")
+	fake := testutil.NewFakeProviderServer("my-provider", "2.3.4", "custom")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -327,9 +327,9 @@ func TestFakeProviderServer_Info_Success(t *testing.T) {
 // TestFakeProviderServer_Health_OK tests Health RPC with OK status.
 func TestFakeProviderServer_Health_OK(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -365,10 +365,10 @@ func TestFakeProviderServer_Health_OK(t *testing.T) {
 // TestFakeProviderServer_Health_Degraded tests Health RPC with degraded status.
 func TestFakeProviderServer_Health_Degraded(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 	fake.SetHealthStatus(providerv1.HealthResponse_STATUS_DEGRADED, "partial outage")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -400,9 +400,9 @@ func TestFakeProviderServer_Health_Degraded(t *testing.T) {
 // TestFakeProviderServer_Shutdown_Success tests Shutdown RPC method.
 func TestFakeProviderServer_Shutdown_Success(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -439,7 +439,7 @@ func TestFakeProviderServer_Shutdown_Success(t *testing.T) {
 // with various data types including nested structures, arrays, null values, etc.
 func TestFakeProviderServer_StructMapping_ComplexTypes(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 
 	complexData := map[string]any{
 		"string":  "text",
@@ -461,7 +461,7 @@ func TestFakeProviderServer_StructMapping_ComplexTypes(t *testing.T) {
 
 	fake.SetFetchResponse([]string{"complex"}, complexData)
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}
@@ -537,10 +537,10 @@ func TestFakeProviderServer_StructMapping_ComplexTypes(t *testing.T) {
 // TestFakeProviderServer_Reset tests that Reset clears all state and tracking.
 func TestFakeProviderServer_Reset(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "1.0.0", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "1.0.0", "fake")
 	fake.SetFetchResponse([]string{"test"}, map[string]any{"key": "value"})
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("failed to start server: %v", err)
 	}

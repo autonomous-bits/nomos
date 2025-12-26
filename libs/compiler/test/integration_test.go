@@ -1,30 +1,15 @@
+//go:build integration
+// +build integration
+
 package test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
-
-// fakeProviderRegistry is a minimal implementation for smoke tests.
-type fakeProviderRegistry struct {
-	aliases []string
-}
-
-func (f *fakeProviderRegistry) Register(alias string, _ compiler.ProviderConstructor) {
-	// No-op for smoke tests
-	f.aliases = append(f.aliases, alias)
-}
-
-func (f *fakeProviderRegistry) GetProvider(_ context.Context, _ string) (compiler.Provider, error) {
-	return nil, errors.New("no providers registered")
-}
-
-func (f *fakeProviderRegistry) RegisteredAliases() []string {
-	return f.aliases
-}
 
 // TestIntegration_SmokeTest verifies Compile works on an empty directory.
 func TestIntegration_SmokeTest(t *testing.T) {
@@ -34,7 +19,7 @@ func TestIntegration_SmokeTest(t *testing.T) {
 	ctx := context.Background()
 	opts := compiler.Options{
 		Path:             tmpDir,
-		ProviderRegistry: &fakeProviderRegistry{},
+		ProviderRegistry: testutil.NewFakeProviderRegistry(),
 	}
 
 	snapshot, err := compiler.Compile(ctx, opts)

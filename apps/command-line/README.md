@@ -1,7 +1,9 @@
 # Nomos CLI
 
 The Nomos CLI is the user-facing tool that compiles Nomos `.csl` scripts into deterministic, serializable configuration snapshots.
-It is a thin wrapper around the compiler library (`libs/compiler`) and is responsible for argument parsing, wiring provider adapters, marshaling output, and mapping compiler results to exit codes.
+It is built with the Cobra framework and provides a modern command-line experience with shell completions, colored output, and structured error reporting.
+
+The CLI is a thin wrapper around the compiler library (`libs/compiler`) and is responsible for argument parsing, wiring provider adapters, marshaling output, and mapping compiler results to exit codes.
 
 > **Product Requirements:** See [PRD issue #35](https://github.com/autonomous-bits/nomos/issues/35) for complete feature specification and design decisions.
 
@@ -33,6 +35,53 @@ The binary will be available at `bin/nomos` in the repository root.
 
 You should see the CLI help output.
 
+### Shell Completions
+
+The CLI provides shell completion support for Bash, Zsh, Fish, and PowerShell.
+
+**Bash:**
+```bash
+# Load completions for current session
+source <(nomos completion bash)
+
+# Install completions permanently (Linux)
+nomos completion bash > /etc/bash_completion.d/nomos
+
+# Install completions permanently (macOS with Homebrew)
+nomos completion bash > $(brew --prefix)/etc/bash_completion.d/nomos
+```
+
+**Zsh:**
+```bash
+# Enable completions (if not already enabled)
+echo "autoload -U compinit; compinit" >> ~/.zshrc
+
+# Install completions permanently
+nomos completion zsh > "${fpath[1]}/_nomos"
+
+# Restart shell or reload config
+source ~/.zshrc
+```
+
+**Fish:**
+```bash
+# Load completions for current session
+nomos completion fish | source
+
+# Install completions permanently
+nomos completion fish > ~/.config/fish/completions/nomos.fish
+```
+
+**PowerShell:**
+```powershell
+# Load completions for current session
+nomos completion powershell | Out-String | Invoke-Expression
+
+# Install completions permanently
+nomos completion powershell > nomos.ps1
+# Add to PowerShell profile
+```
+
 ## Quick Start
 
 Compile a single .csl file:
@@ -53,6 +102,26 @@ Compile with variable substitution:
 nomos build -p testdata/with-vars.csl --var region=us-west --var env=dev
 ```
 
+## CLI Commands
+
+The CLI provides the following commands:
+
+- `build` — Compile Nomos scripts into configuration snapshots
+- `init` — Discover and install provider dependencies
+- `validate` — Validate .csl files without building (syntax and semantic checks only)
+- `providers list` — List installed providers from lockfile
+- `version` — Display version information
+- `completion` — Generate shell completion scripts
+- `help` — Help about any command
+
+### Global Flags
+
+Available for all commands:
+
+- `--color <mode>` — Colorize output: `auto` (default), `always`, or `never`
+- `--quiet, -q` — Suppress non-error output
+- `--help, -h` — Show help for any command
+
 ## Network and Safety Defaults
 
 **The CLI does NOT make network calls by default** (offline-first behavior).
@@ -64,12 +133,7 @@ nomos build -p testdata/with-vars.csl --var region=us-west --var env=dev
 
 This design ensures deterministic, hermetic builds by default.
 
-## CLI commands & flags
-
-The primary commands provided by the CLI are:
-
-- `build` — compile a file or directory of Nomos scripts into a snapshot
-- `init` — discover and install provider dependencies
+## Command Reference
 
 ### `nomos build`
 
@@ -77,15 +141,25 @@ Compile Nomos scripts into configuration snapshots.
 
 Relevant flags:
 
-- `--path, -p` (required): path to a `.csl` file or a folder containing `.csl` files
-- `--format, -f`: output format; one of `json`, `yaml`, `hcl` (default: `json`)
-- `--allow-missing-provider`: allow missing provider fetches (compiler.Options.AllowMissingProvider)
-- `--timeout-per-provider`: duration string (e.g., `5s`) used for per-provider fetch timeout
-- `--max-concurrent-providers`: integer limit for concurrent provider fetches
+- `--path, -p` (required): Path to a `.csl` file or folder containing `.csl` files
+- `--format, -f`: Output format; one of `json`, `yaml`, `hcl` (default: `json`)
+- `--out, -o`: Write output to file (default: stdout)
+- `--var`: Set variable: key=value (repeatable)
+- `--strict`: Treat warnings as errors
+- `--allow-missing-provider`: Allow compilation with missing providers
+- `--timeout-per-provider`: Timeout for provider operations (e.g., `5s`, `1m`) (default: `30s`)
+- `--max-concurrent-providers`: Max concurrent provider operations (default: `4`)
+- `--verbose, -v`: Enable verbose output
+
+**Exit Codes:**
+- `0` — Success
+- `1` — Compilation errors (or warnings in strict mode)
 
 ### `nomos init`
 
-Discover provider requirements from `.csl` files and install provider binaries.
+Discover provider requirements from `.csl` files and install provider binaries from GitHub Releases.
+
+The command scans your configuration files, downloads the required provider binaries, and creates a lockfile to ensure reproducible builds.
 
 Usage:
 
@@ -95,25 +169,117 @@ nomos init [flags] <file.csl> [<file2.csl> ...]
 
 Relevant flags:
 
-- `--dry-run`: preview actions without installing
-- `--force`: overwrite existing providers/lockfile
-- `--os`: override target OS (default: runtime OS)
-- `--arch`: override target architecture (default: runtime arch)
-- `--upgrade`: force upgrade to latest versions
+- `--dry-run`: Preview actions without installing
+- `--force`: Overwrite existing providers/lockfile
+- `--os`: Override target OS (default: runtime OS)
+- `--arch`: Override target architecture (default: runtime arch)
+- `--upgrade`: Force upgrade to latest versions
+- `--json`: Output results as JSON (for scripting)
+
+**Output:**
+
+The command provides a table showing:
+- Provider alias
+- Type (owner/repo format)
+- Version
+- Installation status (installed/skipped/failed)
+- Download size
 
 Example:
 
 ```bash
-# Install providers automatically from GitHub Releases (recommended)
+# Install providers from config files
 nomos init config.csl
 
 # Preview what would be installed
 nomos init --dry-run config.csl
+
+# Force reinstall all providers
+nomos init --force config.csl
+
+# Output as JSON for scripting
+nomos init --json config.csl
 ```
 
 The init command creates:
-- `.nomos/providers/{type}/{version}/{os-arch}/provider` — installed binaries
-- `.nomos/providers.lock.json` — lock file with resolved versions and paths
+- `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider` — Installed binaries
+- `.nomos/providers.lock.json` — Lock file with resolved versions and checksums
+
+### `nomos validate`
+
+Validate `.csl` files for syntax and semantic errors without performing a full build.
+
+This command is useful for:
+- Pre-commit hooks
+- CI/CD pipelines
+- Quick syntax verification
+- Editor integrations
+
+Usage:
+
+```bash
+nomos validate --path <path>
+```
+
+The validate command performs parsing and type checking but does not:
+- Invoke providers
+- Generate output snapshots
+- Perform provider resolution
+
+**Exit Codes:**
+- `0` — Validation passed
+- `1` — Validation failed with errors
+
+### `nomos providers list`
+
+List all providers installed in the `.nomos/providers` directory.
+
+Usage:
+
+```bash
+nomos providers list [flags]
+```
+
+Flags:
+- `--json`: Output as JSON
+
+Example output:
+
+```
+┌─────────┬─────────────────────────────────────┬─────────┬────────┬───────┬──────────────────────────────────┐
+│  ALIAS  │                TYPE                 │ VERSION │   OS   │ ARCH  │              PATH                │
+├─────────┼─────────────────────────────────────┼─────────┼────────┼───────┼──────────────────────────────────┤
+│ configs │ autonomous-bits/nomos-provider-file │ 0.1.1   │ darwin │ arm64 │ .nomos/providers/...             │
+└─────────┴─────────────────────────────────────┴─────────┴────────┴───────┴──────────────────────────────────┘
+
+Total: 1 provider(s)
+```
+
+### `nomos version`
+
+Display version information including build metadata.
+
+Usage:
+
+```bash
+nomos version
+```
+
+Example output:
+
+```
+Nomos CLI Version: 0.2.0
+Commit: a1b2c3d
+Build Date: 2025-12-26
+Go Version: go1.25.3
+```
+
+Use `--quiet` flag to output only the version number:
+
+```bash
+nomos version --quiet
+# Output: 0.2.0
+```
 
 ## Commands
 
