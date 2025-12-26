@@ -1,7 +1,7 @@
 // Package serialize provides deterministic serialization of compiler snapshots.
 //
-// This package implements canonical serializers for JSON, YAML, and HCL formats
-// that guarantee deterministic output for identical logical structures.
+// This package implements canonical JSON serialization that guarantees
+// deterministic output for identical logical structures.
 //
 // Determinism guarantees:
 //   - Data section: byte-for-byte identical for identical input (map keys sorted)
@@ -118,28 +118,4 @@ func normalizeString(s string) string {
 		return strings.ToValidUTF8(s, "�")
 	}
 	return s
-}
-
-// ToYAML serializes a snapshot to YAML with best-effort stability.
-func ToYAML(snapshot compiler.Snapshot) ([]byte, error) {
-	// Import gopkg.in/yaml.v3 for YAML serialization
-	// Note: YAML map key ordering is not guaranteed by spec but gopkg.in/yaml.v3
-	// will preserve insertion order. We canonicalize first to get stable ordering.
-
-	_ = canonicalizeValue(snapshot) // prepared for future use
-
-	// For now, return error until we add the dependency
-	// The implementation would use yaml.Marshal(canonical)
-	return nil, fmt.Errorf("YAML serialization not yet implemented - requires gopkg.in/yaml.v3 dependency")
-}
-
-// ToHCL serializes a snapshot to HCL with best-effort stability.
-func ToHCL(_ compiler.Snapshot) ([]byte, error) {
-	// Import github.com/hashicorp/hcl/v2/hclwrite for HCL serialization
-	// Note: HCL serialization for arbitrary data structures is complex and may
-	// not preserve all structure types. This is best-effort.
-
-	// For now, return error until we add the dependency
-	// The implementation would convert canonical structure to HCL
-	return nil, fmt.Errorf("HCL serialization not yet implemented - requires github.com/hashicorp/hcl/v2 dependency")
 }

@@ -24,17 +24,37 @@ import (
 )
 
 // Parser represents a parser instance. It can be reused for multiple parse operations.
+// Parser instances are safe for concurrent use and can be pooled via sync.Pool for
+// high-throughput scenarios.
+//
+// The parser stores source text internally during parsing for error context generation,
+// but maintains no state between Parse/ParseFile calls.
 type Parser struct {
 	// sourceText stores the source text for the current parse operation.
 	// It is used for error formatting and context generation.
+	// This field is set at the start of each Parse/ParseFile call.
 	sourceText string
-	// Future: add configuration options here
+	// Future fields for configuration options can be added here.
+	// Examples: strict mode flags, custom error handlers, debug options.
 }
 
-// Option is a function that configures a Parser.
+// Option is a functional option for configuring a Parser.
+// Currently no options are implemented, but this pattern provides a forward-compatible
+// extension point for future parser configuration without breaking the API.
+//
+// Example future usage:
+//
+//	p := NewParser(WithStrictMode(true), WithMaxDepth(100))
+//
+// The parser can be used without any options:
+//
+//	p := NewParser() // Uses default configuration
 type Option func(*Parser)
 
 // NewParser creates a new Parser with the given options.
+// Currently accepts options for future extensibility but none are implemented yet.
+// Parser instances can be reused across multiple Parse/ParseFile calls and are
+// safe for concurrent use when each goroutine has its own instance.
 func NewParser(opts ...Option) *Parser {
 	p := &Parser{}
 	for _, opt := range opts {

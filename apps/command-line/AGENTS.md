@@ -54,8 +54,9 @@ Command structure reflects **offline-first philosophy**: network operations (pro
 ```
 
 #### Output Formats
-- JSON, YAML, HCL (via `internal/serialize`)
+- JSON (via `internal/serialize`)
 - **Deterministic serialization**: sorted keys, canonical formatting
+- Note: YAML/HCL may be added in future if user demand justifies it
 - Used for Terraform/IaC tool integration
 
 ### Provider Commands
@@ -145,7 +146,7 @@ Compiled by `libs/compiler` but affects CLI examples and documentation.
 
 Nomos-specific internal packages:
 - `internal/traverse/` — deterministic `.csl` file discovery
-- `internal/serialize/` — deterministic output formatting (JSON/YAML/HCL)
+- `internal/serialize/` — deterministic JSON output formatting
 - `internal/diagnostics/` — Nomos error/warning formatting
 - `internal/initcmd/` — provider discovery and installation logic
 - `internal/flags/` — CLI flag parsing (simple, not Cobra)

@@ -64,8 +64,11 @@ func TestCompile_SimpleImport(t *testing.T) {
 }
 
 // TestCompile_ImportCycle tests that circular imports are detected.
+// NOTE: Requires integration of validator.DependencyGraph with internal/imports
+// package to track import chains and detect cycles during resolution.
+// The cycle detection algorithm exists but isn't wired into import processing.
 func TestCompile_ImportCycle(t *testing.T) {
-	t.Skip("TODO: Implement import cycle detection - tracked in GitHub issue")
+	t.Skip("Pending: Import cycle detection integration with internal/imports package")
 
 	// This test will be enabled once we integrate the validator.DependencyGraph
 	// with import resolution to detect circular import chains.

@@ -17,16 +17,18 @@ on:
       - 'go.work'
       - '.github/workflows/compiler-ci.yml'
       - '.github/actions/setup-provider-proto/**'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
 jobs:
   test:
     name: Test Compiler
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -36,10 +38,10 @@ jobs:
             libs/compiler/go.sum
             libs/parser/go.sum
             go.work.sum
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -53,15 +55,15 @@ jobs:
             echo "go.work found, syncing..."
             go work sync
           fi
-      
+
       - name: Download dependencies
         working-directory: libs/compiler
         run: go mod download
-      
+
       - name: Run tests
         working-directory: libs/compiler
         run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-      
+
       - name: Calculate coverage
         working-directory: libs/compiler
         run: |
@@ -70,7 +72,7 @@ jobs:
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Coverage: $COVERAGE%"
-      
+
       - name: Check coverage threshold
         working-directory: libs/compiler
         run: |
@@ -83,7 +85,7 @@ jobs:
             exit 1
           fi
           echo "::warning::Coverage is ${COVERAGE_INT}%. Target coverage should be at least 80%."
-      
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -95,22 +97,22 @@ jobs:
   lint:
     name: Lint Compiler
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
           go-version: '1.25.3'
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.7.2
-      
+
       - name: Run golangci-lint
         working-directory: libs/compiler
         run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
@@ -118,20 +120,20 @@ jobs:
   build:
     name: Build Compiler
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.3'
           cache: true
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -142,11 +144,11 @@ jobs:
           else
             go work sync
           fi
-      
+
       - name: Build compiler library
         working-directory: libs/compiler
         run: go build -v ./...
-      
+
       - name: Verify no integration tests in default run
         working-directory: libs/compiler
         run: |
@@ -160,17 +162,17 @@ jobs:
   benchmark:
     name: Run Benchmarks
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.3'
           cache: true
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -181,13 +183,54 @@ jobs:
           else
             go work sync
           fi
-      
+
       - name: Run benchmarks
         working-directory: libs/compiler
         run: go test -bench=. -benchmem -run=^$ ./test/bench | tee benchmark-results.txt
-      
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
           path: libs/compiler/benchmark-results.txt
+
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work sync
+          else
+            go work sync
+          fi
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        working-directory: libs/compiler
+        run: |
+          echo "Running vulnerability scan..."
+          govulncheck ./... || {
+            echo "::error::Vulnerabilities found in compiler module"
+            exit 1
+          }
+          echo "✓ No vulnerabilities found"

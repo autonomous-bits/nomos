@@ -21,25 +21,27 @@ on:
       - 'go.work'
       - '.github/workflows/cli-ci.yml'
       - '.github/actions/setup-provider-proto/**'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
 
 jobs:
   # Fast unit tests - should complete in ~2 minutes
   unit:
     name: Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
           go-version: '1.25.3'
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -53,23 +55,23 @@ jobs:
             echo "go.work found, syncing..."
             go work sync
           fi
-      
+
       - name: Download dependencies
         working-directory: apps/command-line
         run: go mod download
-      
+
       - name: Run unit tests with race detector
         working-directory: apps/command-line
         run: |
           # Run unit tests with race detector (exclude integration tests in test/ directory)
           go test -v -race ./internal/... ./cmd/...
-      
+
       - name: Run unit tests with coverage
         working-directory: apps/command-line
         run: |
           # Run unit tests with coverage (exclude integration tests in test/ directory)
           go test -v -coverprofile=coverage.out -covermode=atomic ./internal/... ./cmd/...
-      
+
       - name: Calculate coverage
         working-directory: apps/command-line
         run: |
@@ -78,7 +80,7 @@ jobs:
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
           echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
           echo "Coverage: $COVERAGE%"
-      
+
       - name: Check coverage threshold
         working-directory: apps/command-line
         run: |
@@ -90,7 +92,7 @@ jobs:
             echo "::error::Coverage $COVERAGE_INT% is below threshold of $THRESHOLD%"
             exit 1
           fi
-      
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -103,19 +105,19 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
           go-version: '1.25.3'
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -129,11 +131,11 @@ jobs:
             echo "go.work found, syncing..."
             go work sync
           fi
-      
+
       - name: Download dependencies
         working-directory: apps/command-line
         run: go mod download
-      
+
       - name: Build CLI binary
         working-directory: apps/command-line
         run: |
@@ -142,7 +144,7 @@ jobs:
           # Also create binary with test name for integration tests
           cp ../../bin/nomos ../../bin/nomos-test
           ../../bin/nomos build --help
-      
+
       - name: Run integration tests
         working-directory: apps/command-line
         run: |
@@ -153,19 +155,19 @@ jobs:
   determinism:
     name: Determinism Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
           go-version: '1.25.3'
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Verify Go workspace
         run: |
           if [ ! -f go.work ]; then
@@ -179,11 +181,11 @@ jobs:
             echo "go.work found, syncing..."
             go work sync
           fi
-      
+
       - name: Download dependencies
         working-directory: apps/command-line
         run: go mod download
-      
+
       - name: Build CLI binary
         working-directory: apps/command-line
         run: |
@@ -192,7 +194,7 @@ jobs:
           # Also create binary with test name for integration tests
           cp ../../bin/nomos ../../bin/nomos-test
           ../../bin/nomos build --help
-      
+
       - name: Run determinism test
         working-directory: apps/command-line
         run: |
@@ -203,22 +205,63 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
           go-version: '1.25.3'
-      
+
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
-      
+
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.7.2
-      
+
       - name: Run golangci-lint
         working-directory: apps/command-line
         run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+
+  vulnerability-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+        with:
+          go-version: '1.25.3'
+
+      - name: Setup Provider Proto
+        uses: ./.github/actions/setup-provider-proto
+
+      - name: Verify Go workspace
+        run: |
+          if [ ! -f go.work ]; then
+            go work init
+            go work use ./libs/parser
+            go work use ./libs/compiler
+            go work use ./apps/command-line
+            go work sync
+          else
+            go work sync
+          fi
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        working-directory: apps/command-line
+        run: |
+          echo "Running vulnerability scan..."
+          govulncheck ./... || {
+            echo "::error::Vulnerabilities found in CLI module"
+            exit 1
+          }
+          echo "✓ No vulnerabilities found"

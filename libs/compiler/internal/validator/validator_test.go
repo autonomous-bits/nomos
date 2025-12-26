@@ -127,12 +127,13 @@ func TestValidate_UnresolvedReference_WithSuggestions(t *testing.T) {
 }
 
 // TestValidate_CycleDetection_Imports tests cycle detection for import statements.
+// NOTE: The DependencyGraph cycle detection algorithm is implemented and tested
+// (see TestDetectCycles_SimpleGraph and TestDetectCycles_NoCycle).
+// This test is skipped pending integration with import resolution during compilation.
+// The internal/imports package currently lacks cycle tracking across import chains.
+// See GitHub issue for tracking import cycle detection integration.
 func TestValidate_CycleDetection_Imports(t *testing.T) {
-	// Note: This is a simplified test. Full cycle detection requires
-	// tracking imports across files, which happens during compilation.
-	// For now, we'll test the graph-based cycle detection algorithm directly.
-
-	t.Skip("TODO: Implement after cycle detection graph builder is complete")
+	t.Skip("Pending: Import cycle detection integration - cycle detection algorithm works, needs wiring to import resolution")
 }
 
 // TestDetectCycles_SimpleGraph tests the cycle detection algorithm on a simple graph.

@@ -1,7 +1,15 @@
 # Nomos CLI
 
 The Nomos CLI is the user-facing tool that compiles Nomos `.csl` scripts into deterministic, serializable configuration snapshots.
-It is built with the Cobra framework and provides a modern command-line experience with shell completions, colored output, and structured error reporting.
+
+## Phase 2 Modernization Complete ✓
+
+The CLI has been modernized with:
+- **Cobra framework** — Professional command structure with subcommands and consistent flag handling
+- **Shell completions** — Built-in support for Bash, Zsh, Fish, and PowerShell
+- **Enhanced UX** — Table output, progress indicators, and colored diagnostics
+- **New commands** — `validate`, `providers list`, `completion`, and `version`
+- **Improved flags** — `--color` (auto/always/never) and `--quiet` for output control
 
 The CLI is a thin wrapper around the compiler library (`libs/compiler`) and is responsible for argument parsing, wiring provider adapters, marshaling output, and mapping compiler results to exit codes.
 
@@ -82,6 +90,34 @@ nomos completion powershell > nomos.ps1
 # Add to PowerShell profile
 ```
 
+## What's New in Phase 2
+
+The CLI has been completely modernized with professional tooling and enhanced user experience:
+
+### Framework Migration
+- **Cobra integration** — Industry-standard CLI framework used by kubectl, hugo, and other professional tools
+- **Consistent command structure** — All commands follow `nomos <command> [flags]` pattern
+- **Built-in help** — `nomos help <command>` for detailed command documentation
+
+### New Commands
+| Command | Description | Example |
+|---------|-------------|---------|
+| `validate` | Fast syntax/semantic checks | `nomos validate -p config.csl` |
+| `providers list` | View installed providers | `nomos providers list` |
+| `completion` | Shell completions | `nomos completion bash` |
+| `version` | Version information | `nomos version` |
+
+### UX Improvements
+- ✓ **Progress indicators** — Animated spinner during provider downloads
+- ✓ **Table output** — Formatted tables for init and providers list
+- ✓ **Color support** — Automatic color detection with `--color` flag
+- ✓ **Quiet mode** — `--quiet` flag for CI/CD pipelines
+- ✓ **Better errors** — Enhanced diagnostics with context and suggestions
+- ✓ **Smart defaults** — Color auto-detection, sensible timeouts
+
+### Shell Completions
+Out-of-the-box tab completion for Bash, Zsh, Fish, and PowerShell. See [Shell Completions](#shell-completions) section for installation.
+
 ## Quick Start
 
 Compile a single .csl file:
@@ -90,10 +126,10 @@ Compile a single .csl file:
 nomos build -p testdata/simple.csl
 ```
 
-Compile a directory to YAML:
+Compile a directory to file:
 
 ```bash
-nomos build -p testdata/configs -f yaml -o snapshot.yaml
+nomos build -p testdata/configs -o snapshot.json
 ```
 
 Compile with variable substitution:
@@ -102,17 +138,31 @@ Compile with variable substitution:
 nomos build -p testdata/with-vars.csl --var region=us-west --var env=dev
 ```
 
+Enable color output:
+
+```bash
+nomos build -p config.csl --color always
+```
+
+Quiet mode (perfect for scripts):
+
+```bash
+if nomos validate -p config.csl --quiet; then
+  nomos build -p config.csl -o output.json --quiet
+fi
+```
+
 ## CLI Commands
 
-The CLI provides the following commands:
+The CLI provides the following commands (all implemented using the Cobra framework):
 
-- `build` — Compile Nomos scripts into configuration snapshots
-- `init` — Discover and install provider dependencies
-- `validate` — Validate .csl files without building (syntax and semantic checks only)
-- `providers list` — List installed providers from lockfile
-- `version` — Display version information
-- `completion` — Generate shell completion scripts
-- `help` — Help about any command
+- **`build`** — Compile Nomos scripts into configuration snapshots (JSON/YAML/HCL)
+- **`init`** — Discover and install provider dependencies from GitHub Releases
+- **`validate`** — Validate .csl files without building (syntax and semantic checks only)
+- **`providers list`** — List installed providers from lockfile with details
+- **`version`** — Display version information with build metadata
+- **`completion`** — Generate shell completion scripts (bash/zsh/fish/powershell)
+- **`help`** — Help about any command
 
 ### Global Flags
 
@@ -142,7 +192,7 @@ Compile Nomos scripts into configuration snapshots.
 Relevant flags:
 
 - `--path, -p` (required): Path to a `.csl` file or folder containing `.csl` files
-- `--format, -f`: Output format; one of `json`, `yaml`, `hcl` (default: `json`)
+- `--format, -f`: Output format (only `json` currently supported)
 - `--out, -o`: Write output to file (default: stdout)
 - `--var`: Set variable: key=value (repeatable)
 - `--strict`: Treat warnings as errors
@@ -161,6 +211,12 @@ Discover provider requirements from `.csl` files and install provider binaries f
 
 The command scans your configuration files, downloads the required provider binaries, and creates a lockfile to ensure reproducible builds.
 
+**Phase 2 UX Enhancements:**
+- ✓ **Progress spinner** during downloads (animated feedback)
+- ✓ **Table output** showing installation results with status and size
+- ✓ **Smart summary** with installed/skipped counts
+- ✓ **JSON output** option for scripting and CI/CD
+
 Usage:
 
 ```bash
@@ -178,17 +234,17 @@ Relevant flags:
 
 **Output:**
 
-The command provides a table showing:
+The command provides a formatted table showing:
 - Provider alias
 - Type (owner/repo format)
 - Version
 - Installation status (installed/skipped/failed)
-- Download size
+- Download size (human-readable)
 
 Example:
 
 ```bash
-# Install providers from config files
+# Install providers from config files (with progress spinner)
 nomos init config.csl
 
 # Preview what would be installed
@@ -209,22 +265,43 @@ The init command creates:
 
 Validate `.csl` files for syntax and semantic errors without performing a full build.
 
+**Phase 2 Addition:** This command was added as part of the Cobra migration to provide fast feedback during development.
+
 This command is useful for:
 - Pre-commit hooks
-- CI/CD pipelines
+- CI/CD pipelines (fast fail-fast checks)
 - Quick syntax verification
-- Editor integrations
+- Editor integrations (language server protocol)
 
 Usage:
 
 ```bash
-nomos validate --path <path>
+nomos validate --path <path> [flags]
 ```
+
+Flags:
+- `--path, -p`: Path to .csl file or directory (required)
+- `--verbose, -v`: Enable verbose output
+- `--color`: Colorize output (auto/always/never)
+- `--quiet, -q`: Suppress non-error output
 
 The validate command performs parsing and type checking but does not:
 - Invoke providers
 - Generate output snapshots
 - Perform provider resolution
+
+**Example:**
+
+```bash
+# Validate a single file
+nomos validate -p config.csl
+
+# Validate an entire directory
+nomos validate -p configs/
+
+# Quiet mode (CI-friendly)
+nomos validate -p configs/ --quiet
+```
 
 **Exit Codes:**
 - `0` — Validation passed
@@ -234,6 +311,8 @@ The validate command performs parsing and type checking but does not:
 
 List all providers installed in the `.nomos/providers` directory.
 
+**Phase 2 Addition:** This command provides visibility into installed providers with formatted table output.
+
 Usage:
 
 ```bash
@@ -241,44 +320,66 @@ nomos providers list [flags]
 ```
 
 Flags:
-- `--json`: Output as JSON
+- `--json`: Output as JSON (for scripting)
+- `--quiet, -q`: Suppress summary line
+- `--color`: Colorize output (auto/always/never)
 
-Example output:
+**Example output:**
 
 ```
-┌─────────┬─────────────────────────────────────┬─────────┬────────┬───────┬──────────────────────────────────┐
-│  ALIAS  │                TYPE                 │ VERSION │   OS   │ ARCH  │              PATH                │
-├─────────┼─────────────────────────────────────┼─────────┼────────┼───────┼──────────────────────────────────┤
-│ configs │ autonomous-bits/nomos-provider-file │ 0.1.1   │ darwin │ arm64 │ .nomos/providers/...             │
-└─────────┴─────────────────────────────────────┴─────────┴────────┴───────┴──────────────────────────────────┘
+┌─────────┬─────────────────────────────────────┬─────────┬────────┬───────┬────────────────────────────────────────┐
+│  ALIAS  │                TYPE                 │ VERSION │   OS   │ ARCH  │                  PATH                  │
+├─────────┼─────────────────────────────────────┼─────────┼────────┼───────┼────────────────────────────────────────┤
+│ file    │ autonomous-bits/nomos-provider-file │ 1.0.0   │ darwin │ arm64 │ .nomos/providers/autonomous-bits/...   │
+│ github  │ autonomous-bits/nomos-provider-gh   │ 0.2.1   │ darwin │ arm64 │ .nomos/providers/autonomous-bits/...   │
+└─────────┴─────────────────────────────────────┴─────────┴────────┴───────┴────────────────────────────────────────┘
 
-Total: 1 provider(s)
+Total: 2 provider(s)
 ```
+
+**JSON Output:**
+
+```bash
+nomos providers list --json
+```
+
+Outputs structured JSON with all provider details including checksums for CI/CD validation.
 
 ### `nomos version`
 
 Display version information including build metadata.
 
+**Phase 2 Addition:** This command was added as part of the Cobra migration following CLI best practices.
+
 Usage:
 
 ```bash
-nomos version
+nomos version [flags]
 ```
 
-Example output:
+Flags:
+- `--quiet, -q`: Output only the version number (for scripting)
+
+**Example output:**
 
 ```
 Nomos CLI Version: 0.2.0
-Commit: a1b2c3d
-Build Date: 2025-12-26
-Go Version: go1.25.3
+Commit: a1b2c3d4e5f
+Build Date: 2025-12-26T10:30:00Z
+Go Version: go1.22.5
+Module: github.com/autonomous-bits/nomos/apps/command-line
 ```
 
-Use `--quiet` flag to output only the version number:
+**Quiet mode (scripting-friendly):**
 
 ```bash
 nomos version --quiet
 # Output: 0.2.0
+
+# Use in scripts
+if [[ $(nomos version -q) == "0.2.0" ]]; then
+  echo "Version matches"
+fi
 ```
 
 ## Commands
@@ -289,20 +390,22 @@ Compile Nomos .csl files into a configuration snapshot.
 
 **Usage:**
 ```bash
-nomos build [options]
+nomos build [flags]
 ```
 
 **Options:**
 
 - `-p, --path <path>` — Path to .csl file or directory (required)
-- `-f, --format <format>` — Output format: json, yaml, or hcl (default: json)
+- `-f, --format <format>` — Output format (only json currently supported)
 - `-o, --out <file>` — Write output to file (default: stdout)
 - `--var <key=value>` — Variable substitution (repeatable)
 - `--strict` — Treat warnings as errors
 - `--allow-missing-provider` — Allow missing provider fetches
 - `--timeout-per-provider <duration>` — Timeout for each provider fetch (e.g., 5s, 1m)
 - `--max-concurrent-providers <int>` — Maximum concurrent provider fetches
-- `--verbose` — Enable verbose logging
+- `--verbose, -v` — Enable verbose logging
+- `--color <mode>` — **[Phase 2]** Colorize output: auto, always, never (default: auto)
+- `--quiet, -q` — **[Phase 2]** Suppress non-error output
 - `-h, --help` — Show help
 
 **Examples:**
@@ -389,21 +492,28 @@ See `libs/compiler/providers/file/README.md` for detailed provider documentation
 
 ## Architecture
 
-The CLI is a thin layer over the compiler library:
+The CLI is a thin layer over the compiler library, built with the Cobra framework for professional command-line UX:
 
 ```
 CLI (apps/command-line)
+  ├── Cobra Framework (command structure, flags, completions)
   └── uses → Compiler (libs/compiler)
                └── uses → Parser (libs/parser)
 ```
 
 ### Key Components
 
-- `cmd/nomos/main.go` — Entry point and command routing
+**Phase 2 Structure (Cobra-based):**
+
+- `cmd/nomos/main.go` — Entry point with color setup
+- `cmd/nomos/root.go` — Root command and global flags (--color, --quiet)
 - `cmd/nomos/build.go` — Build command implementation
-- `cmd/nomos/help.go` — Help text and usage
-- `internal/flags/` — Flag parsing and validation
+- `cmd/nomos/init.go` — Init command with progress spinner and table output
+- `cmd/nomos/validate.go` — Validate command (new in Phase 2)
+- `cmd/nomos/providers.go` — Providers list command (new in Phase 2)
+- `internal/flags/` — Flag parsing and validation (legacy, transitioning to Cobra)
 - `internal/options/` — Compiler options builder with provider wiring
+- `internal/diagnostics/` — Error/warning formatting with color support
 
 ### Options Builder
 
@@ -511,13 +621,11 @@ The numeric prefixes ensure predictable ordering. Without them, lexicographic or
 
 ### Output Formats and Serialization
 
-The CLI supports multiple output formats via the `--format` flag. All formats aim for deterministic output to ensure byte-for-byte identical results for identical inputs (critical for CI reproducibility).
+The CLI currently supports JSON output format via the `--format` flag, with deterministic serialization to ensure byte-for-byte identical results for identical inputs (critical for CI reproducibility).
 
 **Supported Formats:**
 
-- `json` (default) — Canonical JSON with deterministic key ordering
-- `yaml` — YAML serialization (not yet implemented, returns error)
-- `hcl` — HCL serialization (not yet implemented, returns error)
+- `json` (default, only supported format) — Canonical JSON with deterministic key ordering
 
 **JSON Format (Canonical)**
 
@@ -603,10 +711,10 @@ nomos build -p config.csl -o build/snapshots/output.json
 
 The serializer is located in `internal/serialize` and provides:
 - `ToJSON(snapshot)` — Canonical JSON serialization
-- `ToYAML(snapshot)` — YAML serialization (stub)
-- `ToHCL(snapshot)` — HCL serialization (stub)
 
 See `internal/serialize/serialize_test.go` for comprehensive determinism tests.
+
+**Note:** YAML and HCL output formats may be added in future releases if user demand justifies the complexity. For now, JSON provides a canonical, deterministic format suitable for all use cases.
 
 ### Compilation Flow
 
@@ -688,12 +796,15 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error)
 
 Planned for future releases:
 
-- YAML and HCL output formats (stubs exist)
-- Provider credential handling
-- Remote provider support with explicit opt-in
-- Additional commands (`validate`, `fmt`, `init`)
-- Telemetry and usage analytics
-- Performance benchmarking targets
+- **YAML and HCL output formats** — May be added if user demand justifies the implementation (currently JSON-only)
+- ~~Provider credential handling~~ (basic support exists)
+- ~~Remote provider support with explicit opt-in~~ (GitHub Releases supported)
+- ~~Additional commands (`validate`, `fmt`, `init`)~~ ✓ **Completed in Phase 2** (validate, init)
+- **Format command** — `nomos fmt` to auto-format .csl files (planned)
+- **Watch mode** — `nomos build --watch` for live recompilation
+- **Language server** — LSP integration for IDE support
+- **Telemetry** — Usage analytics (opt-in only)
+- **Performance benchmarking** — Compilation speed targets
 
 ## Testing
 
@@ -948,7 +1059,15 @@ The CLI follows strict exit-code semantics for pipeline integration:
 
 Errors and warnings are printed to stderr in human-friendly format with file:line:col information when available from compiler diagnostics.
 
-The compiler populates `Metadata.Errors` and `Metadata.Warnings` with formatted messages including source locations. The CLI's diagnostics package formats these for terminal output:
+The compiler populates `Metadata.Errors` and `Metadata.Warnings` with formatted messages including source locations. The CLI's diagnostics package formats these for terminal output.
+
+**Phase 2 UX Enhancements:**
+- ✓ **Color support** via `--color` flag (auto-detects TTY by default)
+- ✓ **Better error context** with source snippets
+- ✓ **Consistent formatting** for both errors and warnings
+- ✓ **Machine-parseable** format for tooling integration
+
+**Example error output:**
 
 ```
 config.csl:10:5: error: unresolved reference to provider 'db'
@@ -956,11 +1075,17 @@ config.csl:10:5: error: unresolved reference to provider 'db'
       |         ^
 ```
 
-Features:
+**Features:**
 - File, line, and column information from parser/compiler diagnostics
 - Context snippets with caret markers pointing to error locations
 - Consistent `file:line:col: severity: message` format for machine parsing
-- Optional color output support (future enhancement)
+- Color output controlled via `--color auto|always|never`
+- Summary line showing total error/warning count
+
+**Color Modes:**
+- `auto` — Enable colors when outputting to a terminal (default)
+- `always` — Force colors even when piping output
+- `never` — Disable colors (for logs, CI, or accessibility)
 
 Use `--strict` to treat warnings as errors (causes exit code 1).
 

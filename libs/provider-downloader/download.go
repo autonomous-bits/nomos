@@ -38,17 +38,6 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		return nil, fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Check cache first if caching is enabled
-	if c.cacheDir != "" && asset.Checksum != "" {
-		cachedPath := c.getCachePath(asset.Checksum)
-		if _, err := os.Stat(cachedPath); err == nil {
-			c.debugf("Cache hit: %s", cachedPath)
-			// Copy from cache to destination
-			return c.installFromCache(cachedPath, destDir, asset.Checksum)
-		}
-		c.debugf("Cache miss: %s", cachedPath)
-	}
-
 	// Create temporary directory for download
 	tmpDir := filepath.Join(filepath.Dir(destDir), ".nomos-tmp")
 	//nolint:gosec // G301: Standard directory permissions (0755) are appropriate for temporary directories
@@ -78,7 +67,7 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		return nil, fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	// Verify checksum if provided
+	// Verify checksum if provided (for archive downloads)
 	if asset.Checksum != "" && asset.Checksum != actualChecksum {
 		return nil, &ChecksumMismatchError{
 			Expected: asset.Checksum,
@@ -108,6 +97,41 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		}
 		// Update tmpPath to point to the extracted binary
 		tmpPath = extractedPath
+
+		// Recompute checksum for the extracted binary
+		// The actualChecksum from download was for the archive, but we need
+		// the checksum of the actual binary for lockfile validation
+		f, err := os.Open(tmpPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open extracted binary for checksum: %w", err)
+		}
+		hasher := sha256.New()
+		if _, err := io.Copy(hasher, f); err != nil {
+			_ = f.Close()
+			return nil, fmt.Errorf("failed to compute checksum of extracted binary: %w", err)
+		}
+		_ = f.Close()
+		actualChecksum = "sha256:" + hex.EncodeToString(hasher.Sum(nil))
+
+		// Recompute size for the extracted binary
+		fileInfo, err := os.Stat(tmpPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to stat extracted binary: %w", err)
+		}
+		size = fileInfo.Size()
+	}
+
+	// Check cache using the binary checksum (after extraction if archive)
+	// For non-archives, actualChecksum is the downloaded file's checksum
+	// For archives, actualChecksum is the extracted binary's checksum
+	if c.cacheDir != "" {
+		cachedPath := c.getCachePath(actualChecksum)
+		if _, err := os.Stat(cachedPath); err == nil {
+			c.debugf("Cache hit for binary checksum: %s", actualChecksum)
+			// Copy from cache to destination
+			return c.installFromCache(cachedPath, destDir, actualChecksum)
+		}
+		c.debugf("Cache miss for binary checksum: %s", actualChecksum)
 	}
 
 	// Set executable permissions
@@ -122,9 +146,10 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		return nil, fmt.Errorf("failed to install provider: %w", err)
 	}
 
-	// Save to cache if caching is enabled AND asset had a checksum
-	// We only cache when the asset provided a checksum for verification
-	if c.cacheDir != "" && asset.Checksum != "" {
+	// Save to cache if caching is enabled
+	// For archives, actualChecksum is the extracted binary's checksum
+	// For non-archives, actualChecksum is the downloaded file's checksum
+	if c.cacheDir != "" {
 		if err := c.saveToCache(finalPath, actualChecksum); err != nil {
 			// Log error but don't fail the installation
 			c.debugf("Failed to save to cache: %v", err)
@@ -233,7 +258,7 @@ func (c *Client) attemptDownload(ctx context.Context, url string, w io.Writer) (
 	checksumBytes := hasher.Sum(nil)
 	checksumHex := hex.EncodeToString(checksumBytes)
 
-	return checksumHex, written, nil
+	return "sha256:" + checksumHex, written, nil
 }
 
 // isRetryable determines if an error is retryable.

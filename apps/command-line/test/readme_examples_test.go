@@ -47,12 +47,6 @@ func TestREADMEExamples(t *testing.T) {
 			wantOutputSubstr: "data",
 		},
 		{
-			name:            "compile directory to YAML",
-			args:            []string{"build", "-p", "testdata/configs", "-f", "yaml"},
-			wantExitCode:    0,
-			skipStdoutCheck: true, // YAML not yet implemented, will fail
-		},
-		{
 			name:             "compile with variables",
 			args:             []string{"build", "-p", "testdata/with-vars.csl", "--var", "region=us-west", "--var", "env=dev"},
 			wantExitCode:     0,
@@ -68,11 +62,6 @@ func TestREADMEExamples(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Skip YAML test until implemented
-			if strings.Contains(tt.name, "YAML") || strings.Contains(tt.name, "yaml") {
-				t.Skip("YAML format not yet implemented")
-			}
-
 			//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
 			cmd := exec.Command(binPath, tt.args...)
 			stdout, stderr, exitCode := runCommand(t, cmd)

@@ -34,8 +34,7 @@ var buildCmd = &cobra.Command{
 	Long: `Build compiles Nomos .csl configuration scripts into versioned snapshots.
 
 The build command discovers .csl files in the specified path (file or directory),
-compiles them using the Nomos compiler, and produces deterministic output in
-JSON, YAML, or HCL format.
+compiles them using the Nomos compiler, and produces deterministic JSON output.
 
 File Discovery:
   - If --path points to a file, only that file is compiled
@@ -59,7 +58,7 @@ func init() {
 	_ = buildCmd.MarkFlagRequired("path") // Error only occurs if flag doesn't exist
 
 	// Output flags
-	buildCmd.Flags().StringVarP(&buildFlags.format, "format", "f", "json", "Output format: json, yaml, hcl")
+	buildCmd.Flags().StringVarP(&buildFlags.format, "format", "f", "json", "Output format (only json currently supported)")
 	buildCmd.Flags().StringVarP(&buildFlags.out, "out", "o", "", "Output file (default: stdout)")
 
 	// Configuration flags
@@ -78,9 +77,8 @@ func init() {
 // buildCommand executes the build subcommand.
 func buildCommand(_ *cobra.Command, _ []string) error {
 	// Validate format
-	validFormats := map[string]bool{"json": true, "yaml": true, "hcl": true}
-	if !validFormats[buildFlags.format] {
-		return fmt.Errorf("invalid format %q, must be one of: json, yaml, hcl", buildFlags.format)
+	if buildFlags.format != "json" {
+		return fmt.Errorf("invalid format %q, only json is currently supported", buildFlags.format)
 	}
 
 	// Create provider registries (supports external providers via lockfile)
@@ -190,17 +188,12 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 }
 
 // serializeSnapshot serializes a snapshot to the requested format.
+// Currently only JSON is supported.
 func serializeSnapshot(snapshot compiler.Snapshot, format string) ([]byte, error) {
-	switch format {
-	case "json":
-		return serialize.ToJSON(snapshot)
-	case "yaml":
-		return serialize.ToYAML(snapshot)
-	case "hcl":
-		return serialize.ToHCL(snapshot)
-	default:
-		return nil, fmt.Errorf("unsupported format: %s", format)
+	if format != "json" {
+		return nil, fmt.Errorf("unsupported format: %s (only json is currently supported)", format)
 	}
+	return serialize.ToJSON(snapshot)
 }
 
 // shouldUseColor determines whether to colorize output based on flags and terminal

@@ -1,8 +1,30 @@
 # External Providers Architecture — Feature Breakdown
 
-Last updated: 2025-10-29
+Last updated: 2025-12-26
 
-This document breaks down the work to migrate Nomos providers from in-process libraries to out-of-process executables started as subprocesses and communicating with the compiler via gRPC, inspired by Terraform’s provider model. Distribution is decentralized: providers are obtained from GitHub Releases or a local file system path; there’s no central registry.
+**Status:** 🟡 In Progress - Foundation modules complete (provider-proto, provider-downloader), awaiting CLI and compiler integration
+
+This document breaks down the work to migrate Nomos providers from in-process libraries to out-of-process executables started as subprocesses and communicating with the compiler via gRPC, inspired by Terraform's provider model. Distribution is decentralized: providers are obtained from GitHub Releases or a local file system path; there's no central registry.
+
+## Implementation Progress (as of 2025-12-26)
+
+### ✅ Phase 1-5 Completed
+- **libs/provider-proto**: gRPC protocol definitions complete with comprehensive integration tests
+- **libs/provider-downloader**: Provider binary download, caching, and archive extraction (81.8% test coverage)
+- **libs/compiler**: Context propagation fixed, provider lifecycle management improved, test infrastructure consolidated
+- **apps/command-line**: Modernized with Cobra framework, ready for `nomos init` command
+- **Testing**: Comprehensive test suites, integration test standards established
+- **CI/CD**: All modules have automated testing workflows
+
+### 🟡 Phase 6 In Progress
+- Documentation updates and final polish
+
+### ⏳ Remaining Work
+- Implement `nomos init` command using provider-downloader library
+- Integrate gRPC client communication in compiler using provider-proto
+- Create reference provider implementation (file provider as external binary)
+- End-to-end testing with external providers
+- Migration guide for existing projects
 
 References:
 - docs/guides/terraform-providers-overview.md (summary of Terraform’s model)

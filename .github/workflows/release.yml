@@ -1,0 +1,146 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'libs/*/v*.*.*'
+      - 'apps/*/v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+          cache: true
+
+      - name: Extract module info from tag
+        id: module_info
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          # Extract module path and version (e.g., libs/compiler/v2.1.0)
+          MODULE_PATH=$(echo "$TAG" | sed -E 's/(.*)(\/v[0-9]+\.[0-9]+\.[0-9]+.*)/\1/')
+          VERSION=$(echo "$TAG" | sed -E 's/.*\/(v[0-9]+\.[0-9]+\.[0-9]+.*)/\1/')
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          MODULE_TYPE=$(echo "$MODULE_PATH" | cut -d'/' -f1)
+
+          echo "module_path=$MODULE_PATH" >> $GITHUB_OUTPUT
+          echo "module_name=$MODULE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "module_type=$MODULE_TYPE" >> $GITHUB_OUTPUT
+
+          echo "Module: $MODULE_PATH"
+          echo "Version: $VERSION"
+          echo "Type: $MODULE_TYPE"
+
+      - name: Extract CHANGELOG for this version
+        id: changelog
+        run: |
+          MODULE_PATH="${{ steps.module_info.outputs.module_path }}"
+          VERSION="${{ steps.module_info.outputs.version }}"
+          CHANGELOG_FILE="$MODULE_PATH/CHANGELOG.md"
+
+          if [ ! -f "$CHANGELOG_FILE" ]; then
+            echo "No CHANGELOG.md found at $CHANGELOG_FILE"
+            echo "notes=No changelog available." >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract the section for this version
+          # This captures everything between ## [VERSION] and the next ## heading
+          VERSION_CLEAN=$(echo "$VERSION" | sed 's/^v//')
+          NOTES=$(awk "/## \[$VERSION_CLEAN\]/{flag=1; next} /## \[/{flag=0} flag" "$CHANGELOG_FILE")
+
+          if [ -z "$NOTES" ]; then
+            echo "No changelog entry found for version $VERSION_CLEAN"
+            NOTES="Release $VERSION"
+          fi
+
+          # Save to file to preserve multiline content
+          echo "$NOTES" > /tmp/release_notes.md
+          echo "notes_file=/tmp/release_notes.md" >> $GITHUB_OUTPUT
+
+      - name: Build CLI binaries
+        if: steps.module_info.outputs.module_type == 'apps' && steps.module_info.outputs.module_name == 'command-line'
+        run: |
+          MODULE_PATH="${{ steps.module_info.outputs.module_path }}"
+          VERSION="${{ steps.module_info.outputs.version }}"
+
+          # Create dist directory
+          mkdir -p dist
+
+          # Build for multiple platforms
+          PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+
+          for PLATFORM in $PLATFORMS; do
+            GOOS=$(echo $PLATFORM | cut -d'/' -f1)
+            GOARCH=$(echo $PLATFORM | cut -d'/' -f2)
+            OUTPUT_NAME="nomos-${VERSION}-${GOOS}-${GOARCH}"
+
+            if [ "$GOOS" = "windows" ]; then
+              OUTPUT_NAME="${OUTPUT_NAME}.exe"
+            fi
+
+            echo "Building for $GOOS/$GOARCH..."
+            cd "$MODULE_PATH"
+            GOOS=$GOOS GOARCH=$GOARCH go build -o "../../dist/$OUTPUT_NAME" \
+              -ldflags="-s -w -X main.version=$VERSION" \
+              ./cmd/nomos
+            cd -
+
+            # Create tarball (except for Windows)
+            if [ "$GOOS" != "windows" ]; then
+              tar -czf "dist/${OUTPUT_NAME}.tar.gz" -C dist "$OUTPUT_NAME"
+              rm "dist/$OUTPUT_NAME"
+            else
+              zip -j "dist/${OUTPUT_NAME%.exe}.zip" "dist/$OUTPUT_NAME"
+              rm "dist/$OUTPUT_NAME"
+            fi
+          done
+
+          ls -lh dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.module_info.outputs.tag }}
+          name: "${{ steps.module_info.outputs.module_name }} ${{ steps.module_info.outputs.version }}"
+          body_path: ${{ steps.changelog.outputs.notes_file }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Module**: ${{ steps.module_info.outputs.module_path }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.module_info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: ${{ steps.module_info.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.module_info.outputs.module_type }}" = "apps" ] && [ "${{ steps.module_info.outputs.module_name }}" = "command-line" ]; then
+            echo "**Binaries built for**:" >> $GITHUB_STEP_SUMMARY
+            echo "- Linux (amd64, arm64)" >> $GITHUB_STEP_SUMMARY
+            echo "- macOS (amd64, arm64)" >> $GITHUB_STEP_SUMMARY
+            echo "- Windows (amd64)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Library release - no binaries built." >> $GITHUB_STEP_SUMMARY
+          fi

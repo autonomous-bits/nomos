@@ -25,8 +25,9 @@ See `docs/architecture/` for higher-level design docs and diagrams.
 
 ## Public API (summary)
 
-- NewParser(opts ...ParserOption) *Parser
+- NewParser(opts ...Option) *Parser
   - Create parser instances that can be reused (good for pooling).
+  - Currently no options are implemented; the pattern exists for future extensibility.
 
 - ParseFile(path string) (*ast.AST, error)
   - Convenience top-level function that reads from disk and parses.
@@ -171,6 +172,66 @@ This package contains unit, integration and concurrency tests in `test/` and
 dependencies to make testing deterministic. Run `go test ./...` from the
 repository root (or from the `libs/parser` module) to run the suite.
 
+## API Design Philosophy
+
+### Functional Options Pattern
+
+The parser uses the functional options pattern (`NewParser(opts ...Option)`) to provide
+a stable, forward-compatible API. While no configuration options are currently implemented,
+this pattern allows future extensions without breaking existing code.
+
+**Current Usage:**
+```go
+p := parser.NewParser() // No options needed today
+```
+
+**Future Extensibility:**
+```go
+// Example future options (not yet implemented)
+p := parser.NewParser(
+    parser.WithStrictMode(true),      // Reject duplicate keys
+    parser.WithMaxNestingDepth(100),  // Limit recursion
+    parser.WithErrorLimit(10),        // Stop after N errors
+)
+```
+
+**Why This Pattern:**
+- Zero breaking changes when adding new options
+- Backward compatible - old code continues working
+- Self-documenting through named option functions
+- Optional configuration with sensible defaults
+
+### Parser Instance Reuse
+
+Parser instances are stateless between calls and can be safely reused:
+
+```go
+// Single-use (convenience functions)
+ast, _ := parser.ParseFile("config.csl")
+
+// Reusable instance
+p := parser.NewParser()
+ast1, _ := p.ParseFile("file1.csl")
+ast2, _ := p.ParseFile("file2.csl")
+
+// High-performance pooling
+pool := sync.Pool{New: func() any { return parser.NewParser() }}
+p := pool.Get().(*parser.Parser)
+defer pool.Put(p)
+ast, _ := p.Parse(reader, "config.csl")
+```
+
+Benchmarks show instance reuse with `sync.Pool` reduces allocations in high-throughput scenarios.
+
+### Public vs Internal Separation
+
+- **`pkg/ast/`** - Stable, exported AST types (public API contract)
+- **`internal/scanner/`** - Lexical analysis implementation (private)
+- **`internal/testutil/`** - Testing utilities (private)
+- **Root package** - Public parsing functions and error types
+
+All exported symbols are documented and considered stable API surface.
+
 ## Notes / future work
 
 - Consider adding duplicate-key detection and scope-aware validation in the
@@ -194,7 +255,7 @@ The parser exports the following stable AST node types:
 
 - **`SourceDecl`**: Source provider declaration with alias, type, and configuration
 - **`ImportStmt`**: Import statement with alias and optional path
-- **`ReferenceStmt`**: Reference statement with alias and path
+- **`ReferenceStmt`**: **DEPRECATED** - Top-level reference statements (parser rejects these; use inline `ReferenceExpr` instead)
 - **`SectionDecl`**: Configuration section with name and key-value entries
 
 ### Expression Types

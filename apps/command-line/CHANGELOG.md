@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- [CLI] YAML and HCL serialization stubs removed (#phase6)
+  - `ToYAML()` and `ToHCL()` functions removed from `internal/serialize`
+  - `--format` flag now only accepts `json` (was: json, yaml, hcl)
+  - Documentation updated to reflect JSON-only support
+  - Rationale: No user demand identified, reduces maintenance burden, avoids misleading users
+  - Note: YAML/HCL support may be added in future releases if requested
+
 ## [1.0.0] - 2025-12-26
 
 First production release of the Nomos CLI with complete Cobra framework integration.

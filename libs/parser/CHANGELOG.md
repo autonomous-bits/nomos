@@ -7,14 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **API Documentation Improvements**: Enhanced public API documentation for production readiness
+  - Added comprehensive godoc for `Parser` struct explaining instance reuse and concurrency safety
+  - Documented `Option` functional options pattern and its future extensibility design
+  - Added "API Design Philosophy" section to README covering:
+    - Functional options pattern rationale and future examples
+    - Parser instance reuse patterns (single-use, reusable, pooling)
+    - Public vs internal package separation
+  - Clarified `ReferenceStmt` deprecation status with migration guidance
+  - Fixed terminology inconsistency (ParserOption → Option)
+- All exported symbols now have complete documentation
+
+## [0.8.0] - 2025-12-26
+
+### Added
+- Comprehensive error handling test suite with 14 test functions and 40+ test cases
+  - Test `FormatParseError()` with various error types (lexer, syntax, IO)
+  - Test UTF-8 handling in `generateSnippet()` with multibyte characters
+  - Test edge cases (empty source, out-of-bounds lines, missing newlines)
+  - Test error unwrapping logic for nested errors
+  - Coverage improved from 0% to 80%+ for error formatting code
+- Source span accuracy tests for all expression types
+
+### Changed
+- Refactored parameter passing in Parser struct
+  - Store `sourceText` in Parser struct instead of passing as parameter
+  - Add `startPos` field to track statement start position
+  - Reduce parameter count from 4 to 2 in parsing functions
+  - Improves code readability and maintainability
+
+### Fixed
+- Fixed benchmark suite to use inline reference syntax
+  - Removed deprecated `reference:base:config.database` syntax
+  - All benchmarks now passing and accurate
+
 ### Performance
 - **Scanner optimization**: Replaced save/restore mechanism in `GetIndentLevel()` and `PeekToken()` with direct string scanning
-- Achieved 10-20% performance improvement across all benchmark suites
+- Achieved 10-20% performance improvement across all benchmark suites (6-13% measured)
 - Reduced memory allocations in token peeking operations
 
 ### Refactoring
-- Extracted `expectColonAfterKeyword()` helper function to reduce code duplication in parser validation
-- Improved code maintainability in keyword parsing logic
+- Extracted `expectColonAfterKeyword()` helper function to reduce code duplication
+- Applied to `parseSourceDecl` and `parseImportStmt` for improved maintainability
+- Removed debug test files (`test/debug_test.go`, `test/scanner_debug_test.go`)
+- Moved `nested_maps_test.go` to `test/` directory for consistency
+
+### Testing
+- Test coverage improved from 44.2% to 86.9% (exceeded 75% goal by 11.9%)
+- Added comprehensive validation path tests for `parseSourceDecl`
+- Added error handling tests for `parseImportStmt`
+- Added scanner edge case tests (`GetIndentLevel`, `SkipToNextLine`)
+- Added error recovery path tests
 
 ## [0.1.0] - 2025-11-02
 
@@ -41,5 +85,6 @@ Initial release of the Nomos parser library.
 ### Fixed
 - Section declaration parsing no longer drops first entry
 
-[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/parser/v0.1.0...HEAD
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/parser/v0.8.0...HEAD
+[0.8.0]: https://github.com/autonomous-bits/nomos/compare/libs/parser/v0.1.0...libs/parser/v0.8.0
 [0.1.0]: https://github.com/autonomous-bits/nomos/releases/tag/libs/parser/v0.1.0
