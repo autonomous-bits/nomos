@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-26
+
+First production release of the Nomos CLI with complete Cobra framework integration.
+
 ### BREAKING CHANGES
+- **CLI migrated to Cobra framework** (#phase2): Major UX overhaul with new command structure
+  - All commands now use Cobra framework for consistent behavior and help text
+  - Exit codes changed: Cobra returns exit code `1` for all errors (previously used `2` for usage errors)
+  - Help text format updated to Cobra standard ("Available Commands:", "Flags:" instead of "Commands:", "Options:")
+  - Error messages now use Cobra's standard format ("Error: required flag(s) not set" instead of custom messages)
+  - Command invocation unchanged, but internal structure refactored
+  - Migration: CI/CD scripts checking for exit code `2` should check for exit code `1` instead
+- **`nomos init` now returns structured results**: Breaking change for programmatic usage
+  - `internal/initcmd.Run()` now returns `(*InitResult, error)` instead of `error`
+  - Direct function calls (not via CLI) must handle the new return type
+  - CLI users unaffected - human-readable output preserved
 - **`--from` flag removed from `nomos init`** (#72): Providers now installed from GitHub Releases
   - The `--from alias=path` flag has been removed in favor of automatic downloads from GitHub Releases
   - Provider `type` field in `.csl` source declarations must now use `owner/repo` format (e.g., `autonomous-bits/nomos-provider-file`)
@@ -27,6 +42,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CI/CD pipelines must add `nomos init` step before `nomos build`
 
 ### Added
+- [CLI] Shell completion support for Bash, Zsh, Fish, and PowerShell via `nomos completion` command
+- [CLI] `--color` global flag with `auto`, `always`, `never` modes for colored output control
+- [CLI] `--quiet` global flag to suppress non-error output
+- [CLI] `nomos version` command displaying version, commit, build date, and Go version
+- [CLI] `nomos validate` command for syntax-only validation without building
+  - Performs parsing and type checking without provider invocation
+  - Useful for pre-commit hooks, CI/CD pipelines, and editor integrations
+  - Supports `--path` flag to specify files or directories to validate
+- [CLI] `nomos providers list` command to display installed providers
+  - Shows table with alias, type, version, OS, arch, and path
+  - Supports `--json` flag for machine-readable output
+- [CLI] Enhanced `nomos init` output with table formatting and progress indicators
+  - Uses `tablewriter` for clean table output of installation results
+  - Shows provider alias, type, version, status (installed/skipped/failed), and size
+  - Displays spinner during installation (hidden with `--quiet` or `--json`)
+  - Supports `--json` flag for machine-readable output
+  - Shows installation summary: "Successfully installed N provider(s), skipped M already installed"
+- [CLI] Colored diagnostics output with `fatih/color` integration
+  - Errors displayed in red, warnings in yellow (when color enabled)
+  - Headers added: "Errors:" and "Warnings:" sections for clarity
+  - Respects `--color` flag and terminal detection
+- [CLI] Validation summary in build output
+  - Shows "Compilation failed: N error(s), M warning(s)" after diagnostics
+  - Provides clear feedback on build status
+- [CLI] Success message when output file written: "Output written to <path>"
 - [CLI] `nomos init` command for discovering and installing provider dependencies (#46, #72)
   - Scans `.csl` files to discover provider requirements (alias, type, version)
   - Validates that all providers have required `version` field in source declarations
@@ -48,6 +88,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lockfile includes RFC3339 timestamp recording when providers were installed
   - Atomic lockfile writes using temp file + rename pattern for crash safety
   - Skip-download optimization: providers matching lockfile entries by version/checksum are not re-downloaded unless `--force` is used
+
+### Changed
+- [CLI] All command handlers now return errors instead of calling `os.Exit()` directly
+  - Improves testability and allows for proper error handling in main()
+  - All exits now occur in `main()` function only
+- [CLI] Help text improved with Cobra's structured format
+  - Long descriptions with examples and usage notes
+  - Consistent flag documentation across all commands
+  - Better organization with sections for flags, exit codes, and examples
+
+### Dependencies
+- Added `github.com/spf13/cobra` v1.10.2 for CLI framework
+- Added `github.com/spf13/pflag` v1.0.9 for POSIX/GNU flag parsing
+- Added `github.com/olekukonko/tablewriter` v1.1.2 for table output
+- Added `github.com/briandowns/spinner` v1.23.2 for progress indicators
+- Added `github.com/fatih/color` v1.18.0 for colored output
   - Comprehensive unit tests verify lockfile schema, atomic writes, and skip logic
 - [CLI] Initial implementation of `nomos build` command for compiling .csl files to configuration snapshots
 - [CLI] Flag parsing support for `--path/-p`, `--format/-f`, `--out/-o`, `--var`, `--strict`, `--allow-missing-provider`, `--timeout-per-provider`, `--max-concurrent-providers`, and `--verbose`
@@ -125,4 +181,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Internal] Refactored `build.go` to use `options.BuildOptions()` for improved testability and provider wiring (#38)
 - [Internal] Provider registries now use factory pattern (`options.NewProviderRegistries()`) supporting custom injection for tests (#38)
 
-[Unreleased]: https://github.com/autonomous-bits/nomos/compare/main...HEAD
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/apps/command-line/v1.0.0...HEAD
+[1.0.0]: https://github.com/autonomous-bits/nomos/releases/tag/apps/command-line/v1.0.0

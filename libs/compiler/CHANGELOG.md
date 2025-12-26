@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-12-26
+
 ### Security
 - **CRITICAL: Mandatory checksum validation for provider binaries** - Provider binaries are now required to have checksums in the lockfile and are verified before execution. This prevents execution of tampered or corrupted binaries. Lockfiles without checksums will fail with a clear error message directing users to run `nomos init`.
 
@@ -32,6 +34,10 @@ Initial release of the Nomos compiler library.
 
 ### Changed
 - Refactored tests to use centralized `FakeProviderServer`
+
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/compiler/v0.1.1...HEAD
+[0.1.1]: https://github.com/autonomous-bits/nomos/compare/libs/compiler/v0.1.0...libs/compiler/v0.1.1
+[0.1.0]: https://github.com/autonomous-bits/nomos/releases/tag/libs/compiler/v0.1.0
 
 [Unreleased]: https://github.com/autonomous-bits/nomos/compare/libs/compiler/v0.1.0...HEAD
 [0.1.0]: https://github.com/autonomous-bits/nomos/releases/tag/libs/compiler/v0.1.0
