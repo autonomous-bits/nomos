@@ -1,0 +1,13 @@
+source:
+  alias: 'files'
+  type: 'file'
+  directory: '.'
+
+import:files:level2.csl
+
+config:
+  level: 3
+  value: 'level3'
+
+network:
+  protocol: 'tcp'

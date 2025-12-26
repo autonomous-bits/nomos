@@ -573,6 +573,49 @@ This creates:
 - `.nomos/providers/` - Installed provider binaries
 - `.nomos/providers.lock.json` - Version and checksum lock file
 
+### Security: Binary Checksum Validation
+
+**CRITICAL**: Provider binaries are validated using SHA256 checksums before execution.
+
+The compiler enforces mandatory checksum verification for all provider binaries:
+
+1. **Lockfile Requirement**: Every provider entry in `.nomos/providers.lock.json` must include a `checksum` field in the format `sha256:<hexdigest>`
+
+2. **Validation Timing**: Checksums are verified when resolving provider binaries, before any process execution
+
+3. **Failure Modes**:
+   - **Missing Checksum**: Compilation fails with error directing user to run `nomos init`
+   - **Checksum Mismatch**: Compilation fails with error indicating potential tampering
+   - **Binary Missing**: Compilation fails with clear error message
+
+4. **Security Properties**:
+   - Uses cryptographically secure SHA256 hash function
+   - Fails closed - any validation failure prevents execution
+   - Detects binary tampering, corruption, or substitution attacks
+   - Computed at provider installation time by `nomos init`
+
+Example lockfile entry with checksum:
+```json
+{
+  "providers": [
+    {
+      "alias": "configs",
+      "type": "autonomous-bits/nomos-provider-file",
+      "version": "0.2.0",
+      "os": "darwin",
+      "arch": "arm64",
+      "path": ".nomos/providers/file/0.2.0/darwin-arm64/provider",
+      "checksum": "sha256:a3c4f5e7d9b1c2a4f6e8d0b2c4a6f8e0d2b4c6a8e0f2d4b6c8a0e2f4d6b8a0e2"
+    }
+  ]
+}
+```
+
+**Error Example**:
+```
+Error: provider binary for file has no checksum in lockfile - refusing to execute (security risk); run 'nomos init' to regenerate lockfile with checksums
+```
+
 ### Documentation
 
 - **For users**: See [docs/examples](../../docs/examples/) for usage examples
