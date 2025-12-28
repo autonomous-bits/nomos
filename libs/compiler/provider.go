@@ -25,11 +25,17 @@ var (
 // These aliases allow external code to continue using compiler.Provider, etc.
 // while internally using the core package's definitions.
 type (
-	Provider             = core.Provider
-	ProviderWithInfo     = core.ProviderWithInfo
-	ProviderInitOptions  = core.ProviderInitOptions
-	ProviderConstructor  = core.ProviderConstructor
-	ProviderRegistry     = core.ProviderRegistry
+	// Provider is the main provider interface.
+	Provider = core.Provider
+	// ProviderWithInfo extends Provider with metadata.
+	ProviderWithInfo = core.ProviderWithInfo
+	// ProviderInitOptions configures provider initialization.
+	ProviderInitOptions = core.ProviderInitOptions
+	// ProviderConstructor creates provider instances.
+	ProviderConstructor = core.ProviderConstructor
+	// ProviderRegistry manages provider instances.
+	ProviderRegistry = core.ProviderRegistry
+	// ProviderTypeRegistry manages provider type constructors.
 	ProviderTypeRegistry = core.ProviderTypeRegistry
 )
 

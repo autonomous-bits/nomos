@@ -21,7 +21,7 @@ The CLI is a thin wrapper around the compiler library (`libs/compiler`) and is r
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.25 or later
 - macOS, Linux, or Windows (tested primarily on macOS)
 
 ### Build from Source
@@ -366,7 +366,7 @@ Flags:
 Nomos CLI Version: 0.2.0
 Commit: a1b2c3d4e5f
 Build Date: 2025-12-26T10:30:00Z
-Go Version: go1.22.5
+Go Version: go1.25.3
 Module: github.com/autonomous-bits/nomos/apps/command-line
 ```
 
@@ -731,7 +731,7 @@ See `internal/serialize/serialize_test.go` for comprehensive determinism tests.
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.25 or later
 - Access to `libs/compiler` and `libs/parser` via workspace
 
 ### Building

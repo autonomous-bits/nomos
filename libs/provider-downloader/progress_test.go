@@ -230,6 +230,7 @@ func TestProgressCallback_LargeDownload(t *testing.T) {
 	var mu sync.Mutex
 	var progressUpdates []int64
 
+	//nolint:revive // unused-parameter: total is part of the callback signature but not needed for this test
 	progressCallback := func(downloaded, total int64) {
 		mu.Lock()
 		defer mu.Unlock()

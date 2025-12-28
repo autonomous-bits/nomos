@@ -1,6 +1,6 @@
 module github.com/autonomous-bits/nomos/examples/consumer
 
-go 1.22
+go 1.25
 
 // This example demonstrates how external consumers should depend on Nomos libraries
 // after they are published as versioned Go modules.

@@ -101,6 +101,7 @@ func (c *Client) downloadAndInstall(ctx context.Context, asset *AssetInfo, destD
 		// Recompute checksum for the extracted binary
 		// The actualChecksum from download was for the archive, but we need
 		// the checksum of the actual binary for lockfile validation
+		//nolint:gosec // G304: tmpPath is from our controlled extraction directory
 		f, err := os.Open(tmpPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open extracted binary for checksum: %w", err)

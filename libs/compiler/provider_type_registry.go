@@ -9,6 +9,7 @@ import (
 )
 
 // ProviderTypeConstructor is an alias for core.ProviderTypeConstructor for backward compatibility.
+//
 // Deprecated: Use core.ProviderTypeConstructor directly.
 type ProviderTypeConstructor = core.ProviderTypeConstructor
 

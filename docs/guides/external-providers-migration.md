@@ -168,7 +168,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
       
       - name: Install Nomos CLI
         run: |
@@ -195,7 +195,7 @@ jobs:
 ### Docker Example
 
 ```dockerfile
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Install Nomos CLI
 RUN go install github.com/autonomous-bits/nomos/apps/command-line/cmd/nomos@latest

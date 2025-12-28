@@ -1,3 +1,4 @@
+// Package providers contains internal provider implementation details.
 package providers
 
 import (

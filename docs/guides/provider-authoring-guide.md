@@ -61,7 +61,7 @@ Create a provider when you need to:
 
 ### Prerequisites
 
-- Go 1.22+ (or another language with gRPC support)
+- Go 1.25+ (or another language with gRPC support)
 - Protocol Buffer Compiler or Buf CLI
 - Understanding of gRPC basics
 

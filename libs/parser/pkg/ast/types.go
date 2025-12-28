@@ -72,7 +72,7 @@ func (i *ImportStmt) stmt()            {}
 
 // ReferenceStmt represents a top-level reference statement.
 //
-// DEPRECATED: Top-level reference statements (e.g., \"reference:alias:path\") are rejected
+// Deprecated: Top-level reference statements (e.g., "reference:alias:path") are rejected
 // by the parser as of the inline reference migration. This type is retained in the AST
 // for backward compatibility with older code that may reference it, but the parser will
 // never produce nodes of this type.

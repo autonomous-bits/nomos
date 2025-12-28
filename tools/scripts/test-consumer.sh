@@ -67,7 +67,7 @@ cd "$TEMP_DIR"
 cat > go.mod << 'EOF'
 module example.com/test-consumer
 
-go 1.22
+go 1.25
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0
