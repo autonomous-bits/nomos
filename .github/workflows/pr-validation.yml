@@ -50,12 +50,12 @@ jobs:
             # Check format: <type>[(scope)][!]: <gitmoji> <description>
             # Pattern explanation:
             # - Starts with type (feat, fix, etc.)
-            # - Optional scope in parentheses
+            # - Optional scope in parentheses (allows a-z, 0-9, _, -, .)
             # - Optional breaking change indicator (!)
             # - Colon and space
             # - Contains one of the gitmojis
             # - Followed by space and description
-            if echo "$SUBJECT" | grep -qE "^($VALID_TYPES)(\([a-z0-9_-]+\))?!?: ($GITMOJIS) .+"; then
+            if echo "$SUBJECT" | grep -qE "^($VALID_TYPES)(\([a-z0-9_./-]+\))?!?: ($GITMOJIS) .+"; then
               echo "  ✓ Valid format"
             else
               echo "  ✗ Invalid format"
