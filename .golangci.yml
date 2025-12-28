@@ -1,17 +1,6 @@
 # yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 # golangci-lint configuration for Nomos monorepo
 # Compatible with golangci-lint v2.7.2
-#
-# NOTE: VS Code YAML extension may report false positives due to outdated schema.
-# This configuration has been tested and verified with golangci-lint v2.7.2.
-# Properties like linters-settings, exclude-rules, and output formatting are valid.
-#
-# v2 Migration Notes:
-# - Added 'version: "2"' field (required in v2)
-# - Separated formatters (gofmt, goimports) from linters into 'formatters' section
-# - Moved formatter settings to 'formatters-settings' section
-# - gosimple and stylecheck are now integrated into staticcheck
-# - Changed output.formats from list to map structure
 
 version: "2"
 
