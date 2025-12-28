@@ -219,7 +219,7 @@ jobs:
         uses: ./.github/actions/setup-provider-proto
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.7.2
           working-directory: apps/command-line
