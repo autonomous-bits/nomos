@@ -31,7 +31,48 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+[Gates determined based on constitution file - reference `.specify/memory/constitution.md`]
+
+**Principle I - Library-First Architecture**:
+- [ ] Feature implemented as standalone library module (if applicable)
+- [ ] Clear module boundaries with `go.mod`
+- [ ] No tight coupling to sibling modules
+
+**Principle II - CLI-Driven Interface**:
+- [ ] Library functionality exposed through CLI commands (if applicable)
+- [ ] Text-based I/O with proper exit codes
+- [ ] Multiple output formats supported (JSON, YAML, HCL)
+
+**Principle III - Test-First Development**:
+- [ ] Test strategy defined before implementation
+- [ ] Red-Green-Refactor cycle planned
+- [ ] Integration tests identified
+
+**Principle IV - Integration Testing**:
+- [ ] Critical boundaries identified for integration tests
+- [ ] Test fixtures and testdata planned
+
+**Principle V - Observability & Debuggability**:
+- [ ] Error messages include actionable context
+- [ ] Structured logging planned for key operations
+- [ ] Debug-friendly text I/O
+
+**Principle VI - Versioning & Breaking Changes**:
+- [ ] SemVer impact analyzed (MAJOR/MINOR/PATCH)
+- [ ] CHANGELOG.md update planned
+- [ ] Migration guide planned (if breaking)
+
+**Principle VII - Multi-Agent Workflow**:
+- [ ] Task complexity analyzed (requires multi-agent coordination?)
+- [ ] Affected agents identified and listed
+- [ ] Phase-gated workflow planned if complex
+- [ ] Agent delegation strategy documented
+- [ ] Quality gates defined at phase boundaries
+
+**Principle VIII - Simplicity & YAGNI**:
+- [ ] No speculative features included
+- [ ] Complexity justified in Complexity Tracking section (if needed)
+- [ ] Simpler alternatives considered and documented
 
 ## Project Structure
 

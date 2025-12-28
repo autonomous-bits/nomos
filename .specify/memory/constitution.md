@@ -1,13 +1,14 @@
 <!--
 Sync Impact Report:
-Version change: 0.0.0 → 1.0.0
-Modified principles: N/A (initial version)
-Added sections: All (initial constitution)
+Version change: 1.0.0 → 1.1.0
+Modified principles: None
+Added sections: Principle VIII (Multi-Agent Workflow)
 Removed sections: None
 Templates requiring updates:
-  ✅ plan-template.md - Constitution Check section aligns
-  ✅ spec-template.md - Requirements structure aligns  
-  ✅ tasks-template.md - Test-first approach aligns
+  ✅ plan-template.md - Phase-gated workflow aligns with multi-agent orchestration
+  ✅ spec-template.md - User story structure supports agent delegation
+  ✅ tasks-template.md - Task organization enables parallel agent execution
+  ✅ .github/agents/*.agent.md - All agent definitions align with workflow
 Follow-up TODOs: None
 -->
 
@@ -89,7 +90,28 @@ Modules MUST follow semantic versioning (MAJOR.MINOR.PATCH).
 
 **Rationale:** Clear versioning enables safe upgrades and prevents breaking user configurations unexpectedly.
 
-### VII. Simplicity & YAGNI
+### VII. Multi-Agent Workflow
+Complex tasks MUST be coordinated through specialized agents following phase-gated execution.
+
+**Non-negotiable rules:**
+- The Nomos Orchestrator (`nomos-orchestrator.agent.md`) MUST coordinate all multi-step development tasks
+- Tasks MUST be decomposed into phases: Analysis → Design → Implementation → Security Review → Integration → Documentation
+- Each phase MUST complete its validation gates before proceeding to the next
+- Agent delegation MUST follow domain expertise:
+  - Parser/AST changes → Nomos Parser Specialist
+  - Compilation pipeline → Nomos Compiler Specialist  
+  - CLI/UX changes → Nomos CLI Specialist
+  - Provider system → Nomos Provider Specialist
+  - Test infrastructure → Nomos Testing Specialist
+  - Security concerns → Nomos Security Reviewer
+  - Documentation → Nomos Documentation Specialist
+- Agents MUST maintain local `AGENTS.md` files documenting project-specific patterns
+- Parallel task execution MUST be used when tasks have no dependencies
+- Quality gates MUST be enforced at phase boundaries (code quality, testing, security, documentation)
+
+**Rationale:** Complex changes require specialized expertise and systematic validation. Phase-gated workflows with specialist agents ensure quality, prevent regressions, and maintain architectural consistency. Agent coordination reduces cognitive load and enables parallel work while maintaining integration integrity.
+
+### VIII. Simplicity & YAGNI
 Start simple—implement only what is needed now.
 
 **Non-negotiable rules:**
@@ -166,4 +188,4 @@ This constitution supersedes all other development practices. All changes MUST a
 - Complexity exceptions MUST be justified in Complexity Tracking section
 - Refer to `CONTRIBUTING.md` for runtime development guidance and quick-start instructions
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25
+**Version**: 1.1.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-28

@@ -1,7 +1,7 @@
 # Nomos Parser Agent-Specific Patterns
 
-> **Note**: For comprehensive parser development guidance, see `.github/agents/parser-module.agent.md`  
-> For task coordination, start with `.github/agents/nomos.agent.md`
+> **Note**: For comprehensive parser development guidance, see `.github/agents/nomos-parser-specialist.agent.md`  
+> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
 
 ## Nomos-Specific Patterns
 
