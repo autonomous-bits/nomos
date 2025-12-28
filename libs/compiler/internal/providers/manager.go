@@ -229,9 +229,11 @@ func (m *Manager) shutdownProvider(ctx context.Context, alias string, proc *prov
 	}
 
 	// Step 2: Wait for process to exit gracefully
+	// Use WaitDelay to ensure we don't hold references too long
 	done := make(chan error, 1)
 	go func() {
-		done <- proc.cmd.Wait()
+		err := proc.cmd.Wait()
+		done <- err
 	}()
 
 	select {
@@ -248,10 +250,12 @@ func (m *Manager) shutdownProvider(ctx context.Context, alias string, proc *prov
 		_ = proc.client.Close()
 		if proc.cmd.Process != nil {
 			if err := proc.cmd.Process.Kill(); err != nil {
+				// Still wait for the goroutine to complete
+				<-done
 				return fmt.Errorf("failed to kill provider %s after timeout: %w", alias, err)
 			}
-			// Wait for process to be reaped
-			_ = proc.cmd.Wait()
+			// Wait for the goroutine's Wait() to complete (it should return quickly now that we killed it)
+			<-done
 		}
 		return fmt.Errorf("provider %s did not exit within timeout, was forcefully terminated", alias)
 	}

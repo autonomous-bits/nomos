@@ -84,12 +84,14 @@ func (r *mockRegistry) RegisteredAliases() []string {
 
 // mockTypeRegistry for testing
 type mockTypeRegistry struct {
-	types map[string]func(map[string]any) (core.Provider, error)
+	providers map[string]core.Provider // Store providers directly in mock
+	types     map[string]func(map[string]any) (core.Provider, error)
 }
 
 func newMockTypeRegistry() *mockTypeRegistry {
 	return &mockTypeRegistry{
-		types: make(map[string]func(map[string]any) (core.Provider, error)),
+		providers: make(map[string]core.Provider),
+		types:     make(map[string]func(map[string]any) (core.Provider, error)),
 	}
 }
 
@@ -98,6 +100,11 @@ func (r *mockTypeRegistry) RegisterType(_ string, _ core.ProviderTypeConstructor
 }
 
 func (r *mockTypeRegistry) CreateProvider(_ context.Context, typeName string, config map[string]any) (core.Provider, error) {
+	// Check if a provider instance is registered first (test shortcut)
+	if provider, ok := r.providers[typeName]; ok {
+		return provider, nil
+	}
+	// Otherwise use constructor function
 	if fn, ok := r.types[typeName]; ok {
 		return fn(config)
 	}
@@ -105,14 +112,27 @@ func (r *mockTypeRegistry) CreateProvider(_ context.Context, typeName string, co
 }
 
 func (r *mockTypeRegistry) IsTypeRegistered(typeName string) bool {
+	if _, ok := r.providers[typeName]; ok {
+		return true
+	}
 	_, ok := r.types[typeName]
 	return ok
 }
 
+// RegisterProvider is a test helper to register a provider instance directly
+func (r *mockTypeRegistry) RegisterProvider(typeName string, provider core.Provider) {
+	r.providers[typeName] = provider
+}
+
 func (r *mockTypeRegistry) RegisteredTypes() []string {
-	types := make([]string, 0, len(r.types))
-	for t := range r.types {
+	types := make([]string, 0, len(r.providers)+len(r.types))
+	for t := range r.providers {
 		types = append(types, t)
+	}
+	for t := range r.types {
+		if _, exists := r.providers[t]; !exists {
+			types = append(types, t)
+		}
 	}
 	return types
 }
@@ -172,9 +192,7 @@ app:
 	typeRegistry := newMockTypeRegistry()
 
 	mockProvider := &mockProvider{}
-	typeRegistry.types["file"] = func(_ map[string]any) (core.Provider, error) {
-		return mockProvider, nil
-	}
+	typeRegistry.RegisterProvider("file", mockProvider)
 
 	// Act
 	result, err := ResolveImports(context.Background(), filePath, registry, typeRegistry)
@@ -225,9 +243,7 @@ app:
 			},
 		},
 	}
-	typeRegistry.types["file"] = func(_ map[string]any) (core.Provider, error) {
-		return mockProvider, nil
-	}
+	typeRegistry.RegisterProvider("file", mockProvider)
 
 	// Act
 	result, err := ResolveImports(context.Background(), filePath, registry, typeRegistry)
@@ -291,9 +307,7 @@ func TestInitializeProvider_Success(t *testing.T) {
 	typeRegistry := newMockTypeRegistry()
 
 	mockProvider := &mockProvider{}
-	typeRegistry.types["file"] = func(_ map[string]any) (core.Provider, error) {
-		return mockProvider, nil
-	}
+	typeRegistry.RegisterProvider("file", mockProvider)
 
 	// Act
 	err := initializeProvider(context.Background(), src, "/test/source.csl", registry, typeRegistry)
@@ -321,8 +335,13 @@ func TestInitializeProvider_AlreadyExists(t *testing.T) {
 
 	typeRegistry := newMockTypeRegistry()
 	createCallCount := 0
+	var createErr error // Could be set to test error path
+	// Use a closure that tracks calls but still returns provider
 	typeRegistry.types["file"] = func(_ map[string]any) (core.Provider, error) {
 		createCallCount++
+		if createErr != nil {
+			return nil, createErr
+		}
 		return &mockProvider{}, nil
 	}
 
@@ -400,9 +419,7 @@ func TestInitializeProvider_InitError(t *testing.T) {
 	typeRegistry := newMockTypeRegistry()
 
 	initErr := errors.New("init failed")
-	typeRegistry.types["file"] = func(_ map[string]any) (core.Provider, error) {
-		return &mockProvider{initErr: initErr}, nil
-	}
+	typeRegistry.RegisterProvider("file", &mockProvider{initErr: initErr})
 
 	// Act
 	err := initializeProvider(context.Background(), src, "/test/source.csl", registry, typeRegistry)
