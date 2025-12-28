@@ -7,6 +7,7 @@ import (
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/diagnostic"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
@@ -126,9 +127,24 @@ func exprToValue(expr ast.Expr) any {
 // Returns merged data from all imports in dependency order.
 func ResolveImports(ctx context.Context, filePath string, registry ProviderRegistry, typeRegistry ProviderTypeRegistry) (map[string]any, error) {
 	// Parse the file
-	tree, _, err := parse.ParseFile(filePath)
+	tree, diags, err := parse.ParseFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse %q: %w", filePath, err)
+	}
+
+	// Check for parse errors in diagnostics
+	if len(diags) > 0 {
+		// Return first error diagnostic as the error
+		for _, d := range diags {
+			if d.Severity == diagnostic.SeverityError {
+				return nil, fmt.Errorf("parse error in %q: %s", filePath, d.Message)
+			}
+		}
+	}
+
+	// Check for nil tree (can happen with parse errors)
+	if tree == nil {
+		return nil, fmt.Errorf("failed to parse %q: no AST returned", filePath)
 	}
 
 	// Extract declarations
