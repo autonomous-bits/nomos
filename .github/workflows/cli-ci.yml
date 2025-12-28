@@ -218,12 +218,12 @@ jobs:
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
 
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.7.2
-
       - name: Run golangci-lint
-        working-directory: apps/command-line
-        run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.7.2
+          working-directory: apps/command-line
+          args: --timeout=5m
 
   vulnerability-scan:
     name: Vulnerability Scan
