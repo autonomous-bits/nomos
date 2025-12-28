@@ -140,6 +140,7 @@ jobs:
             echo "::warning::Integration tests may be running in default test suite"
           else
             echo "✓ Integration tests properly excluded from default run"
+          fi
 
   vulnerability-scan:
     name: Vulnerability Scan
