@@ -323,7 +323,7 @@ The compiler uses a 3-stage pipeline:
 2. **Resolve**: Resolves imports and provider references in topological order
 3. **Merge**: Merges configurations with cascading overrides
 
-See [Architecture Documentation](../../docs/architecture/) for details.
+See [Architecture Documentation](/docs/architecture/go-monorepo-structure.md) for details.
 
 ## Troubleshooting
 
@@ -341,11 +341,11 @@ See [Architecture Documentation](../../docs/architecture/) for details.
 
 ## Contributing
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
+See [CONTRIBUTING.md](/CONTRIBUTING.md) for development guidelines.
 
 ## License
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+See [LICENSE](/LICENSE) for details.
 ```
 
 ### ✅ Correct: CHANGELOG.md Entry
@@ -526,9 +526,9 @@ fmt.Printf("PORT=%d\n", port)
 
 ## Getting Help
 
-- [Provider Authoring Guide](provider-authoring-guide.md)
-- [GitHub Discussions](https://github.com/nomos/nomos/discussions)
-- [Issue Tracker](https://github.com/nomos/nomos/issues)
+- [Provider Authoring Guide](/docs/guides/provider-authoring-guide.md)
+- [GitHub Discussions](https://github.com/autonomous-bits/nomos/discussions)
+- [Issue Tracker](https://github.com/autonomous-bits/nomos/issues)
 ```
 
 ### ❌ Incorrect: Poor Godoc Comment
