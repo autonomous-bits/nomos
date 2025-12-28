@@ -86,13 +86,13 @@ import (
 func main() {
     // Test that we can import and use the libraries
     fmt.Println("Testing Nomos library imports...")
-    
+
     // Try to create a parser instance
     p := parser.NewParser()
     if p == nil {
         panic("parser is nil")
     }
-    
+
     fmt.Println("✅ Successfully imported and used Nomos libraries!")
 }
 EOF
@@ -104,11 +104,11 @@ echo "  Running go mod download..."
 # For local testing before push, we'll handle the error gracefully
 if go mod download 2>&1 | tee /tmp/go-mod-download.log; then
     echo "  ✅ go mod download succeeded"
-    
+
     echo "  Building test consumer..."
     if go build -o test-consumer .; then
         echo "  ✅ Test consumer builds successfully"
-        
+
         echo "  Running test consumer..."
         if ./test-consumer; then
             echo "  ✅ Test consumer runs successfully"
