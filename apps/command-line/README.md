@@ -366,7 +366,7 @@ Flags:
 Nomos CLI Version: 0.2.0
 Commit: a1b2c3d4e5f
 Build Date: 2025-12-26T10:30:00Z
-Go Version: go1.25.3
+Go Version: go1.25+
 Module: github.com/autonomous-bits/nomos/apps/command-line
 ```
 

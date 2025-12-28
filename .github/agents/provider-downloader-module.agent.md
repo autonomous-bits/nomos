@@ -6,7 +6,7 @@ description: Specialized agent for libs/provider-downloader - handles provider b
 ## Module Context
 - **Path**: `libs/provider-downloader`
 - **Module Name**: `github.com/autonomous-bits/nomos/libs/provider/downloader`
-- **Go Version**: 1.25.3
+- **Go Version**: 1.25+
 - **Responsibilities**:
   - Asset resolution from GitHub Releases based on OS/architecture
   - Streaming downloads with SHA256 verification

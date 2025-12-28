@@ -155,7 +155,7 @@ If you're working within the Nomos monorepo itself, **do not use `replace` direc
 The repository root has a `go.work` file that configures all modules:
 
 ```go
-go 1.25.3
+go 1.25+
 
 use (
     ./apps/command-line

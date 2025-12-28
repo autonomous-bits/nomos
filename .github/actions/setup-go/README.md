@@ -8,14 +8,14 @@ A composite action that sets up the Go environment with the correct version and 
 - name: Setup Go Environment
   uses: ./.github/actions/setup-go
   with:
-    go-version: '1.25.3'  # Optional, defaults to 1.25.3
+    go-version: '1.25.5'  # Optional, defaults to 1.25.5
 ```
 
 ## Inputs
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `go-version` | Go version to use | No | `1.25.3` |
+| `go-version` | Go version to use | No | `1.25.5` |
 | `cache-dependency-path` | Path to go.sum files for caching | No | All module go.sum files |
 | `working-directory` | Working directory for workspace verification | No | `.` |
 
@@ -40,7 +40,7 @@ The Nomos monorepo uses a Go workspace (`go.work`) to manage multiple modules. T
 
 ```
 === Go Environment ===
-go version go1.25.3 linux/amd64
+go version go1.25+ linux/amd64
 
 go.work found, syncing workspace...
 
