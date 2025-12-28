@@ -170,4 +170,3 @@ jobs:
             exit 1
           }
           echo "✓ No vulnerabilities found"
-          fi
