@@ -65,7 +65,8 @@ type DiscoveredProvider struct {
 }
 
 // Run executes the init command with the given options.
-func Run(opts Options) error {
+// Returns InitResult with details of what was installed/skipped.
+func Run(opts Options) (*InitResult, error) {
 	// Set defaults for OS/Arch
 	if opts.OS == "" {
 		opts.OS = runtime.GOOS
@@ -77,27 +78,38 @@ func Run(opts Options) error {
 	// Discover providers from .csl files
 	providers, err := discoverProviders(opts.Paths)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	result := &InitResult{
+		DryRun:    opts.DryRun,
+		Providers: make([]ProviderResult, 0, len(providers)),
 	}
 
 	if len(providers) == 0 {
-		fmt.Println("No providers found in source files.")
-		return nil
+		return result, nil
 	}
 
 	// Validate all providers have versions
 	for _, p := range providers {
 		if p.Version == "" {
-			return fmt.Errorf("provider %q (type: %s) missing required 'version' field in source declaration", p.Alias, p.Type)
+			return nil, fmt.Errorf("provider %q (type: %s) missing required 'version' field in source declaration", p.Alias, p.Type)
 		}
 	}
 
 	if opts.DryRun {
-		fmt.Println("Dry run mode - would install:")
+		// Populate result for dry-run
 		for _, p := range providers {
-			fmt.Printf("  - %s (type: %s, version: %s)\n", p.Alias, p.Type, p.Version)
+			result.Providers = append(result.Providers, ProviderResult{
+				Alias:   p.Alias,
+				Type:    p.Type,
+				Version: p.Version,
+				OS:      opts.OS,
+				Arch:    opts.Arch,
+				Status:  ProviderStatusDryRun,
+			})
 		}
-		return nil
+		return result, nil
 	}
 
 	// Read existing lockfile if present (unless --force)
@@ -105,39 +117,61 @@ func Run(opts Options) error {
 
 	// Install providers
 	lockEntries := []ProviderEntry{}
-	skipped := 0
 	for _, p := range providers {
 		// Check if provider already exists in lockfile with matching version
 		if !opts.Force && existingLock != nil {
 			if existing := findProviderInLock(existingLock, p.Alias, p.Type, p.Version, opts.OS, opts.Arch); existing != nil {
 				// Provider already installed with matching version
-				fmt.Printf("Provider %q already installed (version %s), skipping\n", p.Alias, p.Version)
 				lockEntries = append(lockEntries, *existing)
-				skipped++
+				result.Skipped++
+				result.Providers = append(result.Providers, ProviderResult{
+					Alias:   p.Alias,
+					Type:    p.Type,
+					Version: p.Version,
+					OS:      opts.OS,
+					Arch:    opts.Arch,
+					Status:  ProviderStatusSkipped,
+					Path:    existing.Path,
+				})
 				continue
 			}
 		}
 
-		entry, err := installProvider(p, opts)
-		if err != nil {
-			return fmt.Errorf("failed to install provider %q: %w", p.Alias, err)
+		entry, installErr := installProvider(p, opts)
+		if installErr != nil {
+			// Record failed installation
+			result.Providers = append(result.Providers, ProviderResult{
+				Alias:   p.Alias,
+				Type:    p.Type,
+				Version: p.Version,
+				OS:      opts.OS,
+				Arch:    opts.Arch,
+				Status:  ProviderStatusFailed,
+				Error:   installErr,
+			})
+			return result, fmt.Errorf("failed to install provider %q: %w", p.Alias, installErr)
 		}
 		lockEntries = append(lockEntries, entry)
+		result.Installed++
+		result.Providers = append(result.Providers, ProviderResult{
+			Alias:   entry.Alias,
+			Type:    entry.Type,
+			Version: entry.Version,
+			OS:      entry.OS,
+			Arch:    entry.Arch,
+			Status:  ProviderStatusInstalled,
+			Size:    entry.Size,
+			Path:    entry.Path,
+		})
 	}
 
 	// Write lock file
 	lockFile := LockFile{Providers: lockEntries}
 	if err := writeLockFile(lockFile); err != nil {
-		return fmt.Errorf("failed to write lock file: %w", err)
+		return result, fmt.Errorf("failed to write lock file: %w", err)
 	}
 
-	installed := len(lockEntries) - skipped
-	if skipped > 0 {
-		fmt.Printf("Successfully installed %d provider(s), skipped %d already installed\n", installed, skipped)
-	} else {
-		fmt.Printf("Successfully installed %d provider(s)\n", installed)
-	}
-	return nil
+	return result, nil
 }
 
 // discoverProviders scans .csl files and extracts provider requirements.

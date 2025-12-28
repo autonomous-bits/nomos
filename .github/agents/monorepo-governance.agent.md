@@ -31,7 +31,7 @@ Last synced: 2025-12-25
 The Nomos monorepo uses Go workspaces (`go.work`) to coordinate multiple modules:
 
 ```go
-go 1.25.3
+go 1.25+
 
 use (
     ./apps/command-line

@@ -10,18 +10,13 @@ import (
 	"context"
 	stderrors "errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/diagnostic"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/parse"
-	"github.com/autonomous-bits/nomos/libs/compiler/internal/resolver"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/pipeline"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/validator"
-	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
 // Options configures a compilation run.
@@ -64,6 +59,47 @@ type Snapshot struct {
 	Metadata Metadata `json:"metadata"`
 }
 
+// CompilationResult wraps a Snapshot and provides convenience methods
+// for checking compilation status.
+type CompilationResult struct {
+	// Snapshot contains the compilation output and metadata.
+	Snapshot Snapshot
+}
+
+// HasErrors returns true if the compilation encountered any errors.
+func (r CompilationResult) HasErrors() bool {
+	return len(r.Snapshot.Metadata.Errors) > 0
+}
+
+// HasWarnings returns true if the compilation encountered any warnings.
+func (r CompilationResult) HasWarnings() bool {
+	return len(r.Snapshot.Metadata.Warnings) > 0
+}
+
+// Errors returns all compilation errors.
+func (r CompilationResult) Errors() []string {
+	return r.Snapshot.Metadata.Errors
+}
+
+// Warnings returns all compilation warnings.
+func (r CompilationResult) Warnings() []string {
+	return r.Snapshot.Metadata.Warnings
+}
+
+// Error implements the error interface, returning a combined error message
+// if any errors occurred, or nil if compilation succeeded.
+func (r CompilationResult) Error() error {
+	if !r.HasErrors() {
+		return nil
+	}
+	if len(r.Snapshot.Metadata.Errors) == 1 {
+		return stderrors.New(r.Snapshot.Metadata.Errors[0])
+	}
+	return fmt.Errorf("compilation failed with %d errors: %v",
+		len(r.Snapshot.Metadata.Errors),
+		r.Snapshot.Metadata.Errors)
+}
+
 // Metadata contains provenance and diagnostic information for a compilation run.
 type Metadata struct {
 	// InputFiles lists all .csl source files processed during compilation.
@@ -98,32 +134,58 @@ type Provenance struct {
 }
 
 // Compile compiles Nomos source files into a deterministic configuration snapshot.
-func Compile(ctx context.Context, opts Options) (Snapshot, error) {
+// Returns a CompilationResult containing the snapshot and all collected errors/warnings.
+// The compilation process attempts to continue through recoverable errors to collect
+// as many issues as possible in a single run.
+func Compile(ctx context.Context, opts Options) CompilationResult {
+	// Create result with empty snapshot
+	result := CompilationResult{
+		Snapshot: Snapshot{
+			Data: make(map[string]any),
+			Metadata: Metadata{
+				InputFiles:       []string{},
+				ProviderAliases:  []string{},
+				StartTime:        time.Now(),
+				Errors:           []string{},
+				Warnings:         []string{},
+				PerKeyProvenance: make(map[string]Provenance),
+			},
+		},
+	}
+
 	// Validate context
 	if ctx == nil {
-		return Snapshot{}, stderrors.New("context must not be nil")
+		result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors, "context must not be nil")
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
 
 	// Validate options
 	if opts.Path == "" {
-		return Snapshot{}, stderrors.New("options.Path must not be empty")
+		result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors, "options.Path must not be empty")
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
 
 	if opts.ProviderRegistry == nil {
-		return Snapshot{}, stderrors.New("options.ProviderRegistry must not be nil")
+		result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors, "options.ProviderRegistry must not be nil")
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
-
-	startTime := time.Now()
 
 	// Discover input files
-	inputFiles, err := discoverInputFiles(opts.Path)
+	inputFiles, err := pipeline.DiscoverInputFiles(opts.Path)
 	if err != nil {
-		return Snapshot{}, fmt.Errorf("failed to discover input files: %w", err)
+		result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors,
+			fmt.Sprintf("failed to discover input files: %v", err))
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
+	result.Snapshot.Metadata.InputFiles = inputFiles
 
-	// Initialize error and warning slices early
-	errors := make([]string, 0)
-	warnings := make([]string, 0)
+	// Initialize error and warning slices (already initialized in result)
+	errors := &result.Snapshot.Metadata.Errors
+	warnings := &result.Snapshot.Metadata.Warnings
 
 	// Special case: If compiling a single file and type registry is provided,
 	// check for imports and resolve them first
@@ -133,15 +195,22 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 	if len(inputFiles) == 1 && opts.ProviderTypeRegistry != nil {
 		// Try to resolve imports for this file
 		importData, err := resolveFileImports(ctx, inputFiles[0], opts)
-		if err != nil {
-			return Snapshot{}, fmt.Errorf("failed to resolve imports: %w", err)
+		if err != nil && !stderrors.Is(err, ErrImportResolutionNotAvailable) {
+			*errors = append(*errors, fmt.Sprintf("failed to resolve imports: %v", err))
+			result.Snapshot.Metadata.EndTime = time.Now()
+			return result
 		}
 
-		if importData != nil {
+		if err == nil {
 			// Successfully resolved with imports
 			data = importData
 			provenance = make(map[string]Provenance)
 			// TODO: Track provenance for imported data
+			// Currently all keys are attributed to the root file, but they may originate from:
+			// - Import statements (import:alias:path) -> should track source file of the import
+			// - Inline references (reference:alias:path) -> should track provider alias
+			// Requires internal/imports to return provenance metadata alongside merged data.
+			// See GitHub issue for detailed design: provenance should flow through deep-merge.
 			for key := range data {
 				provenance[key] = Provenance{
 					Source: inputFiles[0],
@@ -154,28 +223,37 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 	if data == nil {
 		// Parse files and collect diagnostics
 		var allDiags []diagnostic.Diagnostic
+		parseErrors := false
 
 		for _, filePath := range inputFiles {
 			_, diags, err := parse.ParseFile(filePath)
 			if err != nil {
-				return Snapshot{}, fmt.Errorf("fatal parse error for %q: %w", filePath, err)
+				*errors = append(*errors, fmt.Sprintf("fatal parse error for %q: %v", filePath, err))
+				parseErrors = true
+				continue // Continue parsing other files to collect all errors
 			}
 
 			// Collect diagnostics
 			allDiags = append(allDiags, diags...)
 		}
 
+		// If we had fatal parse errors, stop here
+		if parseErrors {
+			result.Snapshot.Metadata.EndTime = time.Now()
+			return result
+		}
+
 		// Separate errors and warnings from diagnostics
 		for _, diag := range allDiags {
 			if diag.IsError() {
-				errors = append(errors, diag.FormattedMessage)
+				*errors = append(*errors, diag.FormattedMessage)
 			} else if diag.IsWarning() {
-				warnings = append(warnings, diag.FormattedMessage)
+				*warnings = append(*warnings, diag.FormattedMessage)
 			}
 		}
 
+		// If we have parse errors from diagnostics, we can continue but note them
 		// Convert ASTs to data maps and merge them following deterministic order
-		// This implements composition semantics: deep-merge maps, replace arrays, last-wins for scalars
 		data = make(map[string]any)
 		provenance = make(map[string]Provenance)
 
@@ -183,7 +261,8 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 			// Parse file again to get AST for conversion
 			ast, _, err := parse.ParseFile(filePath)
 			if err != nil {
-				return Snapshot{}, fmt.Errorf("failed to parse file for conversion %q: %w", filePath, err)
+				// Already collected this error above, skip
+				continue
 			}
 			if ast == nil {
 				continue
@@ -192,27 +271,31 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 			// Convert AST to data
 			fileData, err := converter.ASTToData(ast)
 			if err != nil {
-				return Snapshot{}, fmt.Errorf("failed to convert AST for %q: %w", filePath, err)
+				*errors = append(*errors, fmt.Sprintf("failed to convert AST for %q: %v", filePath, err))
+				continue // Continue with other files
 			}
 
 			// Merge using DeepMergeWithProvenance
-			// Files are processed in lexicographic order (already sorted by discoverInputFiles)
-			// so last-wins behavior is deterministic
 			data = DeepMergeWithProvenance(data, "", fileData, filePath, provenance)
 		}
 
 		// Initialize providers from source declarations in all input files
-		// This is necessary for inline references to work, even without import statements
-		// Only do this if we didn't already resolve via imports path
 		if opts.ProviderTypeRegistry != nil {
-			if err := initializeProvidersFromSources(ctx, inputFiles, opts); err != nil {
-				return Snapshot{}, fmt.Errorf("failed to initialize providers: %w", err)
+			// Convert ProviderTypeRegistry to core.ProviderTypeRegistry interface
+			// This works because ProviderTypeRegistry is an alias for core.ProviderTypeRegistry
+			if err := pipeline.InitializeProvidersFromSources(ctx, inputFiles, opts.ProviderRegistry, opts.ProviderTypeRegistry); err != nil {
+				*errors = append(*errors, fmt.Sprintf("failed to initialize providers: %v", err))
+				// Continue - some validation may still be useful
 			}
 		}
 	}
 
+	// Store the data and provenance
+	result.Snapshot.Data = data
+	result.Snapshot.Metadata.PerKeyProvenance = provenance
+	result.Snapshot.Metadata.ProviderAliases = opts.ProviderRegistry.RegisteredAliases()
+
 	// Perform semantic validation before reference resolution
-	// This catches unresolved provider aliases early
 	validatorInst := validator.New(validator.Options{
 		RegisteredProviderAliases: opts.ProviderRegistry.RegisteredAliases(),
 	})
@@ -221,241 +304,42 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error) {
 		// Check if it's an unresolved reference error
 		var unresolvedErr *validator.ErrUnresolvedReference
 		if stderrors.As(err, &unresolvedErr) {
-			// Add to errors with formatted message
-			errors = append(errors, unresolvedErr.Error())
-			return Snapshot{
-				Data: data,
-				Metadata: Metadata{
-					InputFiles:       inputFiles,
-					ProviderAliases:  opts.ProviderRegistry.RegisteredAliases(),
-					StartTime:        startTime,
-					EndTime:          time.Now(),
-					Errors:           errors,
-					Warnings:         warnings,
-					PerKeyProvenance: provenance,
-				},
-			}, err
+			*errors = append(*errors, unresolvedErr.Error())
+			result.Snapshot.Metadata.EndTime = time.Now()
+			return result
 		}
 
 		// Check if it's a cycle detection error
 		var cycleErr *validator.ErrCycleDetected
 		if stderrors.As(err, &cycleErr) {
-			errors = append(errors, cycleErr.Error())
-			return Snapshot{
-				Data: data,
-				Metadata: Metadata{
-					InputFiles:       inputFiles,
-					ProviderAliases:  opts.ProviderRegistry.RegisteredAliases(),
-					StartTime:        startTime,
-					EndTime:          time.Now(),
-					Errors:           errors,
-					Warnings:         warnings,
-					PerKeyProvenance: provenance,
-				},
-			}, err
+			*errors = append(*errors, cycleErr.Error())
+			result.Snapshot.Metadata.EndTime = time.Now()
+			return result
 		}
 
 		// Unknown validation error
-		return Snapshot{}, fmt.Errorf("semantic validation failed: %w", err)
+		*errors = append(*errors, fmt.Sprintf("semantic validation failed: %v", err))
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
 
 	// Resolve references in the data using the resolver
-	resolvedData, resolveErr := resolveReferences(ctx, data, opts, &warnings)
-	if resolveErr != nil {
-		return Snapshot{}, fmt.Errorf("reference resolution failed: %w", resolveErr)
-	}
-
-	// Return snapshot
-	return Snapshot{
-		Data: resolvedData,
-		Metadata: Metadata{
-			InputFiles:       inputFiles,
-			ProviderAliases:  opts.ProviderRegistry.RegisteredAliases(),
-			StartTime:        startTime,
-			EndTime:          time.Now(),
-			Errors:           errors,
-			Warnings:         warnings,
-			PerKeyProvenance: provenance,
-		},
-	}, nil
-}
-
-// discoverInputFiles finds all .csl files at the given path.
-// If path is a file, returns that file.
-// If path is a directory, returns all .csl files in lexicographic order.
-func discoverInputFiles(path string) ([]string, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to stat path %q: %w", path, err)
-	}
-
-	// Single file
-	if !info.IsDir() {
-		if !strings.HasSuffix(path, ".csl") {
-			return nil, fmt.Errorf("file %q is not a .csl file", path)
-		}
-		absPath, err := filepath.Abs(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path: %w", err)
-		}
-		return []string{absPath}, nil
-	}
-
-	// Directory: list entries and filter for .csl files
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read directory %q: %w", path, err)
-	}
-
-	files := make([]string, 0)
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(entry.Name(), ".csl") {
-			continue
-		}
-		fullPath := filepath.Join(path, entry.Name())
-		absPath, err := filepath.Abs(fullPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get absolute path for %q: %w", fullPath, err)
-		}
-		files = append(files, absPath)
-	}
-
-	// Sort lexicographically for determinism
-	sort.Strings(files)
-
-	return files, nil
-}
-
-// initializeProvidersFromSources parses input files, extracts source declarations,
-// and initializes providers in the registry. This ensures providers are available
-// for inline reference resolution, even without import statements.
-func initializeProvidersFromSources(ctx context.Context, inputFiles []string, opts Options) error {
-	for _, filePath := range inputFiles {
-		// Parse the file
-		tree, _, err := parse.ParseFile(filePath)
-		if err != nil {
-			// Skip files that can't be parsed - they'll fail in the main compilation flow
-			continue
-		}
-
-		// Extract source declarations
-		for _, stmt := range tree.Statements {
-			sourceDecl, ok := stmt.(*ast.SourceDecl)
-			if !ok {
-				continue
-			}
-
-			// Check if provider is already registered
-			if _, err := opts.ProviderRegistry.GetProvider(ctx, sourceDecl.Alias); err == nil {
-				// Already registered, skip
-				continue
-			}
-
-			// Convert config expressions to values
-			config := make(map[string]any)
-			for k, expr := range sourceDecl.Config {
-				config[k] = exprToConfigValue(expr)
-			}
-
-			// Create provider from type using the type registry
-			provider, err := opts.ProviderTypeRegistry.CreateProvider(ctx, sourceDecl.Type, config)
-			if err != nil {
-				return fmt.Errorf("failed to create provider %q of type %q: %w", sourceDecl.Alias, sourceDecl.Type, err)
-			}
-
-			// Initialize the provider
-			initOpts := ProviderInitOptions{
-				Alias:          sourceDecl.Alias,
-				Config:         config,
-				SourceFilePath: filePath,
-			}
-
-			if err := provider.Init(ctx, initOpts); err != nil {
-				return fmt.Errorf("failed to initialize provider %q: %w", sourceDecl.Alias, err)
-			}
-
-			// Register the provider
-			opts.ProviderRegistry.Register(sourceDecl.Alias, func(_ ProviderInitOptions) (Provider, error) {
-				return provider, nil
-			})
-		}
-	}
-
-	return nil
-}
-
-// exprToConfigValue converts an AST expression to a configuration value.
-func exprToConfigValue(expr ast.Expr) any {
-	switch e := expr.(type) {
-	case *ast.StringLiteral:
-		return e.Value
-	case *ast.ReferenceExpr:
-		// References in config are kept as-is for now
-		// Providers should handle them if needed
-		return e
-	default:
-		return nil
-	}
-}
-
-// resolveReferences resolves all ReferenceExpr nodes in the data using the resolver.
-// Warnings generated during resolution are appended to the warnings slice.
-func resolveReferences(ctx context.Context, data map[string]any, opts Options, warnings *[]string) (map[string]any, error) {
-	// Create adapter for ProviderRegistry with context
-	registryAdapter := &providerRegistryAdapter{
-		registry: opts.ProviderRegistry,
-		ctx:      ctx,
-	}
-
-	// Create resolver with options
-	resolverOpts := resolver.ResolverOptions{
-		ProviderRegistry:     registryAdapter,
+	resolvedData, resolveErr := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+		ProviderRegistry:     opts.ProviderRegistry,
 		AllowMissingProvider: opts.AllowMissingProvider,
 		OnWarning: func(warning string) {
 			*warnings = append(*warnings, warning)
 		},
+	})
+	if resolveErr != nil {
+		*errors = append(*errors, fmt.Sprintf("reference resolution failed: %v", resolveErr))
+		result.Snapshot.Metadata.EndTime = time.Now()
+		return result
 	}
 
-	r := resolver.New(resolverOpts)
+	// Update with resolved data
+	result.Snapshot.Data = resolvedData
+	result.Snapshot.Metadata.EndTime = time.Now()
 
-	// Resolve the entire data map
-	resolved, err := r.ResolveValue(ctx, data)
-	if err != nil {
-		return nil, err
-	}
-
-	// Type assert back to map
-	resolvedMap, ok := resolved.(map[string]any)
-	if !ok {
-		// This should never happen since we passed in a map
-		return nil, fmt.Errorf("internal error: resolved value is not a map")
-	}
-
-	return resolvedMap, nil
-}
-
-// providerRegistryAdapter adapts compiler.ProviderRegistry to resolver.ProviderRegistry.
-type providerRegistryAdapter struct {
-	registry ProviderRegistry
-	ctx      context.Context
-}
-
-func (a *providerRegistryAdapter) GetProvider(alias string) (resolver.Provider, error) {
-	provider, err := a.registry.GetProvider(a.ctx, alias)
-	if err != nil {
-		return nil, err
-	}
-	return &providerAdapter{provider: provider}, nil
-}
-
-// providerAdapter adapts compiler.Provider to resolver.Provider.
-type providerAdapter struct {
-	provider Provider
-}
-
-func (a *providerAdapter) Fetch(ctx context.Context, path []string) (any, error) {
-	return a.provider.Fetch(ctx, path)
+	return result
 }

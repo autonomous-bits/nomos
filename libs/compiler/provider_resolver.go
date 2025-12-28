@@ -1,6 +1,10 @@
 package compiler
 
-import "context"
+import (
+	"context"
+
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
+)
 
 // ProviderResolver resolves provider types to binary paths using a lockfile or manifest.
 // This interface is used by ProviderTypeRegistry to locate external provider binaries.
@@ -16,7 +20,7 @@ type ProviderManager interface {
 	// GetProvider starts (if needed) and returns a Provider instance for the given alias.
 	// binaryPath is the absolute path to the provider executable.
 	// opts contains the provider initialization options.
-	GetProvider(ctx context.Context, alias string, binaryPath string, opts ProviderInitOptions) (Provider, error)
+	GetProvider(ctx context.Context, alias string, binaryPath string, opts core.ProviderInitOptions) (core.Provider, error)
 
 	// Shutdown gracefully shuts down all running provider processes.
 	Shutdown(ctx context.Context) error

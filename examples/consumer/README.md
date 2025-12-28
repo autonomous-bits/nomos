@@ -32,7 +32,7 @@ Once Nomos libraries are published with version tags, external consumers can add
 ```go
 module github.com/example/my-project
 
-go 1.22
+go 1.25
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0

@@ -42,11 +42,13 @@ func main() {
 
 	// Compile the configuration
 	ctx := context.Background()
-	snapshot, err := compiler.Compile(ctx, opts)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Compilation failed: %v\n", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		fmt.Fprintf(os.Stderr, "Compilation failed: %v\n", result.Error())
 		os.Exit(1)
 	}
+
+	snapshot := result.Snapshot
 
 	// Marshal the result to JSON for display
 	output, err := json.MarshalIndent(snapshot, "", "  ")

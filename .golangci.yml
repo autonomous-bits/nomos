@@ -1,17 +1,6 @@
 # yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
 # golangci-lint configuration for Nomos monorepo
 # Compatible with golangci-lint v2.7.2
-#
-# NOTE: VS Code YAML extension may report false positives due to outdated schema.
-# This configuration has been tested and verified with golangci-lint v2.7.2.
-# Properties like linters-settings, exclude-rules, and output formatting are valid.
-#
-# v2 Migration Notes:
-# - Added 'version: "2"' field (required in v2)
-# - Separated formatters (gofmt, goimports) from linters into 'formatters' section
-# - Moved formatter settings to 'formatters-settings' section
-# - gosimple and stylecheck are now integrated into staticcheck
-# - Changed output.formats from list to map structure
 
 version: "2"
 
@@ -20,88 +9,6 @@ run:
   tests: true
   modules-download-mode: readonly
   go: "1.25"  # Target Go version (matches go.work)
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-
-  govet:
-    enable-all: true
-    disable:
-      - shadow  # Too many false positives
-
-  gofmt:
-    simplify: true
-
-  goimports:
-    local-prefixes: github.com/nomos-project/nomos
-
-formatters-settings:
-  gofmt:
-    simplify: true
-
-  goimports:
-    local-prefixes: github.com/nomos-project/nomos
-
-  gocritic:
-    # Only list checks that are not enabled by default
-    # See: https://go-critic.com/overview
-    enabled-checks:
-      - boolExprSimplify
-      - commentedOutCode
-      - dupImport
-      - emptyStringTest
-      - importShadow
-      - methodExprCall
-      - nilValReturn
-      - rangeExprCopy
-      - sloppyReassign
-      - stringXbytes
-      - typeAssertChain
-      - typeUnparen
-      - unlabelStmt
-      - unnecessaryBlock
-      - weakCond
-
-  staticcheck:
-    checks: ["all"]
-
-  revive:
-    confidence: 0.8
-    rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: if-return
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
-
-  misspell:
-    locale: US
-
-  unused:
-    check-exported: false  # Don't require all exported items to be used (library code)
-
-  unparam:
-    check-exported: false  # Don't check exported functions (library API may need parameters)
 
 linters:
   enable:
@@ -129,50 +36,6 @@ formatters:
     - gofmt          # Check formatting
     - goimports      # Check imports formatting
 
-  # Note: The following linters are deprecated and removed from golangci-lint
-  # They are automatically handled by other linters:
-  # - deadcode, structcheck, varcheck (replaced by unused)
-  # - golint (replaced by revive)
-  # - exhaustivestruct, ifshort, interfacer, maligned, nosnakecase, scopelint (deprecated)
-
 issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - gosec       # Security checks less relevant in tests
-        - errcheck    # Error checking less strict in tests
-        - unparam     # Unused parameters common in test helpers
-        - prealloc    # Preallocating less important in tests
-
-    # Exclude some linters from running on testdata
-    - path: testdata/
-      linters:
-        - errcheck
-        - gosec
-        - revive
-
-    # Exclude generated code
-    - path: \.pb\.go$
-      linters:
-        - all
-
-    # Exclude internal test utilities
-    - path: testutil/
-      linters:
-        - errcheck
-        - unparam
-
   max-issues-per-linter: 0
   max-same-issues: 0
-
-  # Show all issues from new code
-  new: false
-
-output:
-  formats:
-    colored-line-number:
-      print-issued-lines: true
-      print-linter-name: true
-      uniq-by-line: true
-  sort-results: true

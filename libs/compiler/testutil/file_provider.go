@@ -1,6 +1,6 @@
-// Package fakes provides test doubles (fakes, mocks) for the compiler package.
+// Package testutil provides test doubles (fakes, mocks) for the compiler package.
 // These test implementations are used throughout the compiler test suite.
-package fakes
+package testutil
 
 import (
 	"context"

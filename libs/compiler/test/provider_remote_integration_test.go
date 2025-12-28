@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package test
 
 import (
@@ -6,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
 
 // fakeResolver implements compiler.ProviderResolver for testing.
@@ -68,7 +71,7 @@ func TestProviderTypeRegistry_RemoteProviderIntegration(t *testing.T) {
 		inProcessCalled := false
 		typeRegistry.RegisterType("testprovider", func(_ map[string]any) (compiler.Provider, error) {
 			inProcessCalled = true
-			return fakes.NewFakeProvider("testprovider"), nil
+			return testutil.NewFakeProvider("testprovider"), nil
 		})
 
 		config := map[string]any{"test": "config"}

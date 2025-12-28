@@ -39,22 +39,6 @@ func TestBuildFlags_Parse_BasicFlags(t *testing.T) {
 			},
 		},
 		{
-			name: "format flag yaml",
-			args: []string{"--path", "test.csl", "--format", "yaml"},
-			want: BuildFlags{
-				Path:   "test.csl",
-				Format: "yaml",
-			},
-		},
-		{
-			name: "format flag hcl",
-			args: []string{"-p", "test.csl", "-f", "hcl"},
-			want: BuildFlags{
-				Path:   "test.csl",
-				Format: "hcl",
-			},
-		},
-		{
 			name: "out flag short form",
 			args: []string{"-p", "test.csl", "-o", "output.json"},
 			want: BuildFlags{
@@ -139,8 +123,8 @@ func TestBuildFlags_Parse_BasicFlags(t *testing.T) {
 			name: "all flags combined",
 			args: []string{
 				"-p", "/path/to/configs",
-				"-f", "yaml",
-				"-o", "snapshot.yaml",
+				"-f", "json",
+				"-o", "snapshot.json",
 				"--var", "region=eu-west",
 				"--var", "env=staging",
 				"--strict",
@@ -151,8 +135,8 @@ func TestBuildFlags_Parse_BasicFlags(t *testing.T) {
 			},
 			want: BuildFlags{
 				Path:                   "/path/to/configs",
-				Format:                 "yaml",
-				Out:                    "snapshot.yaml",
+				Format:                 "json",
+				Out:                    "snapshot.json",
 				Vars:                   []string{"region=eu-west", "env=staging"},
 				Strict:                 true,
 				AllowMissingProvider:   true,

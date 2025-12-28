@@ -22,17 +22,17 @@ func TestHelpText(t *testing.T) {
 	helpText := string(output)
 
 	// Required sections and keywords that must appear in main help
+	// Updated for Cobra format
 	requiredContent := []string{
 		"Nomos CLI",
 		"Usage:",
-		"Commands:",
+		"Available Commands:", // Cobra uses "Available Commands:" not "Commands:"
 		"build",
 		"Compile", // Capital C as it appears in the help text
 		"configuration snapshots",
-		"Global Options:",
+		"Flags:", // Cobra uses "Flags:" not "Global Options:"
 		"--help",
-		"Examples:",
-		"nomos build",
+		// Examples are not in root help, only in command-specific help
 	}
 
 	for _, content := range requiredContent {
@@ -76,12 +76,12 @@ func TestBuildHelpText(t *testing.T) {
 		}
 	}
 
-	// Required sections
+	// Required sections (Cobra uses "Flags:" instead of "Options:")
 	requiredSections := []string{
 		"Usage:",
-		"Options:",
+		"Flags:",
 		"Exit Codes:",
-		"Examples:",
+		// Examples are in Long description, not a separate section
 		"File Discovery:",
 	}
 

@@ -67,13 +67,13 @@ func (r *LockfileProviderResolver) ResolveBinaryPath(_ context.Context, provider
 				return "", fmt.Errorf("provider binary not found at %s: %w (run 'nomos init' to install providers)", binaryPath, err)
 			}
 
-			// Validate checksum if present (CRITICAL for security)
-			if p.Checksum != "" {
-				if err := ValidateChecksum(binaryPath, p.Checksum); err != nil {
-					return "", fmt.Errorf("provider binary checksum validation failed for %s: %w", providerType, err)
-				}
+			// Validate checksum (CRITICAL for security - MANDATORY)
+			if p.Checksum == "" {
+				return "", fmt.Errorf("provider binary for %s has no checksum in lockfile - refusing to execute (security risk); run 'nomos init' to regenerate lockfile with checksums", providerType)
 			}
-			// TODO: Make checksum mandatory in a future version
+			if err := ValidateChecksum(binaryPath, p.Checksum); err != nil {
+				return "", fmt.Errorf("provider binary checksum validation failed for %s: %w", providerType, err)
+			}
 
 			return binaryPath, nil
 		}

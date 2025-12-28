@@ -70,8 +70,19 @@ func (i *ImportStmt) Span() SourceSpan { return i.SourceSpan }
 func (i *ImportStmt) node()            {}
 func (i *ImportStmt) stmt()            {}
 
-// ReferenceStmt represents a reference statement.
-// Example: reference:folder:config.key
+// ReferenceStmt represents a top-level reference statement.
+//
+// Deprecated: Top-level reference statements (e.g., "reference:alias:path") are rejected
+// by the parser as of the inline reference migration. This type is retained in the AST
+// for backward compatibility with older code that may reference it, but the parser will
+// never produce nodes of this type.
+//
+// Use ReferenceExpr for inline references in value positions instead:
+//
+// \tkey: reference:alias:path.to.value
+//
+// This type will be removed in a future major version (v2.0.0).
+// Example (deprecated syntax): reference:folder:config.key
 type ReferenceStmt struct {
 	Alias      string     `json:"alias"`
 	Path       string     `json:"path"`

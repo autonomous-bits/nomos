@@ -168,7 +168,7 @@ Go 1.18+ introduced workspaces, which are essential for monorepo management.
 Create a `go.work` file at the repository root:
 
 ```go
-go 1.22
+go 1.25
 
 use (
     ./apps/command-line
@@ -360,7 +360,7 @@ Use workspace features for local development:
 // apps/command-line/go.mod
 module github.com/autonomous-bits/nomos/apps/command-line
 
-go 1.22
+go 1.25
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0
@@ -553,7 +553,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
           
       - name: Test
         run: go test -v -race -coverprofile=coverage.txt ./...
@@ -571,7 +571,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
           
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
@@ -589,7 +589,7 @@ Create contributing guidelines:
 
 ## Development Setup
 
-1. Install Go 1.22 or later
+1. Install Go 1.25 or later
 2. Clone the repository
 3. Run `go work sync`
 

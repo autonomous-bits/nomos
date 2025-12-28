@@ -68,11 +68,36 @@ func main() {
 ### Client Creation
 
 ```go
-client := downloader.NewClient(ctx, &downloader.ClientOptions{
-	GitHubToken: os.Getenv("GITHUB_TOKEN"), // Optional
-	HTTPClient:  customHTTPClient,          // Optional
+client := downloader.NewClient(&downloader.ClientOptions{
+	GitHubToken:   os.Getenv("GITHUB_TOKEN"), // Optional
+	HTTPClient:    customHTTPClient,          // Optional
+	CacheDir:      ".nomos/cache",            // Optional caching
+	RetryAttempts: 3,                         // Optional retry config
+	RetryDelay:    time.Second,               // Optional retry delay
 })
 ```
+
+### Caching
+
+Enable caching to avoid redundant downloads of the same provider binary:
+
+```go
+client := downloader.NewClient(&downloader.ClientOptions{
+	CacheDir: filepath.Join(os.UserHomeDir(), ".nomos", "cache"),
+})
+
+// First download - fetches from GitHub
+result1, _ := client.DownloadAndInstall(ctx, asset, destDir1)
+
+// Second download with same checksum - uses cache (no network call)
+result2, _ := client.DownloadAndInstall(ctx, asset, destDir2)
+```
+
+**Cache behavior:**
+- Cache key is the asset's SHA256 checksum
+- Only caches when `AssetInfo.Checksum` is provided
+- Cache hit avoids network calls entirely
+- Cache directory is created automatically if it doesn't exist
 
 ### Asset Resolution
 
@@ -108,7 +133,31 @@ The downloader implements a robust, multi-step process for safe binary installat
 - Returns clear `ChecksumMismatchError` with both expected and actual values
 - Prevents installation of corrupted or tampered binaries
 
-### 3. Retry Logic
+### 3. Archive Extraction
+
+The downloader automatically extracts provider binaries from archives:
+
+- **Supported formats**: `.tar.gz`, `.tgz`, `.zip`
+- **Binary detection**: Searches for `provider` or `nomos-provider-*` in the archive
+- **Flat extraction**: Files are extracted and flattened to the destination directory
+- **Automatic format detection**: Based on file extension
+
+```go
+// Works automatically for archive assets
+asset := &AssetInfo{
+	URL:  "https://github.com/owner/repo/releases/download/v1.0.0/provider.tar.gz",
+	Name: "nomos-provider-file-linux-amd64.tar.gz",
+}
+
+// Downloader will:
+// 1. Download the tar.gz file
+// 2. Extract it to a temp directory
+// 3. Find the provider binary
+// 4. Install it to the destination
+result, _ := client.DownloadAndInstall(ctx, asset, destDir)
+```
+
+### 4. Retry Logic
 
 The downloader automatically retries transient failures:
 
@@ -119,7 +168,7 @@ The downloader automatically retries transient failures:
 - **Configurable**: Set `RetryAttempts` and `RetryDelay` in `ClientOptions`
 - **File reset**: Temp file is truncated and reset between retries for clean attempts
 
-### 4. Atomic Installation
+### 5. Atomic Installation
 
 - Sets executable permissions (0755) on downloaded binary
 - Atomically renames temp file to final destination
@@ -129,7 +178,7 @@ The downloader automatically retries transient failures:
 ### Example with Retry Configuration
 
 ```go
-client := downloader.NewClient(ctx, &downloader.ClientOptions{
+client := downloader.NewClient(&downloader.ClientOptions{
 	RetryAttempts: 5,                  // Retry up to 5 times
 	RetryDelay:    2 * time.Second,    // Start with 2s delay
 })

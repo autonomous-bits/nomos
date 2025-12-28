@@ -1,0 +1,44 @@
+# Lefthook configuration for Nomos monorepo
+# Install: https://github.com/evilmartians/lefthook
+# Setup: lefthook install
+
+# Pre-commit hooks
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: "*.go"
+      run: make fmt
+      stage_fixed: true
+
+    mod-tidy:
+      glob: "go.{mod,sum}"
+      run: make mod-tidy
+      stage_fixed: true
+
+    lint:
+      glob: "*.go"
+      run: make lint
+
+# Pre-push hooks
+pre-push:
+  commands:
+    test:
+      run: make test-unit
+
+# Commit message hooks
+commit-msg:
+  commands:
+    conventional-commits:
+      run: |
+        # Check if commit message follows conventional commits with gitmoji
+        if ! grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|chore|ci|security|wip)(\([a-z-]+\))?(!)?:' "$1"; then
+          echo "❌ Commit message must follow Conventional Commits format:"
+          echo "   <type>[optional scope][!]: <gitmoji> <description>"
+          echo ""
+          echo "Examples:"
+          echo "   feat(parser): ✨ add support for nested maps"
+          echo "   fix(compiler): 🐛 resolve type inference issue"
+          echo "   docs: 📝 update README with examples"
+          exit 1
+        fi

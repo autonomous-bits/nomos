@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -13,10 +13,10 @@ import (
 // TestClient_Fetch tests that the compiler.Client correctly delegates Fetch calls to the gRPC service.
 func TestClient_Fetch(t *testing.T) {
 	// Arrange: Start a fake provider server
-	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
 	fake.SetFetchResponse([]string{"test", "path"}, map[string]any{"test": "value"})
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
@@ -53,9 +53,9 @@ func TestClient_Fetch(t *testing.T) {
 // TestClient_Fetch_NotFound tests that compiler.Client returns appropriate error for NotFound.
 func TestClient_Fetch_NotFound(t *testing.T) {
 	// Arrange: Start a fake provider server (no responses configured)
-	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
@@ -87,9 +87,9 @@ func TestClient_Fetch_NotFound(t *testing.T) {
 // TestClient_Init tests that compiler.Client delegates Init correctly.
 func TestClient_Init(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
@@ -125,9 +125,9 @@ func TestClient_Init(t *testing.T) {
 // TestClient_Info tests that compiler.Client implements ProviderWithInfo.
 func TestClient_Info(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
+	fake := testutil.NewFakeProviderServer("test-provider", "0.0.1-test", "fake")
 
-	server, addr, err := fakes.StartFakeProviderServer(fake)
+	server, addr, err := testutil.StartFakeProviderServer(fake)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}

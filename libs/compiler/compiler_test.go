@@ -1,64 +1,50 @@
-package compiler
+package compiler_test
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
-) // mockProviderRegistry is a minimal fake for testing.
-type mockProviderRegistry struct {
-	aliases []string
-}
 
-func (m *mockProviderRegistry) Register(alias string, _ ProviderConstructor) {
-	// No-op for basic tests
-	m.aliases = append(m.aliases, alias)
-}
-
-func (m *mockProviderRegistry) GetProvider(_ context.Context, _ string) (Provider, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (m *mockProviderRegistry) RegisteredAliases() []string {
-	return m.aliases
-}
+	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
+)
 
 // TestCompile_OptionsValidation tests that Compile validates required options.
 func TestCompile_OptionsValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		ctx         context.Context
-		opts        Options
+		opts        compiler.Options
 		expectError string
 	}{
 		{
 			name:        "nil context",
 			ctx:         nil,
-			opts:        Options{Path: "/some/path", ProviderRegistry: &mockProviderRegistry{}},
+			opts:        compiler.Options{Path: "/some/path", ProviderRegistry: testutil.NewFakeProviderRegistry()},
 			expectError: "context must not be nil",
 		},
 		{
 			name:        "empty Path",
 			ctx:         context.Background(),
-			opts:        Options{Path: "", ProviderRegistry: &mockProviderRegistry{}},
+			opts:        compiler.Options{Path: "", ProviderRegistry: testutil.NewFakeProviderRegistry()},
 			expectError: "options.Path must not be empty",
 		},
 		{
 			name:        "nil ProviderRegistry",
 			ctx:         context.Background(),
-			opts:        Options{Path: "/some/path", ProviderRegistry: nil},
+			opts:        compiler.Options{Path: "/some/path", ProviderRegistry: nil},
 			expectError: "options.ProviderRegistry must not be nil",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Compile(tt.ctx, tt.opts)
-			if err == nil {
+			result := compiler.Compile(tt.ctx, tt.opts)
+			if !result.HasErrors() {
 				t.Fatalf("expected error, got nil")
 			}
-			if err.Error() != tt.expectError {
-				t.Errorf("expected error %q, got %q", tt.expectError, err.Error())
+			if result.Error().Error() != tt.expectError {
+				t.Errorf("expected error %q, got %q", tt.expectError, result.Error().Error())
 			}
 		})
 	}
@@ -74,32 +60,32 @@ func TestCompile_DeterministicDirectoryTraversal(t *testing.T) {
 	files := []string{"z.csl", "a.csl", "m.csl"}
 	for _, f := range files {
 		path := tmpDir + "/" + f
-		if err := writeFile(path, "# test"); err != nil {
+		if err := writeFile(path, "test: true"); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 	}
 
 	// Compile the directory
 	ctx := context.Background()
-	opts := Options{
+	opts := compiler.Options{
 		Path:             tmpDir,
-		ProviderRegistry: &mockProviderRegistry{},
+		ProviderRegistry: testutil.NewFakeProviderRegistry(),
 	}
 
-	snapshot, err := Compile(ctx, opts)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	result := compiler.Compile(ctx, opts)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
 
 	// Verify files are in lexicographic order
 	expected := []string{tmpDir + "/a.csl", tmpDir + "/m.csl", tmpDir + "/z.csl"}
-	if len(snapshot.Metadata.InputFiles) != len(expected) {
-		t.Fatalf("expected %d files, got %d", len(expected), len(snapshot.Metadata.InputFiles))
+	if len(result.Snapshot.Metadata.InputFiles) != len(expected) {
+		t.Fatalf("expected %d files, got %d", len(expected), len(result.Snapshot.Metadata.InputFiles))
 	}
 
 	for i, expectedPath := range expected {
-		if snapshot.Metadata.InputFiles[i] != expectedPath {
-			t.Errorf("file[%d]: expected %q, got %q", i, expectedPath, snapshot.Metadata.InputFiles[i])
+		if result.Snapshot.Metadata.InputFiles[i] != expectedPath {
+			t.Errorf("file[%d]: expected %q, got %q", i, expectedPath, result.Snapshot.Metadata.InputFiles[i])
 		}
 	}
 }

@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package compiler
 
 import (
@@ -5,6 +8,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/pipeline"
 
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
@@ -40,16 +45,17 @@ func TestResolveReferences_Integration(t *testing.T) {
 			"static": "value",
 		}
 
-		opts := Options{
-			Path:             "/test",
-			ProviderRegistry: registry,
-		}
-
 		var warnings []string
 		ctx := context.Background()
 
 		// Resolve references
-		resolved, err := resolveReferences(ctx, data, opts, &warnings)
+		resolved, err := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+			ProviderRegistry:     registry,
+			AllowMissingProvider: false,
+			OnWarning: func(warning string) {
+				warnings = append(warnings, warning)
+			},
+		})
 
 		// Assert
 		if err != nil {
@@ -59,7 +65,6 @@ func TestResolveReferences_Integration(t *testing.T) {
 		if len(warnings) != 0 {
 			t.Errorf("expected no warnings, got %d", len(warnings))
 		}
-
 		// Check resolved values
 		dbMap := resolved["database"].(map[string]any)
 		if dbMap["host"] != "localhost" {
@@ -86,17 +91,17 @@ func TestResolveReferences_Integration(t *testing.T) {
 			},
 		}
 
-		opts := Options{
-			Path:                 "/test",
-			ProviderRegistry:     registry,
-			AllowMissingProvider: true,
-		}
-
 		var warnings []string
 		ctx := context.Background()
 
 		// Resolve references
-		resolved, err := resolveReferences(ctx, data, opts, &warnings)
+		resolved, err := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+			ProviderRegistry:     registry,
+			AllowMissingProvider: true,
+			OnWarning: func(warning string) {
+				warnings = append(warnings, warning)
+			},
+		})
 
 		// Assert - should not error
 		if err != nil {
@@ -127,17 +132,17 @@ func TestResolveReferences_Integration(t *testing.T) {
 			},
 		}
 
-		opts := Options{
-			Path:                 "/test",
-			ProviderRegistry:     registry,
-			AllowMissingProvider: false, // Explicitly false
-		}
-
 		var warnings []string
 		ctx := context.Background()
 
 		// Resolve references
-		_, err := resolveReferences(ctx, data, opts, &warnings)
+		_, err := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+			ProviderRegistry:     registry,
+			AllowMissingProvider: false,
+			OnWarning: func(warning string) {
+				warnings = append(warnings, warning)
+			},
+		})
 
 		// Assert - should error
 		if err == nil {
@@ -178,33 +183,34 @@ func TestResolveReferences_Integration(t *testing.T) {
 			},
 		}
 
-		opts := Options{
-			Path:             "/test",
-			ProviderRegistry: registry,
-		}
-
 		var warnings []string
 		ctx := context.Background()
 
 		// Resolve references
-		resolved, err := resolveReferences(ctx, data, opts, &warnings)
+		resolved, err := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+			ProviderRegistry:     registry,
+			AllowMissingProvider: false,
+			OnWarning: func(warning string) {
+				warnings = append(warnings, warning)
+			},
+		})
 
 		// Assert
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		// Both values should be resolved
+		// Provider should have been called only once (cached)
+		if provider.fetchCount != 1 {
+			t.Errorf("expected 1 fetch call (cached), got %d", provider.fetchCount)
+		}
+
+		// Verify resolved values - both should be cached-data
 		if resolved["first"] != "cached-data" {
 			t.Errorf("expected first='cached-data', got %v", resolved["first"])
 		}
 		if resolved["second"] != "cached-data" {
 			t.Errorf("expected second='cached-data', got %v", resolved["second"])
-		}
-
-		// Provider should have been called only once (cached)
-		if provider.fetchCount != 1 {
-			t.Errorf("expected 1 fetch call (cached), got %d", provider.fetchCount)
 		}
 	})
 }

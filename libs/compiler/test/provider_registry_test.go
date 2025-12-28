@@ -10,7 +10,7 @@ import (
 )
 
 // mockProvider is a simple test double for testing provider registry.
-// This avoids import cycles by not depending on test/fakes.
+// This avoids import cycles by not depending on test/testutil.
 type mockProvider struct {
 	alias       string
 	version     string

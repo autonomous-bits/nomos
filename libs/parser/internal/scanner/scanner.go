@@ -117,44 +117,56 @@ func (s *Scanner) IsIndented() bool {
 
 // GetIndentLevel returns the indentation level (number of leading spaces/tabs) of the current line.
 // Must be called at the start of a line. Tabs count as 1 indent level each.
+// Optimized to scan forward without saving/restoring state.
 func (s *Scanner) GetIndentLevel() int {
-	savedPos := s.pos
-	savedLine := s.line
-	savedCol := s.col
-
 	level := 0
-	for !s.IsEOF() {
-		ch := s.PeekChar()
+	pos := s.pos
+
+	// Scan forward counting whitespace, stop at first non-whitespace or newline
+	for pos < len(s.input) {
+		ch := s.input[pos]
 		if ch == ' ' || ch == '\t' {
 			level++
-			s.Advance()
+			pos++
 		} else {
 			break
 		}
 	}
 
-	// Restore position
-	s.pos = savedPos
-	s.line = savedLine
-	s.col = savedCol
-
 	return level
 }
 
 // PeekToken peeks at the next identifier token without consuming it.
+// Optimized to scan forward without saving/restoring state.
 func (s *Scanner) PeekToken() string {
-	savedPos := s.pos
-	savedLine := s.line
-	savedCol := s.col
+	pos := s.pos
 
-	token := s.ReadIdentifier()
+	// Find start of identifier (skip any leading whitespace is caller's responsibility)
+	start := pos
 
-	// Restore position
-	s.pos = savedPos
-	s.line = savedLine
-	s.col = savedCol
+	// Scan identifier characters
+	for pos < len(s.input) {
+		// Fast path for ASCII alphanumeric, dash, underscore
+		ch := s.input[pos]
+		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') || ch == '-' || ch == '_' {
+			pos++
+			continue
+		}
 
-	return token
+		// Check for multi-byte UTF-8 characters
+		if ch >= 0x80 {
+			r, size := utf8.DecodeRuneInString(s.input[pos:])
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				pos += size
+				continue
+			}
+		}
+
+		break
+	}
+
+	return s.input[start:pos]
 }
 
 // ConsumeToken consumes an identifier token.

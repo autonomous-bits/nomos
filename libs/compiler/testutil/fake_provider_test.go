@@ -1,11 +1,11 @@
-package fakes_test
+package testutil_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
-	"github.com/autonomous-bits/nomos/libs/compiler/test/fakes"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
 
 // TestFakeProvider_Init_CalledOnce verifies that Init is called exactly once
@@ -13,7 +13,7 @@ import (
 func TestFakeProvider_Init_CalledOnce(t *testing.T) {
 	// Arrange
 	registry := compiler.NewProviderRegistry()
-	fake := fakes.NewFakeProvider("test")
+	fake := testutil.NewFakeProvider("test")
 
 	registry.Register("test", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return fake, nil
@@ -45,7 +45,7 @@ func TestFakeProvider_Init_CalledOnce(t *testing.T) {
 // cached per compilation run when using the same path.
 func TestFakeProvider_Fetch_CachingBehavior(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProvider("config")
+	fake := testutil.NewFakeProvider("config")
 	ctx := context.Background()
 
 	// Configure response for path ["network", "vpc"]
@@ -108,7 +108,7 @@ func TestFakeProvider_Fetch_CachingBehavior(t *testing.T) {
 func TestFakeProvider_ConfigurableErrors(t *testing.T) {
 	t.Run("Init error", func(t *testing.T) {
 		// Arrange
-		fake := fakes.NewFakeProvider("test")
+		fake := testutil.NewFakeProvider("test")
 		fake.InitError = compiler.ErrProviderNotRegistered
 
 		// Act
@@ -124,7 +124,7 @@ func TestFakeProvider_ConfigurableErrors(t *testing.T) {
 
 	t.Run("Fetch error", func(t *testing.T) {
 		// Arrange
-		fake := fakes.NewFakeProvider("test")
+		fake := testutil.NewFakeProvider("test")
 		ctx := context.Background()
 		opts := compiler.ProviderInitOptions{Alias: "test"}
 
@@ -152,14 +152,14 @@ func TestFakeProvider_MultipleProviders(t *testing.T) {
 	registry := compiler.NewProviderRegistry()
 
 	// Register config provider
-	configFake := fakes.NewFakeProvider("config")
+	configFake := testutil.NewFakeProvider("config")
 	configFake.FetchResponses["database/host"] = "db.example.com"
 	registry.Register("config", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return configFake, nil
 	})
 
 	// Register secrets provider
-	secretsFake := fakes.NewFakeProvider("secrets")
+	secretsFake := testutil.NewFakeProvider("secrets")
 	secretsFake.FetchResponses["database/password"] = "secret123"
 	registry.Register("secrets", func(_ compiler.ProviderInitOptions) (compiler.Provider, error) {
 		return secretsFake, nil
@@ -208,7 +208,7 @@ func TestFakeProvider_MultipleProviders(t *testing.T) {
 // TestFakeProvider_Info verifies the Info method returns alias and version.
 func TestFakeProvider_Info(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProvider("myalias")
+	fake := testutil.NewFakeProvider("myalias")
 	fake.Version = "v2.0.0"
 
 	// Act
@@ -227,7 +227,7 @@ func TestFakeProvider_Info(t *testing.T) {
 // TestFakeProvider_Reset verifies the Reset method clears call counts and history.
 func TestFakeProvider_Reset(t *testing.T) {
 	// Arrange
-	fake := fakes.NewFakeProvider("test")
+	fake := testutil.NewFakeProvider("test")
 	ctx := context.Background()
 	opts := compiler.ProviderInitOptions{Alias: "test"}
 	fake.FetchResponses["key"] = "value"

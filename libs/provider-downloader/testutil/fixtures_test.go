@@ -44,3 +44,29 @@ func TestCreateCorruptedFixture_ProducesMismatch(t *testing.T) {
 		t.Error("expected checksum mismatch for corrupted fixture")
 	}
 }
+
+// TestBinaryFixture_String tests the String method.
+func TestBinaryFixture_String(t *testing.T) {
+	fixture := CreateBinaryFixture(t, 1024, "test")
+	result := fixture.String()
+
+	if !stringContains(result, "BinaryFixture") {
+		t.Errorf("expected String to contain 'BinaryFixture', got %q", result)
+	}
+	if !stringContains(result, "Size: 1024") {
+		t.Errorf("expected String to contain 'Size: 1024', got %q", result)
+	}
+	if !stringContains(result, "Checksum:") {
+		t.Errorf("expected String to contain 'Checksum:', got %q", result)
+	}
+}
+
+// stringContains checks if a string contains a substring.
+func stringContains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

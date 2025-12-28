@@ -29,12 +29,14 @@ func TestCompile_SimpleImport(t *testing.T) {
 	}
 
 	// Act
-	snapshot, err := Compile(context.Background(), opts)
+	result := Compile(context.Background(), opts)
 
 	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if result.HasErrors() {
+		t.Fatalf("expected no error, got %v", result.Error())
 	}
+
+	snapshot := result.Snapshot
 
 	// Load expected golden file
 	goldenPath := filepath.Join("testdata", "imports", "expected.golden.json")
@@ -62,8 +64,11 @@ func TestCompile_SimpleImport(t *testing.T) {
 }
 
 // TestCompile_ImportCycle tests that circular imports are detected.
+// NOTE: Requires integration of validator.DependencyGraph with internal/imports
+// package to track import chains and detect cycles during resolution.
+// The cycle detection algorithm exists but isn't wired into import processing.
 func TestCompile_ImportCycle(t *testing.T) {
-	t.Skip("TODO: Implement import cycle detection - tracked in GitHub issue")
+	t.Skip("Pending: Import cycle detection integration with internal/imports package")
 
 	// This test will be enabled once we integrate the validator.DependencyGraph
 	// with import resolution to detect circular import chains.
@@ -90,12 +95,14 @@ func TestCompile_ImportCycle(t *testing.T) {
 	}
 
 	// Act
-	_, err := Compile(context.Background(), opts)
+	result := Compile(context.Background(), opts)
 
 	// Assert
-	if err == nil {
+	if !result.HasErrors() {
 		t.Fatal("expected error for circular import, got nil")
 	}
+
+	err := result.Error()
 
 	// Check if it's a cycle detection error
 	var cycleErr *validator.ErrCycleDetected

@@ -12,26 +12,47 @@ option go_package = "github.com/autonomous-bits/nomos/libs/provider-proto/gen/go
 service ProviderService {
   // Init initializes the provider with configuration and context.
   // This method must be called before any Fetch operations.
-  // Returns an error if initialization fails (invalid config, unreachable resource, etc.).
+  //
+  // Error codes:
+  //   - InvalidArgument: Config is malformed or contains invalid values
+  //   - FailedPrecondition: Provider cannot initialize (e.g., missing dependencies)
+  //   - Unavailable: External resource required for initialization is unreachable
+  //   - PermissionDenied: Insufficient permissions to access required resources
   rpc Init(InitRequest) returns (InitResponse);
 
   // Fetch retrieves data at the specified path within the provider's data source.
   // The path is interpreted according to the provider's implementation.
   // Returns structured data as a google.protobuf.Struct (equivalent to map[string]any).
-  // Returns NotFound error if the path doesn't exist.
+  //
+  // Error codes:
+  //   - NotFound: The specified path does not exist in the provider's data source
+  //   - InvalidArgument: Path format is invalid or contains illegal characters
+  //   - FailedPrecondition: Init has not been called yet
+  //   - PermissionDenied: Insufficient permissions to access the requested path
+  //   - DeadlineExceeded: Operation timed out (e.g., slow network, large file)
+  //   - Unavailable: Data source is temporarily unreachable
   rpc Fetch(FetchRequest) returns (FetchResponse);
 
   // Info returns metadata about the provider instance.
   // Can be called at any time, including before Init.
+  //
+  // Error codes:
+  //   - Internal: Provider is in an inconsistent state (rare)
   rpc Info(InfoRequest) returns (InfoResponse);
 
   // Health checks the provider's current operational status.
   // Used for preflight checks and monitoring.
+  //
+  // Error codes:
+  //   - Internal: Health check itself failed (rare; prefer returning STATUS_DEGRADED)
   rpc Health(HealthRequest) returns (HealthResponse);
 
   // Shutdown gracefully shuts down the provider.
   // This is a best-effort call; providers should cleanup resources.
   // The compiler may terminate the process if shutdown takes too long.
+  //
+  // Error codes:
+  //   - Internal: Shutdown encountered an error (providers should still terminate)
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
 
@@ -49,11 +70,17 @@ message InitRequest {
   // source_file_path is the absolute path to the .csl source file
   // that declared this provider. Useful for resolving relative paths.
   string source_file_path = 3;
+
+  // Reserved field numbers for future extensions.
+  reserved 4 to 10;
 }
 
 // InitResponse indicates successful provider initialization.
 // Currently empty but reserved for future extension.
-message InitResponse {}
+message InitResponse {
+  // Reserved field numbers for future extensions.
+  reserved 1 to 10;
+}
 
 // FetchRequest specifies the data path to retrieve.
 message FetchRequest {
@@ -62,6 +89,9 @@ message FetchRequest {
   // Example for file provider: ["database", "prod"] might map to database/prod.csl
   // Example for HTTP provider: ["api", "v1", "config"] might map to /api/v1/config
   repeated string path = 1;
+
+  // Reserved field numbers for future extensions.
+  reserved 2 to 10;
 }
 
 // FetchResponse contains the fetched data.
@@ -71,11 +101,17 @@ message FetchResponse {
   // into the Nomos configuration tree.
   // Must be compatible with Nomos value types (strings, numbers, bools, maps, lists).
   google.protobuf.Struct value = 1;
+
+  // Reserved field numbers for future extensions.
+  reserved 2 to 10;
 }
 
 // InfoRequest requests provider metadata.
 // Currently empty but reserved for future parameters.
-message InfoRequest {}
+message InfoRequest {
+  // Reserved field numbers for future extensions.
+  reserved 1 to 10;
+}
 
 // InfoResponse contains provider metadata.
 message InfoResponse {
@@ -87,11 +123,17 @@ message InfoResponse {
 
   // type is the provider type identifier (e.g., "file", "http", "vault").
   string type = 3;
+
+  // Reserved field numbers for future extensions.
+  reserved 4 to 10;
 }
 
 // HealthRequest requests provider health status.
 // Currently empty but reserved for future parameters.
-message HealthRequest {}
+message HealthRequest {
+  // Reserved field numbers for future extensions.
+  reserved 1 to 10;
+}
 
 // HealthResponse indicates provider operational status.
 message HealthResponse {
@@ -106,6 +148,12 @@ message HealthResponse {
     // STATUS_DEGRADED indicates the provider is operational but experiencing issues.
     // Fetch operations may succeed but with reduced performance or reliability.
     STATUS_DEGRADED = 2;
+
+    // STATUS_STARTING indicates the provider is still initializing.
+    // Useful for providers with lengthy startup periods (e.g., establishing
+    // connections, loading large datasets, warming caches).
+    // The compiler may wait briefly for STATUS_OK before proceeding.
+    STATUS_STARTING = 3;
   }
 
   // status is the current health state.
@@ -114,12 +162,21 @@ message HealthResponse {
   // message provides additional context about the health status.
   // Should contain actionable information for degraded states.
   string message = 2;
+
+  // Reserved field numbers for future extensions.
+  reserved 3 to 10;
 }
 
 // ShutdownRequest requests graceful provider shutdown.
 // Currently empty but reserved for future parameters (e.g., timeout).
-message ShutdownRequest {}
+message ShutdownRequest {
+  // Reserved field numbers for future extensions.
+  reserved 1 to 10;
+}
 
 // ShutdownResponse indicates shutdown completion.
 // Currently empty but reserved for future extension.
-message ShutdownResponse {}
+message ShutdownResponse {
+  // Reserved field numbers for future extensions.
+  reserved 1 to 10;
+}

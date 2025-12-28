@@ -1,6 +1,6 @@
 module github.com/autonomous-bits/nomos/libs/provider-proto
 
-go 1.25.3
+go 1.25.5
 
 require (
 	google.golang.org/grpc v1.76.0

@@ -1,5 +1,12 @@
 .PHONY: help build test test-race lint work-sync clean build-cli test-module build-module
+.PHONY: test-unit test-integration test-integration-module test-coverage
+.PHONY: fmt mod-tidy install watch
 .PHONY: release-lib list-tags release-check
+
+# Module discovery - find all modules dynamically
+MODULES := $(shell find . -name 'go.mod' -not -path './go.work' -exec dirname {} \; | sort)
+APP_MODULES := $(shell find ./apps -name 'go.mod' -exec dirname {} \; | sort)
+LIB_MODULES := $(shell find ./libs -name 'go.mod' -exec dirname {} \; | sort)
 
 # Default target
 help:
@@ -9,9 +16,17 @@ help:
 	@echo "  build-cli         - Build the CLI application"
 	@echo "  build-module      - Build a specific module (usage: make build-module MODULE=libs/compiler)"
 	@echo "  test              - Run all tests across all modules"
+	@echo "  test-unit         - Run only unit tests (excludes integration tests)"
+	@echo "  test-integration  - Run all integration tests across all modules"
+	@echo "  test-coverage     - Generate coverage reports for all modules"
 	@echo "  test-race         - Run tests with race detector"
 	@echo "  test-module       - Test a specific module (usage: make test-module MODULE=libs/compiler)"
+	@echo "  test-integration-module - Run integration tests for a specific module"
+	@echo "  fmt               - Format all Go code"
+	@echo "  mod-tidy          - Tidy all module dependencies"
+	@echo "  install           - Install the nomos binary to GOPATH/bin"
 	@echo "  lint              - Run linters across all modules"
+	@echo "  watch             - Auto-rebuild on file changes (requires air)"
 	@echo "  work-sync         - Sync Go workspace dependencies"
 	@echo "  clean             - Clean build artifacts"
 	@echo ""
@@ -47,15 +62,44 @@ build-module: work-sync
 # Run all tests
 test: work-sync
 	@echo "Running all tests across workspace..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
+	@for dir in $(MODULES); do \
 		echo "Testing $$dir..."; \
 		(cd $$dir && go test -v ./...) || exit 1; \
 	done
 
+# Run unit tests only (exclude integration tests)
+test-unit: work-sync
+	@echo "Running unit tests across workspace (excluding integration tests)..."
+	@for dir in $(MODULES); do \
+		echo "Testing $$dir (unit tests only)..."; \
+		(cd $$dir && go test -v -short ./...) || exit 1; \
+	done
+
+# Run integration tests only
+test-integration: work-sync
+	@echo "Running integration tests across workspace..."
+	@for dir in $(MODULES); do \
+		echo "Testing $$dir (integration tests)..."; \
+		(cd $$dir && go test -v -tags=integration ./...) || exit 1; \
+	done
+
+# Generate coverage reports for all modules
+test-coverage: work-sync
+	@echo "Generating coverage reports for all modules..."
+	@mkdir -p coverage
+	@for dir in $(MODULES); do \
+		module_name=$$(basename $$dir); \
+		echo "Generating coverage for $$dir..."; \
+		(cd $$dir && go test -coverprofile=../coverage/$$module_name.out -covermode=atomic ./...) || exit 1; \
+		(cd $$dir && go tool cover -html=../coverage/$$module_name.out -o ../coverage/$$module_name.html) || exit 1; \
+	done
+	@echo "Coverage reports generated in ./coverage/"
+	@echo "Open coverage/*.html in a browser to view reports"
+
 # Run tests with race detector
 test-race: work-sync
 	@echo "Running tests with race detector..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
+	@for dir in $(MODULES); do \
 		echo "Testing $$dir with race detector..."; \
 		(cd $$dir && go test -race ./...) || exit 1; \
 	done
@@ -69,13 +113,57 @@ test-module: work-sync
 	@echo "Testing module $(MODULE)..."
 	@cd $(MODULE) && go test -v ./...
 
+# Run integration tests for specific module
+test-integration-module: work-sync
+	@if [ -z "$(MODULE)" ]; then \
+		echo "Error: MODULE variable not set. Usage: make test-integration-module MODULE=libs/compiler"; \
+		exit 1; \
+	fi
+	@echo "Running integration tests for module $(MODULE)..."
+	@cd $(MODULE) && go test -v -tags=integration ./...
+
+# Format all Go code
+fmt:
+	@echo "Formatting all Go code..."
+	@for dir in $(MODULES); do \
+		echo "Formatting $$dir..."; \
+		(cd $$dir && go fmt ./...) || exit 1; \
+	done
+	@echo "✅ All code formatted"
+
+# Tidy all module dependencies
+mod-tidy:
+	@echo "Tidying all module dependencies..."
+	@for dir in $(MODULES); do \
+		echo "Tidying $$dir..."; \
+		(cd $$dir && go mod tidy) || exit 1; \
+	done
+	@go work sync
+	@echo "✅ All modules tidied and workspace synced"
+
+# Install nomos binary to GOPATH/bin
+install: build-cli
+	@echo "Installing nomos binary..."
+	@go install ./apps/command-line/cmd/nomos
+	@echo "✅ nomos installed to $$(go env GOPATH)/bin/nomos"
+	@echo "Make sure $$(go env GOPATH)/bin is in your PATH"
+
 # Lint all modules
 lint:
 	@echo "Linting all modules..."
-	@for dir in apps/command-line libs/compiler libs/parser libs/provider-downloader libs/provider-proto; do \
+	@for dir in $(MODULES); do \
 		echo "Linting $$dir..."; \
-		(cd $$dir && golangci-lint run ./...) || true; \
+		(cd $$dir && golangci-lint run ./...) || exit 1; \
 	done
+
+# Watch mode - auto-rebuild on file changes (requires air: go install github.com/cosmtrek/air@latest)
+watch:
+	@echo "Starting watch mode (auto-rebuild)..."
+	@if ! command -v air >/dev/null 2>&1; then \
+		echo "Error: 'air' not found. Install with: go install github.com/cosmtrek/air@latest"; \
+		exit 1; \
+	fi
+	@air
 
 # Clean build artifacts
 clean:

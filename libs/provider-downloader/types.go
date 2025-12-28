@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+// ProgressCallback is called periodically during download to report progress.
+// downloaded is the number of bytes downloaded so far.
+// total is the total number of bytes to download (0 if unknown).
+type ProgressCallback func(downloaded, total int64)
+
 // ProviderSpec describes a provider binary to download from GitHub Releases.
 // It contains the repository information, version, and target platform.
 type ProviderSpec struct {
@@ -94,6 +99,20 @@ type ClientOptions struct {
 	// Logger is an optional logger for debug output.
 	// If nil, no debug logging is performed.
 	Logger Logger
+
+	// CacheDir is an optional directory for caching downloaded provider binaries.
+	// If empty, caching is disabled and providers are always downloaded.
+	// Cache key is based on the asset checksum.
+	CacheDir string
+
+	// HTTPTimeout is the timeout for HTTP requests.
+	// Default: 30 seconds
+	HTTPTimeout time.Duration
+
+	// ProgressCallback is an optional callback for download progress updates.
+	// Called periodically during download with bytes downloaded and total size.
+	// If nil, no progress reporting is performed.
+	ProgressCallback ProgressCallback
 }
 
 // DefaultClientOptions returns ClientOptions with sensible defaults.
@@ -102,5 +121,6 @@ func DefaultClientOptions() *ClientOptions {
 		RetryAttempts: 3,
 		RetryDelay:    1 * time.Second,
 		BaseURL:       "https://api.github.com",
+		HTTPTimeout:   30 * time.Second,
 	}
 }

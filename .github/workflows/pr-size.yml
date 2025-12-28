@@ -1,0 +1,244 @@
+name: PR Size Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  size-label:
+    name: Label PR by Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR changes
+        id: pr_size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Get PR details with file changes
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+
+            // Calculate total changes
+            let additions = 0;
+            let deletions = 0;
+            let changes = 0;
+            let fileCount = files.length;
+
+            // Breakdown by file type
+            const fileTypes = {};
+
+            for (const file of files) {
+              additions += file.additions;
+              deletions += file.deletions;
+              changes += file.changes;
+
+              // Categorize by extension
+              const ext = file.filename.split('.').pop() || 'no-ext';
+              if (!fileTypes[ext]) {
+                fileTypes[ext] = { additions: 0, deletions: 0, changes: 0, count: 0 };
+              }
+              fileTypes[ext].additions += file.additions;
+              fileTypes[ext].deletions += file.deletions;
+              fileTypes[ext].changes += file.changes;
+              fileTypes[ext].count += 1;
+            }
+
+            // Determine size category
+            let size = 'XS';
+            let color = '00ff00';
+
+            if (changes < 10) {
+              size = 'XS';
+              color = '00ff00';
+            } else if (changes < 100) {
+              size = 'S';
+              color = '7fd4ff';
+            } else if (changes < 500) {
+              size = 'M';
+              color = 'ffa500';
+            } else if (changes < 1000) {
+              size = 'L';
+              color = 'ff6347';
+            } else {
+              size = 'XL';
+              color = 'ff0000';
+            }
+
+            // Store data for next step
+            core.setOutput('size', size);
+            core.setOutput('color', color);
+            core.setOutput('additions', additions);
+            core.setOutput('deletions', deletions);
+            core.setOutput('changes', changes);
+            core.setOutput('fileCount', fileCount);
+            core.setOutput('fileTypes', JSON.stringify(fileTypes));
+
+            return { size, color, additions, deletions, changes, fileCount, fileTypes };
+
+      - name: Remove old size labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const sizeLabels = ['size/XS', 'size/S', 'size/M', 'size/L', 'size/XL'];
+
+            // Get current labels
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+
+            // Remove any existing size labels
+            for (const label of currentLabels) {
+              if (sizeLabels.includes(label.name)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label.name
+                });
+              }
+            }
+
+      - name: Create or update size label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const size = '${{ steps.pr_size.outputs.size }}';
+            const color = '${{ steps.pr_size.outputs.color }}';
+            const labelName = `size/${size}`;
+
+            // Ensure label exists
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                // Create label if it doesn't exist
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName,
+                  color: color,
+                  description: `PR with ${size} size changes`
+                });
+              }
+            }
+
+            // Add label to PR
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: [labelName]
+            });
+
+      - name: Comment on PR with size breakdown
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const size = '${{ steps.pr_size.outputs.size }}';
+            const additions = '${{ steps.pr_size.outputs.additions }}';
+            const deletions = '${{ steps.pr_size.outputs.deletions }}';
+            const changes = '${{ steps.pr_size.outputs.changes }}';
+            const fileCount = '${{ steps.pr_size.outputs.fileCount }}';
+            const fileTypes = JSON.parse('${{ steps.pr_size.outputs.fileTypes }}');
+
+            // Build file type breakdown table
+            let fileTypeTable = '| File Type | Files | +Lines | -Lines | Changes |\n';
+            fileTypeTable += '|-----------|-------|--------|--------|----------|\n';
+
+            const sortedTypes = Object.entries(fileTypes)
+              .sort((a, b) => b[1].changes - a[1].changes)
+              .slice(0, 10);  // Top 10 file types
+
+            for (const [ext, stats] of sortedTypes) {
+              fileTypeTable += `| .${ext} | ${stats.count} | +${stats.additions} | -${stats.deletions} | ${stats.changes} |\n`;
+            }
+
+            // Build size category message
+            let sizeMessage = '';
+            if (size === 'XL') {
+              sizeMessage = `\n### ⚠️ This PR is very large (${changes} lines changed)\n\n` +
+                'Consider splitting it into smaller, more reviewable PRs. Smaller PRs are:\n' +
+                '- Easier to review thoroughly\n' +
+                '- Less likely to introduce bugs\n' +
+                '- Faster to merge\n' +
+                '- Easier to revert if needed\n';
+            } else if (size === 'L') {
+              sizeMessage = `\n### 📊 This PR is large (${changes} lines changed)\n\n` +
+                'Please ensure the changes are well-organized and documented.\n';
+            } else if (size === 'XS') {
+              sizeMessage = `\n✨ Nice and small PR! (${changes} lines changed)\n`;
+            }
+
+            const comment = `## PR Size: ${size}\n\n` +
+              `**Total Changes**: ${changes} lines (+${additions}/-${deletions})\n` +
+              `**Files Changed**: ${fileCount}\n\n` +
+              sizeMessage +
+              '\n### Changes by File Type\n\n' +
+              fileTypeTable +
+              '\n---\n' +
+              '*Size categories: XS (<10), S (<100), M (<500), L (<1000), XL (1000+)*';
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('## PR Size:')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: comment
+              });
+            }
+
+      - name: Summary
+        run: |
+          echo "## PR Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Size Category**: ${{ steps.pr_size.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Changes**: ${{ steps.pr_size.outputs.changes }} lines" >> $GITHUB_STEP_SUMMARY
+          echo "**Additions**: +${{ steps.pr_size.outputs.additions }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deletions**: -${{ steps.pr_size.outputs.deletions }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Files Changed**: ${{ steps.pr_size.outputs.fileCount }}" >> $GITHUB_STEP_SUMMARY

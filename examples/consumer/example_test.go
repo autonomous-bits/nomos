@@ -13,7 +13,8 @@ import (
 func TestConsumerExampleBuilds(t *testing.T) {
 	examplePath := filepath.Join("cmd", "consumer-example")
 
-	cmd := exec.Command("go", "build", "-o", filepath.Join(t.TempDir(), "consumer-example"), ".")
+	//nolint:gosec // G204: test code with controlled inputs
+	cmd := exec.CommandContext(t.Context(), "go", "build", "-o", filepath.Join(t.TempDir(), "consumer-example"), ".")
 	cmd.Dir = examplePath
 	output, err := cmd.CombinedOutput()
 
@@ -31,7 +32,8 @@ func TestConsumerExampleRuns(t *testing.T) {
 	binaryPath := filepath.Join(t.TempDir(), "consumer-example")
 
 	// Build the example
-	buildCmd := exec.Command("go", "build", "-o", binaryPath, ".")
+	//nolint:gosec // G204: test code with controlled inputs
+	buildCmd := exec.CommandContext(t.Context(), "go", "build", "-o", binaryPath, ".")
 	buildCmd.Dir = examplePath
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build consumer example:\n%s\nError: %v", string(output), err)
@@ -39,7 +41,8 @@ func TestConsumerExampleRuns(t *testing.T) {
 
 	// Run the example with test data
 	testConfig := filepath.Join("testdata", "simple.csl")
-	runCmd := exec.Command(binaryPath, testConfig)
+	//nolint:gosec // G204: test code with controlled inputs
+	runCmd := exec.CommandContext(t.Context(), binaryPath, testConfig)
 	output, err := runCmd.CombinedOutput()
 
 	t.Logf("Consumer example output:\n%s", string(output))
