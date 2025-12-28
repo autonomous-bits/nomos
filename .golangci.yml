@@ -30,6 +30,9 @@ linters:
     - sqlclosecheck  # Check for SQL query resource leaks
     - wastedassign   # Find wasted assignment statements
     - whitespace     # Check for unnecessary whitespace
+
+formatters:
+  enable:
     - gofmt          # Check formatting
     - goimports      # Check imports formatting
 
