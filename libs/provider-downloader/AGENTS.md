@@ -1,7 +1,7 @@
 # Nomos Provider Downloader Agent-Specific Patterns
 
-> **Note**: For comprehensive guidance, see `.github/agents/provider-downloader-module.agent.md`  
-> For task coordination, start with `.github/agents/nomos.agent.md`
+> **Note**: For comprehensive guidance, see `.github/agents/nomos-provider-specialist.agent.md`  
+> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
 
 ## Nomos-Specific Patterns
 

@@ -1,7 +1,7 @@
 # Nomos Compiler Agent-Specific Patterns
 
-> **Note**: For comprehensive compiler development guidance, see `.github/agents/compiler-module.agent.md`  
-> For task coordination, start with `.github/agents/nomos.agent.md`
+> **Note**: For comprehensive compiler development guidance, see `.github/agents/nomos-compiler-specialist.agent.md`  
+> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
 
 ## Nomos-Specific Patterns
 
