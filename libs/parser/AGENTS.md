@@ -1,7 +1,12 @@
-# Nomos Parser Agent-Specific Patterns
+# Nomos Parser Project Patterns
 
-> **Note**: For comprehensive parser development guidance, see `.github/agents/nomos-parser-specialist.agent.md`  
-> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
+## Purpose
+
+This document contains **Nomos-specific patterns** for the Parser module, providing context for development tasks including:
+- Parser implementation patterns (AST design, scanner architecture)
+- Testing conventions (golden file tests, fuzzing, benchmarks)
+- Design constraints (lexer/parser separation)
+- Error message formatting and handling
 
 ## Nomos-Specific Patterns
 

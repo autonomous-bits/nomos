@@ -1,7 +1,12 @@
-# Nomos Provider Proto Agent-Specific Patterns
+# Nomos Provider Proto Project Patterns
 
-> **Note**: For comprehensive guidance, see `.github/agents/nomos-provider-specialist.agent.md`  
-> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
+## Purpose
+
+This document contains **Nomos-specific patterns** for the Provider Proto module, providing context for development tasks including:
+- gRPC protocol patterns (subprocess communication, streaming)
+- Proto testing conventions (mock servers, contract tests)
+- Protocol design constraints (versioning, compatibility)
+- Code generation and validation workflows
 
 ## Nomos-Specific Patterns
 
