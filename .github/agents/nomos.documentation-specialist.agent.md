@@ -516,7 +516,7 @@ See [godoc](https://pkg.go.dev/github.com/autonomous-bits/nomos/libs/compiler).
 
 ## Examples
 
-See [examples/](../../examples/compiler/) for complete examples.
+See [examples/](../../examples/config/) for complete examples.
 
 ## Architecture
 
@@ -528,7 +528,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for contribution guidelines.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+See [CHANGELOG.md](../../CHANGELOG.md) for version history.
 
 ## License
 
