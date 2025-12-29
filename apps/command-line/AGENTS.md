@@ -1,11 +1,12 @@
-# Nomos CLI Agent-Specific Patterns
-
-> **Note**: For comprehensive CLI development guidance, see `.github/agents/nomos-cli-specialist.agent.md`  
-> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
+# Nomos CLI Project Patterns
 
 ## Purpose
 
-This document contains **Nomos-specific** patterns for the CLI module. General CLI development practices (command routing, flag parsing, testing) are covered in `.github/agents/nomos-cli-specialist.agent.md`.
+This document contains **Nomos-specific patterns** for the CLI module, providing context for development tasks including:
+- CLI implementation patterns and command structure
+- Testing conventions for CLI functionality
+- Design constraints and architectural decisions
+- Verification requirements for task completion
 
 ## Nomos-Specific Patterns
 

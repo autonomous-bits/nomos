@@ -1,7 +1,12 @@
-# Nomos Compiler Agent-Specific Patterns
+# Nomos Compiler Project Patterns
 
-> **Note**: For comprehensive compiler development guidance, see `.github/agents/nomos-compiler-specialist.agent.md`  
-> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
+## Purpose
+
+This document contains **Nomos-specific patterns** for the Compiler module, providing context for development tasks including:
+- Compiler implementation patterns (3-stage pipeline, provider lifecycle)
+- Testing conventions (hermetic tests, golden snapshots)
+- Design constraints (AST transformation, type safety)
+- Provider registration and integration workflows
 
 ## Nomos-Specific Patterns
 

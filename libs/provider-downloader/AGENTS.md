@@ -1,7 +1,12 @@
-# Nomos Provider Downloader Agent-Specific Patterns
+# Nomos Provider Downloader Project Patterns
 
-> **Note**: For comprehensive guidance, see `.github/agents/nomos-provider-specialist.agent.md`  
-> For task coordination, start with `.github/agents/nomos-orchestrator.agent.md`
+## Purpose
+
+This document contains **Nomos-specific patterns** for the Provider Downloader module, providing context for development tasks including:
+- Download patterns (caching, checksums, atomic operations)
+- Testing conventions (hermetic tests, mock registries)
+- Design constraints (offline-first, reproducibility)
+- Provider resolution and installation workflows
 
 ## Nomos-Specific Patterns
 
