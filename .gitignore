@@ -86,3 +86,4 @@ site/
 .github/agents/
 .github/prompts/
 .specify/
+specs/
