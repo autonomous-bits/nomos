@@ -29,5 +29,6 @@
             "-tags=integration"
         ]
     },
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
+    "github.copilot.chat.customAgents.showOrganizationAndEnterpriseAgents": true
 }
