@@ -6,17 +6,13 @@ Licensor:             Werner Swart
 Licensed Work:        Nomos Configuration Language
                       The Licensed Work is (c) 2025 Werner Swart
 Additional Use Grant: You may make use of the Licensed Work, provided that
-                      you do not use the Licensed Work for a Database Service.
-                      
-                      A "Database Service" is a commercial offering that allows
-                      third parties (other than your employees and contractors)
-                      to access the functionality of the Licensed Work by
-                      creating tables whose schemas are controlled by such
-                      third parties.
+                      you may not embed or include the Licensed Work in any
+                      proprietary software application or service that is
+                      sold, licensed, or otherwise commercially exploited.
 
 Change Date:          2029-11-02
 
-Change License:       Apache License, Version 2.0
+Change License:       GNU Affero General Public License v3.0
 
 For information about alternative licensing arrangements for the Licensed Work,
 please contact: werner@swart.io
