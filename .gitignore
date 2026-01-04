@@ -81,3 +81,8 @@ site/
 
 # Nomos provider cache directory
 .nomos/
+
+# AI agent and specification files
+.github/agents/
+.github/prompts/
+.specify/
