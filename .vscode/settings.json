@@ -28,5 +28,6 @@
         "build.buildFlags": [
             "-tags=integration"
         ]
-    }
+    },
+    "makefile.configureOnOpen": false
 }
