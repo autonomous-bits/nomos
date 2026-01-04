@@ -1,0 +1,22 @@
+source:
+  alias: 'configs'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+source:
+  alias: 'tfstate'
+  type:  'autonomous-bits/nomos-provider-terraform-remote-state'
+  version: '0.1.2'
+  backend_type: 'azurerm'
+  storage_account_name: "wsstate2"
+  container_name: "state"
+  key: "storage.tfstate"
+  
+environments:
+  production: reference:configs:prod.database.name
+  staging: reference:configs:staging.database.name
+
+app:
+  name: 'example-app'
+  url: reference:tfstate:blob_url
