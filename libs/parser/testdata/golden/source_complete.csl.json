@@ -10,16 +10,6 @@
     {
       "alias": "azure-provider",
       "config": {
-        "alias": {
-          "source_span": {
-            "end_col": 22,
-            "end_line": 2,
-            "filename": "../testdata/fixtures/source_complete.csl",
-            "start_col": 9,
-            "start_line": 2
-          },
-          "value": "azure-provider"
-        },
         "enabled": {
           "source_span": {
             "end_col": 14,
@@ -49,16 +39,6 @@
             "start_line": 6
           },
           "value": "us-east-1"
-        },
-        "type": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 3,
-            "filename": "../testdata/fixtures/source_complete.csl",
-            "start_col": 9,
-            "start_line": 3
-          },
-          "value": "azure"
         }
       },
       "source_span": {
@@ -68,7 +48,8 @@
         "start_col": 1,
         "start_line": 1
       },
-      "type": "azure"
+      "type": "azure",
+      "version": ""
     }
   ]
 }

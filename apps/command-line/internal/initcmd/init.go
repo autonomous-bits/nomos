@@ -211,13 +211,8 @@ func discoverProviders(paths []string) ([]DiscoveredProvider, error) {
 				config[k] = exprToValue(expr)
 			}
 
-			// Extract version from config
-			version := ""
-			if v, ok := config["version"]; ok {
-				if vStr, ok := v.(string); ok {
-					version = vStr
-				}
-			}
+			// Use the Version field from SourceDecl (not from Config map)
+			version := srcDecl.Version
 
 			providers = append(providers, DiscoveredProvider{
 				Alias:   srcDecl.Alias,

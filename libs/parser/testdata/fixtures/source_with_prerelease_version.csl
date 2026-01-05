@@ -1,0 +1,5 @@
+source:
+	alias: 'beta-provider'
+	type: 'custom'
+	version: '2.0.0-beta.1'
+	api_key: 'test-key'

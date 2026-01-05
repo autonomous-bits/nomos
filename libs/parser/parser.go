@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/autonomous-bits/nomos/libs/parser/internal/scanner"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
@@ -250,12 +251,33 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 		}
 	}
 
+	// Extract and validate version (optional)
+	version := ""
+	if versionExpr, ok := config["version"]; ok {
+		if versionLiteral, ok := versionExpr.(*ast.StringLiteral); ok {
+			version = versionLiteral.Value
+		}
+	}
+
+	// Validate semver format if version is provided
+	if err := validateSemver(version); err != nil {
+		parseErr := NewParseError(SyntaxError, s.Filename(), startLine, startCol, err.Error())
+		parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+		return nil, parseErr
+	}
+
+	// Remove reserved fields from config map (extracted to dedicated fields)
+	delete(config, "alias")
+	delete(config, "type")
+	delete(config, "version")
+
 	endLine, endCol := s.Line(), s.Column()
 
 	return &ast.SourceDecl{
-		Alias:  alias,
-		Type:   typeName,
-		Config: config,
+		Alias:   alias,
+		Type:    typeName,
+		Version: version,
+		Config:  config,
 		SourceSpan: ast.SourceSpan{
 			Filename:  s.Filename(),
 			StartLine: startLine,
@@ -313,10 +335,10 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*
 // NOTE: Top-level reference statements are deprecated (BREAKING CHANGE).
 // Users should use inline references in value positions instead.
 func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int) error {
-	// Reject top-level reference statements with a migration message
-	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-		"invalid syntax: top-level 'reference:' statements are no longer supported. Use inline references instead.\n"+
-			"Example: Instead of a top-level 'reference:alias:path', use 'key: reference:alias:path' in a value position.")
+	// Simple error message - references can only be used inline
+	errorMessage := "invalid syntax: references can only be used inline in value positions"
+
+	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, errorMessage)
 	err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 	return err
 }
@@ -658,4 +680,18 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 // generateSnippetFromSource is a convenience wrapper around generateSnippet from errors.go.
 func generateSnippetFromSource(sourceText string, line, col int) string {
 	return generateSnippet(sourceText, line, col)
+}
+
+// validateSemver validates that a version string is valid semantic versioning format.
+// Empty strings are valid (representing unversioned providers).
+// Returns an error with actionable guidance if the version is invalid.
+func validateSemver(version string) error {
+	if version == "" {
+		return nil // Empty is valid (unversioned provider)
+	}
+	_, err := semver.StrictNewVersion(version)
+	if err != nil {
+		return fmt.Errorf("invalid version format: %q - must be valid semantic version (e.g., \"1.2.3\", \"2.0.0-beta.1\"). See https://semver.org", version)
+	}
+	return nil
 }

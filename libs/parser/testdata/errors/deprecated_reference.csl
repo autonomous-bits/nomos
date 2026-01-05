@@ -1,0 +1,39 @@
+# Error Test Fixture: Deprecated Top-Level Reference Syntax
+#
+# This file demonstrates the DEPRECATED top-level reference syntax that should be
+# rejected by the parser. Top-level references were never actually used in practice
+# and are being removed to simplify the language.
+#
+# DEPRECATED (should fail):
+#   reference:alias:path
+#
+# CORRECT (inline reference):
+#   key: reference:alias:path
+#
+# Expected Behavior:
+# - Parser should reject all top-level reference declarations
+# - Error message should indicate that references must be used inline as values
+# - Each top-level reference should be reported as an error
+
+# Test Case 1: Simple top-level reference
+# Should fail: references cannot be declared at top level
+reference:configs:database.host
+
+# Test Case 2: Reference with nested path
+# Should fail: references must be assigned to a key
+reference:network:vpc.cidr_block
+
+# Test Case 3: Reference with deeply nested path
+# Should fail: even complex paths don't make top-level references valid
+reference:storage:bucket.name
+
+# Test Case 4: Multiple references in sequence
+# Should fail: all of these should be reported as errors
+reference:app:settings.timeout
+reference:infra:region
+reference:data:source.connection_string
+
+# Note: The correct usage would be:
+# database_host: reference:configs:database.host
+# vpc_cidr: reference:network:vpc.cidr_block
+# bucket_name: reference:storage:bucket.name

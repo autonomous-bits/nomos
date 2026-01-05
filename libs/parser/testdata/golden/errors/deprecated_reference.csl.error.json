@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/deprecated_reference.csl:1:1: invalid syntax: unexpected character '#'",
+  "filename": "../testdata/errors/deprecated_reference.csl"
+}

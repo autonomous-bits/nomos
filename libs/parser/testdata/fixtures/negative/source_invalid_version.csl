@@ -1,0 +1,4 @@
+source:
+	alias: 'bad-version'
+	type: 'custom'
+	version: 'not-a-version'

@@ -10,16 +10,6 @@
     {
       "alias": "complete-test",
       "config": {
-        "alias": {
-          "source_span": {
-            "end_col": 21,
-            "end_line": 2,
-            "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_col": 9,
-            "start_line": 2
-          },
-          "value": "complete-test"
-        },
         "path": {
           "source_span": {
             "end_col": 14,
@@ -29,16 +19,6 @@
             "start_line": 4
           },
           "value": "./test"
-        },
-        "type": {
-          "source_span": {
-            "end_col": 12,
-            "end_line": 3,
-            "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_col": 9,
-            "start_line": 3
-          },
-          "value": "test"
         }
       },
       "source_span": {
@@ -48,7 +28,8 @@
         "start_col": 1,
         "start_line": 1
       },
-      "type": "test"
+      "type": "test",
+      "version": ""
     },
     {
       "alias": "module1",

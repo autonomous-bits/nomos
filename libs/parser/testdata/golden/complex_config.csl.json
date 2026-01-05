@@ -10,16 +10,6 @@
     {
       "alias": "azure",
       "config": {
-        "alias": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 2,
-            "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 9,
-            "start_line": 2
-          },
-          "value": "azure"
-        },
         "path": {
           "source_span": {
             "end_col": 25,
@@ -29,16 +19,6 @@
             "start_line": 4
           },
           "value": "./providers/azure"
-        },
-        "type": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 3,
-            "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 9,
-            "start_line": 3
-          },
-          "value": "azure"
         }
       },
       "source_span": {
@@ -48,7 +28,8 @@
         "start_col": 1,
         "start_line": 1
       },
-      "type": "azure"
+      "type": "azure",
+      "version": ""
     },
     {
       "alias": "base",

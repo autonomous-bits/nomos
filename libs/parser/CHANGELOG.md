@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **BREAKING CHANGE: ReferenceStmt removed from AST** (User Story 1)
+  - Top-level `reference:alias:path` syntax no longer supported
+  - `ReferenceStmt` AST type removed from `pkg/ast` package
+  - Parser now rejects top-level reference statements with `SyntaxError`
+  - Error message includes migration guidance to inline reference syntax
+  - Migration: Convert `reference:alias:path` to `key: reference:alias:path`
+  - Rationale: Top-level references were never used in practice and added unnecessary complexity
+  - Test coverage: `test/deprecated_reference_test.go` validates rejection and error messages
+
 ### Changed
 - **API Documentation Improvements**: Enhanced public API documentation for production readiness
   - Added comprehensive godoc for `Parser` struct explaining instance reuse and concurrency safety
