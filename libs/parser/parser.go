@@ -335,25 +335,8 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*
 // NOTE: Top-level reference statements are deprecated (BREAKING CHANGE).
 // Users should use inline references in value positions instead.
 func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int) error {
-	// Capture the full reference statement text for the error message
-	// Save current position to extract the reference statement
-	lineStartPos := s.Pos()
-
-	// Read the full reference statement (reference:alias:path)
-	referenceText := s.ReadValue()
-	if referenceText == "" {
-		// Fallback if ReadValue returns empty
-		referenceText = "reference"
-	}
-
 	// Simple error message - references can only be used inline
 	errorMessage := "invalid syntax: references can only be used inline in value positions"
-
-	// Reset scanner position to where we started (before ReadValue)
-	// This ensures the error snippet points to the correct location
-	// Note: We accept the position has moved but the snippet generation
-	// will use startLine/startCol which are correct
-	_ = lineStartPos // Mark as intentionally unused
 
 	err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, errorMessage)
 	err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
