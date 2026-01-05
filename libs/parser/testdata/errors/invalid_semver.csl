@@ -1,0 +1,19 @@
+source:
+  alias: 'provider1'
+  type: 'terraform'
+  version: 'v1.2.3'
+
+source:
+  alias: 'provider2'
+  type: 'terraform'
+  version: '1.2'
+
+source:
+  alias: 'provider3'
+  type: 'terraform'
+  version: 'latest'
+
+source:
+  alias: 'provider4'
+  type: 'terraform'
+  version: '1.2.3 beta'

@@ -44,11 +44,13 @@ type Stmt interface {
 //
 //	alias: 'folder'
 //	type: 'folder'
+//	version: '1.0.0'  // Optional: semantic version
 //	path: '../config'
 type SourceDecl struct {
 	Alias      string          `json:"alias"`
 	Type       string          `json:"type"`
-	Config     map[string]Expr `json:"config"` // Key-value configuration with expression values
+	Version    string          `json:"version"` // Semantic version or empty string for unversioned providers
+	Config     map[string]Expr `json:"config"`  // Key-value configuration (excludes reserved fields: alias, type, version)
 	SourceSpan SourceSpan      `json:"source_span"`
 }
 
@@ -69,30 +71,6 @@ type ImportStmt struct {
 func (i *ImportStmt) Span() SourceSpan { return i.SourceSpan }
 func (i *ImportStmt) node()            {}
 func (i *ImportStmt) stmt()            {}
-
-// ReferenceStmt represents a top-level reference statement.
-//
-// Deprecated: Top-level reference statements (e.g., "reference:alias:path") are rejected
-// by the parser as of the inline reference migration. This type is retained in the AST
-// for backward compatibility with older code that may reference it, but the parser will
-// never produce nodes of this type.
-//
-// Use ReferenceExpr for inline references in value positions instead:
-//
-// \tkey: reference:alias:path.to.value
-//
-// This type will be removed in a future major version (v2.0.0).
-// Example (deprecated syntax): reference:folder:config.key
-type ReferenceStmt struct {
-	Alias      string     `json:"alias"`
-	Path       string     `json:"path"`
-	SourceSpan SourceSpan `json:"source_span"`
-}
-
-// Span implements Node for ReferenceStmt.
-func (r *ReferenceStmt) Span() SourceSpan { return r.SourceSpan }
-func (r *ReferenceStmt) node()            {}
-func (r *ReferenceStmt) stmt()            {}
 
 // SectionDecl represents a configuration section with key-value pairs.
 // Example: config-section-name:

@@ -123,14 +123,41 @@ app:
 
 ### Deprecated Syntax Handling
 
-**Deprecated**: Top-level `reference:` statements are no longer supported.
+**Deprecated**: Top-level `reference:` statements are no longer supported (User Story 1 - Breaking Change).
+
+**AST Changes**:
+- `ReferenceStmt` type removed from AST in Phase 2
+- Top-level references were never used in practice and added unnecessary complexity
+- Parser now rejects this syntax at parse time
 
 **Parser Behavior**: Returns `SyntaxError` with migration hint when encountering:
 ```
 reference:alias:path.to.value
 ```
 
+**Error Message Format**:
+```
+invalid syntax: top-level reference statements are no longer supported
+
+Detected: "reference:alias:path"
+
+Migration Guide:
+Top-level reference: statements must be converted to inline reference expressions in value positions.
+
+Before (deprecated):
+  reference:alias:path
+
+After (correct):
+  key: reference:alias:path
+```
+
 **Migration Path**: Convert to inline references in value positions (see "Inline References" above).
+
+**Test Coverage**:
+- `test/deprecated_reference_test.go` - Comprehensive rejection tests
+- `test/parser_grammar_test.go` - Basic rejection tests
+- `testdata/errors/deprecated_reference.csl` - Test fixture with multiple scenarios
+- All tests verify error kind, message content, and migration guidance
 
 ### Coverage HTML Report
 

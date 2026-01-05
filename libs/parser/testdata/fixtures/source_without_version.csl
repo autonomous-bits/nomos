@@ -1,0 +1,4 @@
+source:
+	alias: 'legacy'
+	type: 'file'
+	path: './data'

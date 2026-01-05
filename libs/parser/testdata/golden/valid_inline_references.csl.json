@@ -10,16 +10,6 @@
     {
       "alias": "network",
       "config": {
-        "alias": {
-          "source_span": {
-            "end_col": 15,
-            "end_line": 2,
-            "filename": "../testdata/fixtures/valid_inline_references.csl",
-            "start_col": 9,
-            "start_line": 2
-          },
-          "value": "network"
-        },
         "path": {
           "source_span": {
             "end_col": 15,
@@ -29,16 +19,6 @@
             "start_line": 4
           },
           "value": "./config"
-        },
-        "type": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 3,
-            "filename": "../testdata/fixtures/valid_inline_references.csl",
-            "start_col": 8,
-            "start_line": 3
-          },
-          "value": "folder"
         }
       },
       "source_span": {
@@ -48,21 +28,12 @@
         "start_col": 1,
         "start_line": 1
       },
-      "type": "folder"
+      "type": "folder",
+      "version": ""
     },
     {
       "alias": "security",
       "config": {
-        "alias": {
-          "source_span": {
-            "end_col": 16,
-            "end_line": 7,
-            "filename": "../testdata/fixtures/valid_inline_references.csl",
-            "start_col": 9,
-            "start_line": 7
-          },
-          "value": "security"
-        },
         "path": {
           "source_span": {
             "end_col": 17,
@@ -72,16 +43,6 @@
             "start_line": 9
           },
           "value": "./security"
-        },
-        "type": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 8,
-            "filename": "../testdata/fixtures/valid_inline_references.csl",
-            "start_col": 8,
-            "start_line": 8
-          },
-          "value": "folder"
         }
       },
       "source_span": {
@@ -91,7 +52,8 @@
         "start_col": 1,
         "start_line": 6
       },
-      "type": "folder"
+      "type": "folder",
+      "version": ""
     },
     {
       "entries": {

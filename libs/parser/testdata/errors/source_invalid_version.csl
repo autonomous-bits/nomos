@@ -1,0 +1,5 @@
+source:
+  alias: 'bad-provider'
+  type: 'terraform'
+  version: 'v1.2'
+  region: 'us-west-2'
