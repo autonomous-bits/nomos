@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestDiscoverProviders_WithVersion tests that discoverProviders correctly
+// TestDiscoverProviders_WithVersion tests that DiscoverProviders correctly
 // extracts version from SourceDecl.Version field (not from Config map).
 func TestDiscoverProviders_WithVersion(t *testing.T) {
 	// Arrange: Create temp config file with versioned source declaration
@@ -25,9 +25,9 @@ func TestDiscoverProviders_WithVersion(t *testing.T) {
 	}
 
 	// Act: Discover providers
-	providers, err := discoverProviders([]string{configPath})
+	providers, err := DiscoverProviders([]string{configPath})
 	if err != nil {
-		t.Fatalf("discoverProviders failed: %v", err)
+		t.Fatalf("DiscoverProviders failed: %v", err)
 	}
 
 	// Assert: Provider discovered with correct version
@@ -74,9 +74,9 @@ func TestDiscoverProviders_WithoutVersion(t *testing.T) {
 	}
 
 	// Act: Discover providers
-	providers, err := discoverProviders([]string{configPath})
+	providers, err := DiscoverProviders([]string{configPath})
 	if err != nil {
-		t.Fatalf("discoverProviders failed: %v", err)
+		t.Fatalf("DiscoverProviders failed: %v", err)
 	}
 
 	// Assert: Provider discovered with empty version
@@ -114,9 +114,9 @@ source:
 	}
 
 	// Act: Discover providers
-	providers, err := discoverProviders([]string{configPath})
+	providers, err := DiscoverProviders([]string{configPath})
 	if err != nil {
-		t.Fatalf("discoverProviders failed: %v", err)
+		t.Fatalf("DiscoverProviders failed: %v", err)
 	}
 
 	// Assert: Both providers discovered
@@ -163,9 +163,9 @@ source:
 	}
 
 	// Act: Discover providers
-	providers, err := discoverProviders([]string{configPath})
+	providers, err := DiscoverProviders([]string{configPath})
 	if err != nil {
-		t.Fatalf("discoverProviders failed: %v", err)
+		t.Fatalf("DiscoverProviders failed: %v", err)
 	}
 
 	// Assert: Only first provider kept (duplicates skipped)
@@ -185,7 +185,7 @@ source:
 // TestDiscoverProviders_InvalidFile tests error handling for non-existent files.
 func TestDiscoverProviders_InvalidFile(t *testing.T) {
 	// Act: Try to discover from non-existent file
-	_, err := discoverProviders([]string{"nonexistent.csl"})
+	_, err := DiscoverProviders([]string{"nonexistent.csl"})
 
 	// Assert: Error returned
 	if err == nil {
@@ -206,10 +206,86 @@ func TestDiscoverProviders_ParseError(t *testing.T) {
 	}
 
 	// Act: Try to discover from invalid file
-	_, err := discoverProviders([]string{configPath})
+	_, err := DiscoverProviders([]string{configPath})
 
 	// Assert: Error returned
 	if err == nil {
 		t.Fatal("expected parse error, got nil")
 	}
+}
+
+// TestDiscoverProviders_MultipleFiles tests discovering from multiple files.
+func TestDiscoverProviders_MultipleFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create first config file
+	config1Path := filepath.Join(tempDir, "config1.csl")
+	config1Content := `source:
+  alias: 'file'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+`
+	if err := os.WriteFile(config1Path, []byte(config1Content), 0600); err != nil {
+		t.Fatalf("failed to write config1: %v", err)
+	}
+
+	// Create second config file
+	config2Path := filepath.Join(tempDir, "config2.csl")
+	config2Content := `source:
+  alias: 'tfstate'
+  type: 'autonomous-bits/nomos-provider-terraform-remote-state'
+  version: '0.1.2'
+`
+	if err := os.WriteFile(config2Path, []byte(config2Content), 0600); err != nil {
+		t.Fatalf("failed to write config2: %v", err)
+	}
+
+	// Act: Discover from multiple files
+	providers, err := DiscoverProviders([]string{config1Path, config2Path})
+	if err != nil {
+		t.Fatalf("DiscoverProviders failed: %v", err)
+	}
+
+	// Assert: Both providers discovered
+	if len(providers) != 2 {
+		t.Fatalf("expected 2 providers, got %d", len(providers))
+	}
+
+	aliases := []string{providers[0].Alias, providers[1].Alias}
+	if !containsString(aliases, "file") {
+		t.Error("'file' provider not found")
+	}
+	if !containsString(aliases, "tfstate") {
+		t.Error("'tfstate' provider not found")
+	}
+}
+
+// TestDiscoverProviders_EmptyFile tests discovering from empty file.
+func TestDiscoverProviders_EmptyFile(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "empty.csl")
+
+	// Create empty file
+	if err := os.WriteFile(configPath, []byte(""), 0600); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	providers, err := DiscoverProviders([]string{configPath})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(providers) != 0 {
+		t.Errorf("expected 0 providers, got %d", len(providers))
+	}
+}
+
+// Helper function
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
