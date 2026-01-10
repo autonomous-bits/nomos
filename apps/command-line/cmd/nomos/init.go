@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/autonomous-bits/nomos/apps/command-line/internal/initcmd"
+	"github.com/autonomous-bits/nomos/apps/command-line/internal/providercmd"
 	"github.com/briandowns/spinner"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -62,7 +62,7 @@ func initCommand(_ *cobra.Command, args []string) error {
 	}
 
 	// Build options
-	opts := initcmd.Options{
+	opts := providercmd.Options{
 		Paths:   args,
 		DryRun:  initFlags.dryRun,
 		Force:   initFlags.force,
@@ -80,7 +80,7 @@ func initCommand(_ *cobra.Command, args []string) error {
 	}
 
 	// Run init
-	result, err := initcmd.Run(opts)
+	result, err := providercmd.Run(opts)
 
 	// Stop spinner
 	if sp != nil {

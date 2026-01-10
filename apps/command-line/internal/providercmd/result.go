@@ -1,5 +1,5 @@
-// Package initcmd implements result types for the init command.
-package initcmd
+// Package providercmd implements result types for provider management.
+package providercmd
 
 // InitResult represents the result of running the init command.
 type InitResult struct {

@@ -1,4 +1,4 @@
-package initcmd
+package providercmd
 
 import (
 	"os"
