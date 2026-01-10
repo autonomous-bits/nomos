@@ -40,6 +40,9 @@ import (
 // the summary's Failed count and only cause an error return if
 // opts.AllowMissing is false.
 func EnsureProviders(opts ProviderOptions) (*ProviderSummary, error) {
+	// Print progress message to stderr
+	fmt.Fprintln(os.Stderr, "Checking providers...")
+
 	// Validate inputs
 	if len(opts.Paths) == 0 {
 		return nil, errors.New("no input paths provided")
@@ -80,18 +83,22 @@ func EnsureProviders(opts ProviderOptions) (*ProviderSummary, error) {
 		return summary, err
 	}
 
+	// Check if all providers were cached
+	summary := buildSummary(results)
+	if summary.Downloaded == 0 && summary.Failed == 0 {
+		fmt.Fprintln(os.Stderr, "(all cached)")
+	}
+
 	// Phase 3: Update lockfile (skip in dry-run mode)
 	if !opts.DryRun {
 		if err := updateLockfile(downloadEntries); err != nil {
 			// Providers were downloaded successfully but lockfile update failed
 			// This is a critical error - return with partial summary
-			summary := buildSummary(results)
 			return summary, fmt.Errorf("providers downloaded but lockfile update failed: %w", err)
 		}
 	}
 
-	// Phase 4: Build and return summary
-	summary := buildSummary(results)
+	// Phase 4: Return summary
 	return summary, nil
 }
 

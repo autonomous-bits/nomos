@@ -9,6 +9,7 @@ import (
 
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/diagnostics"
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/options"
+	"github.com/autonomous-bits/nomos/apps/command-line/internal/providercmd"
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/serialize"
 	"github.com/autonomous-bits/nomos/libs/compiler"
 	"github.com/spf13/cobra"
@@ -25,6 +26,8 @@ var buildFlags struct {
 	timeoutPerProvider     string
 	maxConcurrentProviders int
 	verbose                bool
+	forceProviders         bool
+	dryRun                 bool
 }
 
 // buildCmd represents the build command
@@ -41,8 +44,11 @@ File Discovery:
   - If --path points to a directory, all .csl files are discovered recursively
   - Files are processed in UTF-8 lexicographic order (deterministic builds)
 
-Network Operations:
-  - Build is offline-first: providers must be installed via 'nomos init'
+Provider Management:
+  - Providers are automatically discovered and downloaded during build
+  - Cached providers are reused for speed (SHA256-verified)
+  - Use --force-providers to force re-download of all providers
+  - Use --dry-run to preview provider operations without executing
   - Use --allow-missing-provider to tolerate missing providers (non-deterministic)
 
 Exit Codes:
@@ -69,6 +75,8 @@ func init() {
 	buildCmd.Flags().BoolVar(&buildFlags.allowMissingProvider, "allow-missing-provider", false, "Allow compilation with missing providers")
 	buildCmd.Flags().StringVar(&buildFlags.timeoutPerProvider, "timeout-per-provider", "30s", "Timeout for provider operations (e.g., 5s, 1m)")
 	buildCmd.Flags().IntVar(&buildFlags.maxConcurrentProviders, "max-concurrent-providers", 4, "Max concurrent provider operations")
+	buildCmd.Flags().BoolVar(&buildFlags.forceProviders, "force-providers", false, "Force re-download of all providers")
+	buildCmd.Flags().BoolVar(&buildFlags.dryRun, "dry-run", false, "Preview provider operations without executing")
 
 	// Debug flags
 	buildCmd.Flags().BoolVarP(&buildFlags.verbose, "verbose", "v", false, "Enable verbose output")
@@ -76,6 +84,38 @@ func init() {
 
 // buildCommand executes the build subcommand.
 func buildCommand(_ *cobra.Command, _ []string) error {
+	// Phase 0: Provider Management (before compilation)
+	// Convert build flags to provider options
+	providerFlags := providercmd.BuildFlags{
+		Path:                   buildFlags.path,
+		ForceProviders:         buildFlags.forceProviders,
+		DryRun:                 buildFlags.dryRun,
+		TimeoutPerProvider:     buildFlags.timeoutPerProvider,
+		MaxConcurrentProviders: buildFlags.maxConcurrentProviders,
+		AllowMissingProvider:   buildFlags.allowMissingProvider,
+	}
+
+	providerOpts, err := providercmd.NewProviderOptionsFromBuildFlags(providerFlags)
+	if err != nil {
+		return fmt.Errorf("invalid provider options: %w", err)
+	}
+
+	// Ensure providers are available (discover, download, validate)
+	providerSummary, err := providercmd.EnsureProviders(providerOpts)
+	if err != nil {
+		return fmt.Errorf("provider management failed: %w", err)
+	}
+
+	// Print provider summary unless quiet
+	if !globalFlags.quiet && providerSummary != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", providerSummary.String())
+	}
+
+	// If dry-run mode, exit successfully after showing provider summary
+	if buildFlags.dryRun {
+		return nil
+	}
+
 	// Validate format
 	if buildFlags.format != "json" {
 		return fmt.Errorf("invalid format %q, only json is currently supported", buildFlags.format)

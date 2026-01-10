@@ -66,6 +66,8 @@ func TestBuildHelpText(t *testing.T) {
 		"--allow-missing-provider",
 		"--timeout-per-provider",
 		"--max-concurrent-providers",
+		"--force-providers",
+		"--dry-run",
 		"--verbose",
 		"-h, --help",
 	}
@@ -83,6 +85,7 @@ func TestBuildHelpText(t *testing.T) {
 		"Exit Codes:",
 		// Examples are in Long description, not a separate section
 		"File Discovery:",
+		"Provider Management:",
 	}
 
 	for _, section := range requiredSections {
@@ -91,12 +94,12 @@ func TestBuildHelpText(t *testing.T) {
 		}
 	}
 
-	// Required keywords in help text (networking and determinism notes)
+	// Required keywords in help text (determinism and provider management)
 	requiredKeywords := []string{
 		"deterministic",
 		"lexicographic",
-		"network",
-		"offline",
+		"Provider Management",
+		"automatically discovered",
 	}
 
 	for _, keyword := range requiredKeywords {

@@ -131,6 +131,10 @@ func downloadProvider(p DiscoveredProvider, opts ProviderOptions) (ProviderEntry
 		return ProviderEntry{}, fmt.Errorf("invalid provider type: %w", err)
 	}
 
+	// Print download progress message to stderr
+	fmt.Fprintf(os.Stderr, "Downloading %s/%s@%s for %s-%s...\n",
+		owner, repo, p.Version, opts.OS, opts.Arch)
+
 	// Create context for download operations
 	ctx := context.Background()
 	if opts.Timeout > 0 {

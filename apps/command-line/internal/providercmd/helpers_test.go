@@ -9,12 +9,12 @@ import (
 // TestParseOwnerRepo tests the owner/repo parsing helper.
 func TestParseOwnerRepo(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		providerType string
-		wantOwner   string
-		wantRepo    string
-		wantErr     bool
-		errContains string
+		wantOwner    string
+		wantRepo     string
+		wantErr      bool
+		errContains  string
 	}{
 		{
 			name:         "valid owner/repo",
