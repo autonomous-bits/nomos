@@ -43,8 +43,14 @@ func ValidateProvider(entry ProviderEntry) error {
 	hash := sha256.Sum256(data)
 	actualChecksum := hex.EncodeToString(hash[:])
 
+	// Normalize expected checksum (handle both "sha256:..." and plain hex formats)
+	expectedChecksum := entry.Checksum
+	if len(expectedChecksum) > 7 && expectedChecksum[:7] == "sha256:" {
+		expectedChecksum = expectedChecksum[7:]
+	}
+
 	// Compare checksums
-	if actualChecksum != entry.Checksum {
+	if actualChecksum != expectedChecksum {
 		// Delete corrupted binary
 		if removeErr := os.Remove(fullPath); removeErr != nil {
 			// Log but don't fail - return the checksum error

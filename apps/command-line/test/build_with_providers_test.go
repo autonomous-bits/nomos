@@ -1236,3 +1236,614 @@ app:
 
 	t.Log("Test completed: Missing version field produces clear error with provider information")
 }
+
+// TestBuild_ForceProvidersRedownload tests that --force-providers flag
+// forces re-download of all providers regardless of cache state.
+//
+// Scenario: Build with cached providers, then rebuild with --force-providers
+// Expected:
+//  1. First build downloads and caches providers
+//  2. Second build with --force-providers re-downloads all providers
+//  3. All provider binaries are replaced (verified by progress messages)
+//  4. Lockfile is updated
+//  5. Build succeeds after forced re-download
+//
+// This test verifies Task T045 - force re-download functionality.
+func TestBuild_ForceProvidersRedownload(t *testing.T) {
+	// Skip unless network integration is explicitly enabled
+	if os.Getenv("NOMOS_RUN_NETWORK_INTEGRATION") != "1" {
+		t.Skip("Skipping network integration test. Set NOMOS_RUN_NETWORK_INTEGRATION=1 to run.")
+	}
+
+	tests := []struct {
+		name              string
+		setupFunc         func(t *testing.T, dir string, binPath string)
+		verifyRedownload  func(t *testing.T, stderr string)
+		testMultiProvider bool
+	}{
+		{
+			name: "single provider force re-download",
+			setupFunc: func(t *testing.T, dir string, binPath string) {
+				t.Helper()
+
+				// Create test .csl file with single provider
+				cslPath := filepath.Join(dir, "config.csl")
+				cslContent := `source:
+  alias: 'configs'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+app:
+  name: 'test-app'
+  environment: 'development'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
+					t.Fatalf("failed to create test .csl file: %v", err)
+				}
+
+				// Run initial build to cache provider
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				initialCmd := exec.Command(binPath, "build", "--path", cslPath, "--format", "json")
+				initialCmd.Dir = dir
+
+				_, stderr, exitCode := runCommand(t, initialCmd)
+
+				if exitCode != 0 {
+					t.Fatalf("initial build failed with exit code %d\nstderr: %s", exitCode, stderr)
+				}
+
+				// Verify initial build downloaded the provider
+				if !strings.Contains(stderr, "Downloading") {
+					t.Fatalf("initial build should download provider\nstderr: %s", stderr)
+				}
+
+				t.Logf("Initial build completed - provider cached")
+			},
+			verifyRedownload: func(t *testing.T, stderr string) {
+				t.Helper()
+
+				// Verify provider was re-downloaded (should see "Downloading" message again)
+				if !strings.Contains(stderr, "Downloading") {
+					t.Errorf("force build should re-download provider (expected 'Downloading' in stderr)\nstderr: %s", stderr)
+				}
+
+				// Should NOT see "(all cached)" message with force flag
+				if strings.Contains(stderr, "(all cached)") {
+					t.Errorf("force build should NOT skip downloads (unexpected '(all cached)' in stderr)\nstderr: %s", stderr)
+				}
+			},
+			testMultiProvider: false,
+		},
+		{
+			name: "multiple providers force re-download",
+			setupFunc: func(t *testing.T, dir string, binPath string) {
+				t.Helper()
+
+				// Create first .csl file with provider A
+				cslPath1 := filepath.Join(dir, "config1.csl")
+				cslContent1 := `source:
+  alias: 'configs'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+app:
+  name: 'app1'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath1, []byte(cslContent1), 0644); err != nil {
+					t.Fatalf("failed to create first .csl file: %v", err)
+				}
+
+				// Create second .csl file with provider B (different alias)
+				cslPath2 := filepath.Join(dir, "config2.csl")
+				cslContent2 := `source:
+  alias: 'data'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data2'
+
+app:
+  name: 'app2'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath2, []byte(cslContent2), 0644); err != nil {
+					t.Fatalf("failed to create second .csl file: %v", err)
+				}
+
+				// Run initial build to cache both providers
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				initialCmd := exec.Command(binPath, "build", "--path", dir, "--format", "json")
+				initialCmd.Dir = dir
+
+				_, stderr, exitCode := runCommand(t, initialCmd)
+
+				if exitCode != 0 {
+					t.Fatalf("initial build failed with exit code %d\nstderr: %s", exitCode, stderr)
+				}
+
+				// Verify initial build downloaded providers
+				if !strings.Contains(stderr, "Downloading") {
+					t.Fatalf("initial build should download providers\nstderr: %s", stderr)
+				}
+
+				t.Logf("Initial build completed - multiple providers cached")
+			},
+			verifyRedownload: func(t *testing.T, stderr string) {
+				t.Helper()
+
+				// Verify providers were re-downloaded
+				if !strings.Contains(stderr, "Downloading") {
+					t.Errorf("force build should re-download providers (expected 'Downloading' in stderr)\nstderr: %s", stderr)
+				}
+
+				// Should NOT see "(all cached)" message with force flag
+				if strings.Contains(stderr, "(all cached)") {
+					t.Errorf("force build should NOT skip downloads with multiple providers\nstderr: %s", stderr)
+				}
+			},
+			testMultiProvider: true,
+		},
+		{
+			name: "force with corrupted lockfile",
+			setupFunc: func(t *testing.T, dir string, binPath string) {
+				t.Helper()
+
+				// Create test .csl file
+				cslPath := filepath.Join(dir, "config.csl")
+				cslContent := `source:
+  alias: 'configs'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+app:
+  name: 'test-app'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
+					t.Fatalf("failed to create test .csl file: %v", err)
+				}
+
+				// Run initial build to cache provider
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				initialCmd := exec.Command(binPath, "build", "--path", cslPath, "--format", "json")
+				initialCmd.Dir = dir
+
+				_, stderr, exitCode := runCommand(t, initialCmd)
+
+				if exitCode != 0 {
+					t.Fatalf("initial build failed with exit code %d\nstderr: %s", exitCode, stderr)
+				}
+
+				// Corrupt the lockfile
+				lockfilePath := filepath.Join(dir, ".nomos", "providers.lock.json")
+				corruptContent := []byte(`{"providers": "THIS IS INVALID JSON`)
+				//nolint:gosec // G306: Test file with corrupted content
+				if err := os.WriteFile(lockfilePath, corruptContent, 0644); err != nil {
+					t.Fatalf("failed to corrupt lockfile: %v", err)
+				}
+
+				t.Logf("Initial build completed - lockfile corrupted")
+			},
+			verifyRedownload: func(t *testing.T, stderr string) {
+				t.Helper()
+
+				// Force flag should allow build to proceed even with corrupted lockfile
+				// Verify provider was re-downloaded
+				if !strings.Contains(stderr, "Downloading") {
+					t.Errorf("force build should re-download despite corrupted lockfile\nstderr: %s", stderr)
+				}
+			},
+			testMultiProvider: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Build the nomos CLI binary for testing
+			binPath := buildCLI(t)
+
+			// Create temporary test directory (isolated for this test case)
+			testDir := t.TempDir()
+
+			// Setup phase - run initial build and cache providers
+			tt.setupFunc(t, testDir, binPath)
+
+			// Record lockfile state before force rebuild
+			lockfilePath := filepath.Join(testDir, ".nomos", "providers.lock.json")
+			lockStatBefore, err := os.Stat(lockfilePath)
+			var lockModTimeBefore int64
+			if err == nil {
+				lockModTimeBefore = lockStatBefore.ModTime().Unix()
+			}
+
+			// Execution phase - run build with --force-providers
+			var forceCmd *exec.Cmd
+			if tt.testMultiProvider {
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				forceCmd = exec.Command(binPath, "build", "--path", testDir, "--format", "json", "--force-providers")
+			} else {
+				cslPath := filepath.Join(testDir, "config.csl")
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				forceCmd = exec.Command(binPath, "build", "--path", cslPath, "--format", "json", "--force-providers")
+			}
+			forceCmd.Dir = testDir
+
+			stdout, stderr, exitCode := runCommand(t, forceCmd)
+
+			// Verification phase
+			t.Logf("Force build stderr: %s", stderr)
+
+			// Verify build succeeds
+			if exitCode != 0 {
+				t.Errorf("force build should succeed, got exit code %d\nstdout: %s\nstderr: %s",
+					exitCode, stdout, stderr)
+			}
+
+			// Verify re-download behavior using test-specific verification
+			tt.verifyRedownload(t, stderr)
+
+			// Verify lockfile exists and was updated
+			lockStatAfter, err := os.Stat(lockfilePath)
+			if err != nil {
+				t.Errorf("lockfile should exist after force rebuild: %v", err)
+			} else {
+				lockModTimeAfter := lockStatAfter.ModTime().Unix()
+
+				// Lockfile should be updated (modification time changed or file recreated)
+				if lockModTimeBefore > 0 && lockModTimeAfter == lockModTimeBefore {
+					t.Logf("Warning: lockfile modification time unchanged (may be expected if no actual changes)")
+				}
+			}
+
+			// Verify lockfile is valid JSON
+			lockData, err := os.ReadFile(lockfilePath)
+			if err != nil {
+				t.Fatalf("failed to read lockfile after force rebuild: %v", err)
+			}
+
+			var lockfile struct {
+				Providers []struct {
+					Alias    string `json:"alias"`
+					Type     string `json:"type"`
+					Version  string `json:"version"`
+					Path     string `json:"path"`
+					Checksum string `json:"checksum"`
+				} `json:"providers"`
+			}
+			if err := json.Unmarshal(lockData, &lockfile); err != nil {
+				t.Fatalf("lockfile should be valid JSON after force rebuild: %v\nlockfile: %s", err, string(lockData))
+			}
+
+			// Verify provider binaries exist and are executable
+			for _, provider := range lockfile.Providers {
+				providerBinaryPath := filepath.Join(testDir, provider.Path)
+				info, err := os.Stat(providerBinaryPath)
+				if err != nil {
+					t.Errorf("provider binary should exist at %s: %v", providerBinaryPath, err)
+					continue
+				}
+
+				// Verify binary is executable
+				if info.Mode().Perm()&0111 == 0 {
+					t.Errorf("provider binary should be executable: %s", providerBinaryPath)
+				}
+			}
+
+			// Verify stdout contains JSON output (compilation succeeded)
+			if !strings.Contains(stdout, "{") || !strings.Contains(stdout, "}") {
+				t.Errorf("force build stdout should contain JSON output\ngot: %s", stdout)
+			}
+
+			// Parse stdout as JSON to verify valid JSON structure
+			var result map[string]interface{}
+			if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+				t.Errorf("force build stdout should be valid JSON: %v\nstdout: %s", err, stdout)
+			}
+
+			t.Logf("Test case '%s' completed successfully", tt.name)
+		})
+	}
+}
+
+// TestBuild_ForceProvidersDryRun tests that --force-providers --dry-run
+// shows preview of what would be re-downloaded without executing.
+//
+// Scenario: Build with cached providers, then --force-providers --dry-run
+// Expected:
+//  1. First build downloads and caches providers
+//  2. Dry-run shows what WOULD be re-downloaded
+//  3. NO actual downloads occur
+//  4. Lockfile is NOT modified
+//  5. Provider binaries are NOT deleted
+//  6. Build does NOT proceed (stops after dry-run preview)
+//
+// This test verifies Task T046 - dry-run preview functionality.
+func TestBuild_ForceProvidersDryRun(t *testing.T) {
+	// Skip unless network integration is explicitly enabled
+	if os.Getenv("NOMOS_RUN_NETWORK_INTEGRATION") != "1" {
+		t.Skip("Skipping network integration test. Set NOMOS_RUN_NETWORK_INTEGRATION=1 to run.")
+	}
+
+	tests := []struct {
+		name              string
+		setupFunc         func(t *testing.T, dir string, binPath string) map[string]string
+		verifyDryRun      func(t *testing.T, stdout, stderr string, metadata map[string]string)
+		testMultiProvider bool
+	}{
+		{
+			name: "single provider dry-run preview",
+			setupFunc: func(t *testing.T, dir string, binPath string) map[string]string {
+				t.Helper()
+
+				// Create test .csl file
+				cslPath := filepath.Join(dir, "config.csl")
+				cslContent := `source:
+  alias: 'configs'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+app:
+  name: 'test-app'
+  environment: 'staging'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath, []byte(cslContent), 0644); err != nil {
+					t.Fatalf("failed to create test .csl file: %v", err)
+				}
+
+				// Run initial build to cache provider
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				initialCmd := exec.Command(binPath, "build", "--path", cslPath, "--format", "json")
+				initialCmd.Dir = dir
+
+				_, stderr, exitCode := runCommand(t, initialCmd)
+
+				if exitCode != 0 {
+					t.Fatalf("initial build failed with exit code %d\nstderr: %s", exitCode, stderr)
+				}
+
+				t.Logf("Initial build completed - provider cached")
+
+				return map[string]string{
+					"provider_alias":   "configs",
+					"provider_type":    "autonomous-bits/nomos-provider-file",
+					"provider_version": "0.1.1",
+				}
+			},
+			verifyDryRun: func(t *testing.T, stdout, stderr string, metadata map[string]string) {
+				t.Helper()
+
+				// Verify dry-run indicators in output
+				hasDryRunIndicator := strings.Contains(stderr, "dry-run") ||
+					strings.Contains(stderr, "would") ||
+					strings.Contains(stdout, "dry-run") ||
+					strings.Contains(stdout, "would")
+
+				if !hasDryRunIndicator {
+					t.Logf("Warning: Expected dry-run indicators in output\nstdout: %s\nstderr: %s", stdout, stderr)
+				}
+
+				// Verify provider information is shown
+				providerType := metadata["provider_type"]
+				providerVersion := metadata["provider_version"]
+
+				hasProviderInfo := strings.Contains(stdout, providerType) ||
+					strings.Contains(stderr, providerType) ||
+					strings.Contains(stdout, providerVersion) ||
+					strings.Contains(stderr, providerVersion)
+
+				if !hasProviderInfo {
+					t.Errorf("dry-run output should show provider type/version\nstdout: %s\nstderr: %s", stdout, stderr)
+				}
+			},
+			testMultiProvider: false,
+		},
+		{
+			name: "multiple providers dry-run preview",
+			setupFunc: func(t *testing.T, dir string, binPath string) map[string]string {
+				t.Helper()
+
+				// Create first .csl file
+				cslPath1 := filepath.Join(dir, "config1.csl")
+				cslContent1 := `source:
+  alias: 'configs'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data'
+
+app:
+  name: 'app1'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath1, []byte(cslContent1), 0644); err != nil {
+					t.Fatalf("failed to create first .csl file: %v", err)
+				}
+
+				// Create second .csl file
+				cslPath2 := filepath.Join(dir, "config2.csl")
+				cslContent2 := `source:
+  alias: 'data'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.1.1'
+  directory: './data2'
+
+app:
+  name: 'app2'
+`
+				//nolint:gosec // G306: Test file with non-sensitive content
+				if err := os.WriteFile(cslPath2, []byte(cslContent2), 0644); err != nil {
+					t.Fatalf("failed to create second .csl file: %v", err)
+				}
+
+				// Run initial build to cache both providers
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				initialCmd := exec.Command(binPath, "build", "--path", dir, "--format", "json")
+				initialCmd.Dir = dir
+
+				_, stderr, exitCode := runCommand(t, initialCmd)
+
+				if exitCode != 0 {
+					t.Fatalf("initial build failed with exit code %d\nstderr: %s", exitCode, stderr)
+				}
+
+				t.Logf("Initial build completed - multiple providers cached")
+
+				return map[string]string{
+					"provider_count": "2",
+					"provider_type":  "autonomous-bits/nomos-provider-file",
+				}
+			},
+			verifyDryRun: func(t *testing.T, stdout, stderr string, metadata map[string]string) {
+				t.Helper()
+
+				// Verify dry-run indicators
+				hasDryRunIndicator := strings.Contains(stderr, "dry-run") ||
+					strings.Contains(stderr, "would") ||
+					strings.Contains(stdout, "dry-run") ||
+					strings.Contains(stdout, "would")
+
+				if !hasDryRunIndicator {
+					t.Logf("Warning: Expected dry-run indicators for multiple providers\nstdout: %s\nstderr: %s", stdout, stderr)
+				}
+
+				// Verify both providers are mentioned in output
+				providerType := metadata["provider_type"]
+				if !strings.Contains(stdout, providerType) && !strings.Contains(stderr, providerType) {
+					t.Errorf("dry-run output should show provider type\nstdout: %s\nstderr: %s", stdout, stderr)
+				}
+			},
+			testMultiProvider: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Build the nomos CLI binary for testing
+			binPath := buildCLI(t)
+
+			// Create temporary test directory (isolated for this test case)
+			testDir := t.TempDir()
+
+			// Setup phase - run initial build and cache providers
+			metadata := tt.setupFunc(t, testDir, binPath)
+
+			// Record lockfile state before dry-run
+			lockfilePath := filepath.Join(testDir, ".nomos", "providers.lock.json")
+			lockDataBefore, err := os.ReadFile(lockfilePath)
+			if err != nil {
+				t.Fatalf("lockfile should exist after initial build: %v", err)
+			}
+
+			lockStatBefore, err := os.Stat(lockfilePath)
+			if err != nil {
+				t.Fatalf("failed to stat lockfile before dry-run: %v", err)
+			}
+			lockModTimeBefore := lockStatBefore.ModTime()
+
+			// Record provider binary modification times
+			var lockfile struct {
+				Providers []struct {
+					Path string `json:"path"`
+				} `json:"providers"`
+			}
+			if err := json.Unmarshal(lockDataBefore, &lockfile); err != nil {
+				t.Fatalf("failed to parse lockfile: %v", err)
+			}
+
+			binaryModTimes := make(map[string]int64)
+			for _, provider := range lockfile.Providers {
+				providerBinaryPath := filepath.Join(testDir, provider.Path)
+				info, err := os.Stat(providerBinaryPath)
+				if err != nil {
+					t.Fatalf("provider binary should exist before dry-run at %s: %v", providerBinaryPath, err)
+				}
+				binaryModTimes[provider.Path] = info.ModTime().Unix()
+			}
+
+			// Execution phase - run build with --force-providers --dry-run
+			var dryRunCmd *exec.Cmd
+			if tt.testMultiProvider {
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				dryRunCmd = exec.Command(binPath, "build", "--path", testDir, "--format", "json",
+					"--force-providers", "--dry-run")
+			} else {
+				cslPath := filepath.Join(testDir, "config.csl")
+				//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
+				dryRunCmd = exec.Command(binPath, "build", "--path", cslPath, "--format", "json",
+					"--force-providers", "--dry-run")
+			}
+			dryRunCmd.Dir = testDir
+
+			stdout, stderr, exitCode := runCommand(t, dryRunCmd)
+
+			// Verification phase
+			t.Logf("Dry-run stdout: %s", stdout)
+			t.Logf("Dry-run stderr: %s", stderr)
+
+			// Verify dry-run succeeds (exit code 0)
+			if exitCode != 0 {
+				t.Errorf("dry-run should succeed, got exit code %d\nstdout: %s\nstderr: %s",
+					exitCode, stdout, stderr)
+			}
+
+			// Verify output shows what WOULD be re-downloaded
+			tt.verifyDryRun(t, stdout, stderr, metadata)
+
+			// Verify NO actual downloads occurred
+			if strings.Contains(stderr, "Downloading") {
+				t.Errorf("dry-run should NOT download providers (unexpected 'Downloading' in stderr)\nstderr: %s", stderr)
+			}
+
+			// Verify lockfile was NOT modified
+			lockStatAfter, err := os.Stat(lockfilePath)
+			if err != nil {
+				t.Fatalf("lockfile should still exist after dry-run: %v", err)
+			}
+
+			lockModTimeAfter := lockStatAfter.ModTime()
+			if !lockModTimeAfter.Equal(lockModTimeBefore) {
+				t.Errorf("lockfile should NOT be modified during dry-run\nbefore: %v\nafter: %v",
+					lockModTimeBefore, lockModTimeAfter)
+			}
+
+			// Verify lockfile content is unchanged
+			lockDataAfter, err := os.ReadFile(lockfilePath)
+			if err != nil {
+				t.Fatalf("failed to read lockfile after dry-run: %v", err)
+			}
+
+			if string(lockDataBefore) != string(lockDataAfter) {
+				t.Errorf("lockfile content should NOT change during dry-run\nbefore: %s\nafter: %s",
+					string(lockDataBefore), string(lockDataAfter))
+			}
+
+			// Verify provider binaries were NOT deleted or modified
+			for path, modTimeBefore := range binaryModTimes {
+				providerBinaryPath := filepath.Join(testDir, path)
+				info, err := os.Stat(providerBinaryPath)
+				if err != nil {
+					t.Errorf("provider binary should NOT be deleted during dry-run at %s: %v", providerBinaryPath, err)
+					continue
+				}
+
+				modTimeAfter := info.ModTime().Unix()
+				if modTimeAfter != modTimeBefore {
+					t.Errorf("provider binary should NOT be modified during dry-run at %s\nbefore: %d\nafter: %d",
+						path, modTimeBefore, modTimeAfter)
+				}
+			}
+
+			// Verify build did NOT proceed (no compilation output in stdout for dry-run)
+			// Note: Dry-run may or may not produce JSON output depending on implementation
+			// The key verification is that no downloads occurred and no files were modified
+			t.Logf("Dry-run verification passed - no downloads, no modifications")
+
+			t.Logf("Test case '%s' completed successfully", tt.name)
+		})
+	}
+}

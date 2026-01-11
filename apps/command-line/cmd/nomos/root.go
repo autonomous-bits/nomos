@@ -11,7 +11,7 @@ import (
 
 var (
 	// Version information (set by build system)
-	version   = "dev"
+	version   = "v2.0.0"
 	commit    = "unknown"
 	buildDate = "unknown"
 )
@@ -122,16 +122,10 @@ func Execute() error {
 
 	// Check for 'init' command attempt
 	if err != nil && isInitCommandAttempt(err) {
-		fmt.Fprintln(os.Stderr, "Error: The 'init' command has been removed in v2.0.0.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Providers are now automatically downloaded during 'nomos build'.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Migration:")
-		fmt.Fprintln(os.Stderr, "  Old: nomos init && nomos build")
-		fmt.Fprintln(os.Stderr, "  New: nomos build")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "For more information, see the migration guide at:")
-		fmt.Fprintln(os.Stderr, "https://github.com/autonomous-bits/nomos/blob/main/docs/guides/migration-v2.md")
+		// Print migration message to stderr
+		// Since we're about to exit with error, we gracefully handle print errors
+		// but don't let them prevent the migration message from being displayed
+		_ = printMigrationMessage()
 		os.Exit(1)
 	}
 
@@ -202,8 +196,33 @@ func isInitCommandAttempt(err error) bool {
 			errMsg == `unknown command "init" for "nomos"`)
 }
 
+// printMigrationMessage prints the init command removal migration message to stderr.
+// Returns error if any print operation fails, but attempts to print all lines.
+func printMigrationMessage() error {
+	lines := []string{
+		"Error: The 'init' command has been removed in v2.0.0.",
+		"",
+		"Providers are now automatically downloaded during 'nomos build'.",
+		"",
+		"Migration:",
+		"  Old: nomos init && nomos build",
+		"  New: nomos build",
+		"",
+		"For more information, see the migration guide at:",
+		"https://github.com/autonomous-bits/nomos/blob/main/docs/guides/migration-v2.md",
+	}
+
+	var firstErr error
+	for _, line := range lines {
+		if _, err := fmt.Fprintln(os.Stderr, line); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
 // flagErrorFunc is called when there's an error parsing flags or an unknown command
-func flagErrorFunc(cmd *cobra.Command, err error) error {
+func flagErrorFunc(_ *cobra.Command, err error) error {
 	// Let cobra handle the error normally
 	return err
 }

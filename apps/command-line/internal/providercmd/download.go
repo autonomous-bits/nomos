@@ -26,11 +26,16 @@ import (
 // In dry-run mode (opts.DryRun), the function returns preview results without
 // performing actual downloads.
 //
-// Returns a slice of ProviderResult (one per input provider) and an error if
-// any critical operation fails. Individual provider failures are recorded in
-// the ProviderResult.Error field with ProviderStatusFailed.
-func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]ProviderResult, error) {
+// Returns:
+//   - results: Status of each provider (cached, installed, failed)
+//   - entries: Complete ProviderEntry objects for newly installed providers only
+//   - error: Critical failure if any operation fails
+//
+// Individual provider failures are recorded in the ProviderResult.Error field
+// with ProviderStatusFailed.
+func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]ProviderResult, []ProviderEntry, error) {
 	results := make([]ProviderResult, 0, len(providers))
+	entries := make([]ProviderEntry, 0)
 
 	// Handle dry-run mode early
 	if opts.DryRun {
@@ -44,7 +49,7 @@ func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]
 				Status:  ProviderStatusDryRun,
 			})
 		}
-		return results, nil
+		return results, entries, nil
 	}
 
 	// Read existing lockfile (returns error if file exists but is invalid)
@@ -68,32 +73,30 @@ func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]
 			Arch:    opts.Arch,
 		}
 
-		// Check if provider should be downloaded
-		shouldDownload := opts.Force
-		var existingEntry *ProviderEntry
-
-		if !shouldDownload && existingLock != nil {
-			existingEntry = findProviderInLockfile(existingLock, p.Alias, p.Type, p.Version, opts.OS, opts.Arch)
-			if existingEntry != nil {
-				// Validate existing provider binary
-				if validateErr := ValidateProvider(*existingEntry); validateErr == nil {
-					// Provider exists and is valid - skip download
-					result.Status = ProviderStatusSkipped
-					result.Path = existingEntry.Path
-					result.Size = existingEntry.Size
-					results = append(results, result)
-					continue
+		// T043: When force flag is set, skip lockfile check and force re-download
+		if opts.Force {
+			// T044: Delete existing cached binary before re-download
+			if existingLock != nil {
+				if existingEntry := findProviderInLockfile(existingLock, p.Alias, p.Type, p.Version, opts.OS, opts.Arch); existingEntry != nil {
+					deleteProviderBinary(*existingEntry)
 				}
-				// Validation failed - need to re-download
-				shouldDownload = true
-			} else {
-				// Not in lockfile - need to download
-				shouldDownload = true
 			}
-		}
-
-		if !shouldDownload {
-			shouldDownload = true
+		} else {
+			// Normal flow: Check lockfile for existing valid provider
+			if existingLock != nil {
+				if existingEntry := findProviderInLockfile(existingLock, p.Alias, p.Type, p.Version, opts.OS, opts.Arch); existingEntry != nil {
+					// Validate existing provider binary
+					if validateErr := ValidateProvider(*existingEntry); validateErr == nil {
+						// Provider exists and is valid - skip download
+						result.Status = ProviderStatusSkipped
+						result.Path = existingEntry.Path
+						result.Size = existingEntry.Size
+						results = append(results, result)
+						continue
+					}
+					// Validation failed - will re-download below
+				}
+			}
 		}
 
 		// Download provider
@@ -106,7 +109,7 @@ func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]
 			// Continue to next provider (don't fail fast unless user wants strict behavior)
 			if !opts.AllowMissing {
 				// Return early with accumulated results so far
-				return results, result.Error
+				return results, entries, result.Error
 			}
 			continue
 		}
@@ -116,9 +119,12 @@ func DownloadProviders(providers []DiscoveredProvider, opts ProviderOptions) ([]
 		result.Size = entry.Size
 		result.Path = entry.Path
 		results = append(results, result)
+
+		// Collect entry for lockfile update
+		entries = append(entries, entry)
 	}
 
-	return results, nil
+	return results, entries, nil
 }
 
 // downloadProvider downloads and installs a single provider binary.
@@ -219,4 +225,27 @@ func findProviderInLockfile(lock *LockFile, alias, providerType, version, os, ar
 		}
 	}
 	return nil
+}
+
+// deleteProviderBinary removes an existing provider binary from the cache.
+// It constructs the full path from the lockfile entry and removes the file.
+// If the file doesn't exist, no error is returned. Deletion failures are
+// logged as warnings but don't fail the operation - the download will
+// overwrite the file anyway.
+func deleteProviderBinary(entry ProviderEntry) {
+	if entry.Path == "" {
+		return
+	}
+
+	// Build full path to provider binary
+	fullPath := filepath.Join(".nomos", "providers", entry.Path)
+
+	// Attempt to remove the file
+	if err := os.Remove(fullPath); err != nil {
+		// Only log if it's not a "file doesn't exist" error
+		if !os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Warning: failed to delete cached binary %s: %v\n", fullPath, err)
+		}
+		// Continue regardless - download will overwrite
+	}
 }
