@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-11
+
+### BREAKING CHANGES
+- [CLI] **Removed `nomos init` command** (feature 002-remove-init-command)
+  - Providers are now automatically downloaded during `nomos build`
+  - No separate initialization step required
+  - Migration: Replace `nomos init && nomos build` with just `nomos build`
+  - The `.nomos/providers.lock.json` file is now managed automatically during build
+  - First build will download required providers; subsequent builds use cached versions
+  - See migration guide: `docs/guides/external-providers-migration.md`
+
+### Added
+- [CLI] Automatic provider download during build
+  - Providers are discovered from `.csl` source declarations and downloaded on first build
+  - Downloaded providers are cached in `.nomos/providers/` for reuse
+  - Lockfile `.nomos/providers.lock.json` is created/updated automatically
+  - Eliminates need for separate `nomos init` step
+- [CLI] `--force-providers` flag for `nomos build` command
+  - Forces re-download of all providers even if cached versions exist
+  - Useful for debugging provider issues or forcing provider updates
+  - Updates checksums in lockfile after successful downloads
+- [CLI] `--dry-run` flag for `nomos build` command
+  - Previews provider downloads without actually downloading or building
+  - Shows which providers would be downloaded and from where
+  - Useful for verifying provider configuration before execution
+
 ## [1.1.0] - 2025-12-28
 
 ### Removed
@@ -191,5 +217,7 @@ First production release of the Nomos CLI with complete Cobra framework integrat
 - [Internal] Refactored `build.go` to use `options.BuildOptions()` for improved testability and provider wiring (#38)
 - [Internal] Provider registries now use factory pattern (`options.NewProviderRegistries()`) supporting custom injection for tests (#38)
 
-[Unreleased]: https://github.com/autonomous-bits/nomos/compare/apps/command-line/v1.0.0...HEAD
+[Unreleased]: https://github.com/autonomous-bits/nomos/compare/apps/command-line/v2.0.0...HEAD
+[2.0.0]: https://github.com/autonomous-bits/nomos/compare/apps/command-line/v1.1.0...apps/command-line/v2.0.0
+[1.1.0]: https://github.com/autonomous-bits/nomos/compare/apps/command-line/v1.0.0...apps/command-line/v1.1.0
 [1.0.0]: https://github.com/autonomous-bits/nomos/releases/tag/apps/command-line/v1.0.0

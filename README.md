@@ -12,6 +12,27 @@ Nomos scripts compile into a versioned snapshot that becomes input for your infr
 
 Jump to: [Language](#scripting-language) · [Providers](#source-provider-types) · [Examples](#example-config) · [Development](#development) · [Contributing](#contributing)
 
+---
+
+## 🚀 What's New in v2.0.0
+
+**Breaking Change**: The `nomos init` command has been removed. Provider installation now happens automatically during `nomos build`, simplifying the workflow from two commands to one.
+
+**Before (v1.x)**:
+```bash
+nomos init config.csl        # Step 1: Install providers
+nomos build config.csl       # Step 2: Build configuration
+```
+
+**After (v2.0.0)**:
+```bash
+nomos build config.csl       # Providers installed automatically
+```
+
+**📖 See the [Migration Guide](docs/guides/migration-v2.md)** for detailed migration instructions, CI/CD updates, and troubleshooting.
+
+---
+
 ## Scripting Language
 
 The scripting language supports the following keywords:

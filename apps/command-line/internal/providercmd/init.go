@@ -1,5 +1,5 @@
-// Package initcmd implements the nomos init command functionality.
-package initcmd
+// Package providercmd implements provider management functionality for the nomos CLI.
+package providercmd
 
 import (
 	"context"

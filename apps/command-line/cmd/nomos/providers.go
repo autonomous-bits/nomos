@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/autonomous-bits/nomos/apps/command-line/internal/initcmd"
+	"github.com/autonomous-bits/nomos/apps/command-line/internal/providercmd"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,7 @@ func providersListCommand(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read lockfile: %w", err)
 	}
 
-	var lock initcmd.LockFile
+	var lock providercmd.LockFile
 	if err := json.Unmarshal(data, &lock); err != nil {
 		return fmt.Errorf("failed to parse lockfile: %w", err)
 	}

@@ -109,7 +109,7 @@ The CLI has been completely modernized with professional tooling and enhanced us
 
 ### UX Improvements
 - ✓ **Progress indicators** — Animated spinner during provider downloads
-- ✓ **Table output** — Formatted tables for init and providers list
+- ✓ **Table output** — Formatted tables for providers list
 - ✓ **Color support** — Automatic color detection with `--color` flag
 - ✓ **Quiet mode** — `--quiet` flag for CI/CD pipelines
 - ✓ **Better errors** — Enhanced diagnostics with context and suggestions
@@ -157,12 +157,30 @@ fi
 The CLI provides the following commands (all implemented using the Cobra framework):
 
 - **`build`** — Compile Nomos scripts into configuration snapshots (JSON/YAML/HCL)
-- **`init`** — Discover and install provider dependencies from GitHub Releases
 - **`validate`** — Validate .csl files without building (syntax and semantic checks only)
 - **`providers list`** — List installed providers from lockfile with details
 - **`version`** — Display version information with build metadata
 - **`completion`** — Generate shell completion scripts (bash/zsh/fish/powershell)
 - **`help`** — Help about any command
+
+### Migration from v1.x
+
+**Breaking Change:** The `nomos init` command has been removed in v2.0.0.
+
+Providers now download automatically during `nomos build` when needed. You no longer need a separate initialization step.
+
+**Before (v1.x):**
+```bash
+nomos init config.csl
+nomos build config.csl
+```
+
+**After (v2.0.0):**
+```bash
+nomos build config.csl  # Providers download automatically
+```
+
+The lockfile (`.nomos/providers.lock.json`) is still created and used for version pinning and reproducibility.
 
 ### Global Flags
 
@@ -204,62 +222,6 @@ Relevant flags:
 **Exit Codes:**
 - `0` — Success
 - `1` — Compilation errors (or warnings in strict mode)
-
-### `nomos init`
-
-Discover provider requirements from `.csl` files and install provider binaries from GitHub Releases.
-
-The command scans your configuration files, downloads the required provider binaries, and creates a lockfile to ensure reproducible builds.
-
-**Phase 2 UX Enhancements:**
-- ✓ **Progress spinner** during downloads (animated feedback)
-- ✓ **Table output** showing installation results with status and size
-- ✓ **Smart summary** with installed/skipped counts
-- ✓ **JSON output** option for scripting and CI/CD
-
-Usage:
-
-```bash
-nomos init [flags] <file.csl> [<file2.csl> ...]
-```
-
-Relevant flags:
-
-- `--dry-run`: Preview actions without installing
-- `--force`: Overwrite existing providers/lockfile
-- `--os`: Override target OS (default: runtime OS)
-- `--arch`: Override target architecture (default: runtime arch)
-- `--upgrade`: Force upgrade to latest versions
-- `--json`: Output results as JSON (for scripting)
-
-**Output:**
-
-The command provides a formatted table showing:
-- Provider alias
-- Type (owner/repo format)
-- Version
-- Installation status (installed/skipped/failed)
-- Download size (human-readable)
-
-Example:
-
-```bash
-# Install providers from config files (with progress spinner)
-nomos init config.csl
-
-# Preview what would be installed
-nomos init --dry-run config.csl
-
-# Force reinstall all providers
-nomos init --force config.csl
-
-# Output as JSON for scripting
-nomos init --json config.csl
-```
-
-The init command creates:
-- `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider` — Installed binaries
-- `.nomos/providers.lock.json` — Lock file with resolved versions and checksums
 
 ### `nomos validate`
 
@@ -508,12 +470,13 @@ CLI (apps/command-line)
 - `cmd/nomos/main.go` — Entry point with color setup
 - `cmd/nomos/root.go` — Root command and global flags (--color, --quiet)
 - `cmd/nomos/build.go` — Build command implementation
-- `cmd/nomos/init.go` — Init command with progress spinner and table output
 - `cmd/nomos/validate.go` — Validate command (new in Phase 2)
 - `cmd/nomos/providers.go` — Providers list command (new in Phase 2)
 - `internal/flags/` — Flag parsing and validation (legacy, transitioning to Cobra)
 - `internal/options/` — Compiler options builder with provider wiring
 - `internal/diagnostics/` — Error/warning formatting with color support
+
+**Note:** `cmd/nomos/init.go` was removed in v2.0.0 as providers now download automatically during build.
 
 ### Options Builder
 
@@ -799,7 +762,7 @@ Planned for future releases:
 - **YAML and HCL output formats** — May be added if user demand justifies the implementation (currently JSON-only)
 - ~~Provider credential handling~~ (basic support exists)
 - ~~Remote provider support with explicit opt-in~~ (GitHub Releases supported)
-- ~~Additional commands (`validate`, `fmt`, `init`)~~ ✓ **Completed in Phase 2** (validate, init)
+- ~~Additional commands (`validate`, `fmt`)~~ ✓ **Completed in Phase 2** (validate); **Note:** `init` was added in Phase 2 and removed in v2.0.0 (auto-download)
 - **Format command** — `nomos fmt` to auto-format .csl files (planned)
 - **Watch mode** — `nomos build --watch` for live recompilation
 - **Language server** — LSP integration for IDE support
@@ -1101,44 +1064,47 @@ External providers:
 - Support any language with gRPC support (Go, Python, Node.js, etc.)
 - Provide isolation, independent versioning, and security boundaries
 
-### Installing Providers
+### Provider Auto-Download (v2.0.0+)
 
-Use `nomos init` to install providers before building:
+**Providers are automatically downloaded during `nomos build`** — no separate installation step is needed.
+
+When you run `nomos build`, the compiler:
+1. Scans your `.csl` files for provider requirements
+2. Downloads any missing providers from GitHub Releases
+3. Creates/updates `.nomos/providers.lock.json` for version pinning
+4. Caches providers in `.nomos/providers/` for subsequent builds
 
 ```bash
-# Install from GitHub Releases (automatic download)
-nomos init config.csl
-
-# (Local/testing) If you already have a provider binary, copy it into the `.nomos/providers` layout
-# and then run `nomos init` to record it in the lockfile. Example:
-# mkdir -p .nomos/providers/OWNER/REPO/1.0.0/darwin-arm64 && cp /path/to/provider .nomos/providers/OWNER/REPO/1.0.0/darwin-arm64/provider
-# nomos init config.csl
-
-# Install with custom OS/arch
-nomos init --os linux --arch amd64 config.csl
+# Providers download automatically on first build
+nomos build config.csl
 ```
 
-This creates:
-- `.nomos/providers/` — Installed provider binaries
-- `.nomos/providers.lock.json` — Lock file with versions and checksums
+**Lockfile behavior:**
+- First build creates `.nomos/providers.lock.json` with resolved versions
+- Subsequent builds reuse the locked versions (reproducible builds)
+- Commit the lockfile to version control for team consistency
+
+**Migration from v1.x:** If you were using `nomos init`, simply remove it from your workflow. The `build` command now handles everything.
 
 ### Building with Providers
 
-Once providers are installed, use `nomos build` as normal:
+Simply use `nomos build` — providers are automatically managed:
 
 ```bash
 nomos build config.csl
 ```
 
 The compiler will:
-1. Read the lock file to locate provider binaries
-2. Start provider subprocesses as needed
-3. Call provider RPCs to fetch data
-4. Shut down providers after compilation
+1. Check for provider requirements in your `.csl` files
+2. Download missing providers from GitHub Releases (first build only)
+3. Read/update the lock file (`.nomos/providers.lock.json`)
+4. Start provider subprocesses as needed
+5. Call provider RPCs to fetch data
+6. Shut down providers after compilation
 
 ### Workflow Example
 
-Complete workflow from scratch:
+Complete workflow from scratch (v2.0.0+):
 
 ```bash
 # 1. Create configuration using providers
@@ -1153,20 +1119,18 @@ source file as configs {
 config = import configs["database"]["prod"]
 EOF
 
-# 2. Initialize providers
-nomos init config.csl
-# → Downloads nomos-provider-file from GitHub
-# → Creates .nomos/providers/ and lock file
-
-# 3. Build configuration
+# 2. Build configuration (providers download automatically)
 nomos build config.csl -o output.json
+# → Downloads nomos-provider-file from GitHub (first time)
+# → Creates .nomos/providers/ and lock file
 # → Starts file provider subprocess
 # → Fetches data via gRPC
 # → Compiles to output.json
 
-# 4. Subsequent builds use cached provider
+# 3. Subsequent builds use cached provider
 nomos build config.csl
-# → Reuses already-installed provider (fast)
+# → Reuses already-downloaded provider (fast)
+# → No re-download unless version changes
 ```
 
 ### Upgrading Providers
@@ -1174,12 +1138,19 @@ nomos build config.csl
 To upgrade to newer provider versions:
 
 ```bash
-# Update version in config.csl
+# 1. Update version in config.csl
 sed -i 's/version = "1.0.0"/version = "1.1.0"/' config.csl
 
-# Re-initialize with --upgrade flag
-nomos init --upgrade config.csl
+# 2. Delete the lockfile to allow re-resolution
+rm .nomos/providers.lock.json
+
+# 3. Build to download new version
+nomos build config.csl
+# → Downloads provider v1.1.0
+# → Creates new lockfile
 ```
+
+**Note:** In v1.x, you used `nomos init --upgrade`. In v2.0.0+, delete the lockfile and rebuild.
 
 ### Documentation and Examples
 
