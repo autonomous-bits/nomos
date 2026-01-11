@@ -14,7 +14,7 @@ import (
 // TestBuildFailsWithMigrationError_NoLockfile tests that build fails with
 // actionable error when no lockfile exists, instructing user to run nomos init.
 func TestBuildFailsWithMigrationError_NoLockfile(t *testing.T) {
-	nomosPath := buildNomosForTest(t)
+	nomosPath := buildCLI(t)
 	tmpDir := t.TempDir()
 
 	// Create a .csl file that uses a provider
@@ -72,7 +72,7 @@ app:
 // TestBuildFailsWithMigrationError_MalformedLockfile tests that build fails
 // gracefully when lockfile is malformed.
 func TestBuildFailsWithMigrationError_MalformedLockfile(t *testing.T) {
-	nomosPath := buildNomosForTest(t)
+	nomosPath := buildCLI(t)
 	tmpDir := t.TempDir()
 
 	// Create .nomos directory and malformed lockfile
@@ -133,7 +133,7 @@ app:
 // TestBuildFailsWithMigrationError_MissingBinary tests that build fails
 // when lockfile exists but referenced binary is missing.
 func TestBuildFailsWithMigrationError_MissingBinary(t *testing.T) {
-	nomosPath := buildNomosForTest(t)
+	nomosPath := buildCLI(t)
 	tmpDir := t.TempDir()
 
 	// Create .nomos directory
