@@ -45,7 +45,7 @@ func TestReadLockFile(t *testing.T) {
 
 				data, _ := json.MarshalIndent(lock, "", "  ")
 				lockPath := filepath.Join(lockDir, "providers.lock.json")
-				if err := os.WriteFile(lockPath, data, 0644); err != nil {
+				if err := os.WriteFile(lockPath, data, 0600); err != nil {
 					t.Fatalf("failed to write lockfile: %v", err)
 				}
 
@@ -85,7 +85,7 @@ func TestReadLockFile(t *testing.T) {
 				}
 
 				lockPath := filepath.Join(lockDir, "providers.lock.json")
-				if err := os.WriteFile(lockPath, []byte("invalid json {{{"), 0644); err != nil {
+				if err := os.WriteFile(lockPath, []byte("invalid json {{{"), 0600); err != nil {
 					t.Fatalf("failed to write invalid lockfile: %v", err)
 				}
 
@@ -111,7 +111,7 @@ func TestReadLockFile(t *testing.T) {
 
 				data, _ := json.MarshalIndent(lock, "", "  ")
 				lockPath := filepath.Join(lockDir, "providers.lock.json")
-				if err := os.WriteFile(lockPath, data, 0644); err != nil {
+				if err := os.WriteFile(lockPath, data, 0600); err != nil {
 					t.Fatalf("failed to write lockfile: %v", err)
 				}
 
@@ -195,7 +195,7 @@ func TestWriteLockFile(t *testing.T) {
 				}
 
 				// Read and verify content
-				data, err := os.ReadFile(lockPath)
+				data, err := os.ReadFile(lockPath) //nolint:gosec // G304: Reading from controlled test temp directory //nolint:gosec // G304: Reading from controlled test temp directory
 				if err != nil {
 					t.Fatalf("failed to read lockfile: %v", err)
 				}
@@ -234,7 +234,7 @@ func TestWriteLockFile(t *testing.T) {
 				t.Helper()
 				lockPath := filepath.Join(tmpDir, ".nomos", "providers.lock.json")
 
-				data, err := os.ReadFile(lockPath)
+				data, err := os.ReadFile(lockPath) //nolint:gosec // G304: Reading from controlled test temp directory //nolint:gosec // G304: Reading from controlled test temp directory
 				if err != nil {
 					t.Fatalf("failed to read lockfile: %v", err)
 				}
@@ -260,7 +260,7 @@ func TestWriteLockFile(t *testing.T) {
 				t.Helper()
 				lockPath := filepath.Join(tmpDir, ".nomos", "providers.lock.json")
 
-				data, err := os.ReadFile(lockPath)
+				data, err := os.ReadFile(lockPath) //nolint:gosec // G304: Reading from controlled test temp directory
 				if err != nil {
 					t.Fatalf("failed to read lockfile: %v", err)
 				}
@@ -346,7 +346,7 @@ func TestWriteLockFile_Atomic(t *testing.T) {
 
 	// Verify final content is lock2
 	lockPath := filepath.Join(lockDir, "providers.lock.json")
-	data, err := os.ReadFile(lockPath)
+	data, err := os.ReadFile(lockPath) //nolint:gosec // G304: Reading from controlled test temp directory //nolint:gosec // G304: Reading from controlled test temp directory
 	if err != nil {
 		t.Fatalf("failed to read lockfile: %v", err)
 	}

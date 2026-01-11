@@ -31,7 +31,7 @@ func BenchmarkEnsureProviders_AllCached(b *testing.B) {
 
 	// Create .nomos directory structure
 	nomosDir := filepath.Join(tmpDir, ".nomos")
-	if err := os.MkdirAll(nomosDir, 0755); err != nil {
+	if err := os.MkdirAll(nomosDir, 0750); err != nil {
 		b.Fatalf("failed to create .nomos directory: %v", err)
 	}
 
@@ -71,14 +71,14 @@ func BenchmarkEnsureProviders_AllCached(b *testing.B) {
 		// Create provider binary directory
 		providerDir := filepath.Join(nomosDir, "providers", "owner", "repo", cfg.version,
 			runtime.GOOS+"-"+runtime.GOARCH)
-		if err := os.MkdirAll(providerDir, 0755); err != nil {
+		if err := os.MkdirAll(providerDir, 0750); err != nil {
 			b.Fatalf("failed to create provider directory: %v", err)
 		}
 
 		// Create dummy provider binary
 		binaryPath := filepath.Join(providerDir, "provider")
 		binaryContent := []byte("#!/bin/sh\necho 'test provider'")
-		if err := os.WriteFile(binaryPath, binaryContent, 0755); err != nil {
+		if err := os.WriteFile(binaryPath, binaryContent, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 			b.Fatalf("failed to write provider binary: %v", err)
 		}
 
@@ -154,7 +154,7 @@ func BenchmarkEnsureProviders_SingleProvider(b *testing.B) {
 
 	// Create .nomos directory
 	nomosDir := filepath.Join(tmpDir, ".nomos")
-	if err := os.MkdirAll(nomosDir, 0755); err != nil {
+	if err := os.MkdirAll(nomosDir, 0750); err != nil {
 		b.Fatalf("failed to create .nomos directory: %v", err)
 	}
 
@@ -175,13 +175,13 @@ app:
 	// Create provider binary
 	providerDir := filepath.Join(nomosDir, "providers", "owner", "repo", "1.0.0",
 		runtime.GOOS+"-"+runtime.GOARCH)
-	if err := os.MkdirAll(providerDir, 0755); err != nil {
+	if err := os.MkdirAll(providerDir, 0750); err != nil {
 		b.Fatalf("failed to create provider directory: %v", err)
 	}
 
 	binaryPath := filepath.Join(providerDir, "provider")
 	binaryContent := []byte("#!/bin/sh\necho 'test provider'")
-	if err := os.WriteFile(binaryPath, binaryContent, 0755); err != nil {
+	if err := os.WriteFile(binaryPath, binaryContent, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 		b.Fatalf("failed to write provider binary: %v", err)
 	}
 

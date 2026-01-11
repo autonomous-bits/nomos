@@ -162,17 +162,17 @@ func TestTimeNowRFC3339(t *testing.T) {
 			origEnv := os.Getenv("NOMOS_TEST_TIMESTAMP")
 			defer func() {
 				if origEnv != "" {
-					os.Setenv("NOMOS_TEST_TIMESTAMP", origEnv)
+					_ = os.Setenv("NOMOS_TEST_TIMESTAMP", origEnv)
 				} else {
-					os.Unsetenv("NOMOS_TEST_TIMESTAMP")
+					_ = os.Unsetenv("NOMOS_TEST_TIMESTAMP")
 				}
 			}()
 
 			// Set test env var
 			if tt.envVar != "" {
-				os.Setenv("NOMOS_TEST_TIMESTAMP", tt.envVar)
+				_ = os.Setenv("NOMOS_TEST_TIMESTAMP", tt.envVar)
 			} else {
-				os.Unsetenv("NOMOS_TEST_TIMESTAMP")
+				_ = os.Unsetenv("NOMOS_TEST_TIMESTAMP")
 			}
 
 			got := timeNowRFC3339()

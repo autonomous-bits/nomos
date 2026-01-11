@@ -280,7 +280,7 @@ func createTestFile(path string) error {
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return err
 	}
-	return os.WriteFile(path, []byte("test"), 0644)
+	return os.WriteFile(path, []byte("test"), 0600)
 }
 
 // Note: Testing actual download functionality requires integration tests with GitHub API.

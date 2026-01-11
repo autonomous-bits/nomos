@@ -31,7 +31,7 @@ func TestValidateProvider(t *testing.T) {
 				if err := os.MkdirAll(filepath.Dir(binPath), 0750); err != nil {
 					t.Fatalf("failed to create provider dir: %v", err)
 				}
-				if err := os.WriteFile(binPath, binContent, 0755); err != nil {
+				if err := os.WriteFile(binPath, binContent, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 					t.Fatalf("failed to write provider binary: %v", err)
 				}
 
@@ -88,7 +88,7 @@ func TestValidateProvider(t *testing.T) {
 				if err := os.MkdirAll(filepath.Dir(binPath), 0750); err != nil {
 					t.Fatalf("failed to create provider dir: %v", err)
 				}
-				if err := os.WriteFile(binPath, binContent, 0755); err != nil {
+				if err := os.WriteFile(binPath, binContent, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 					t.Fatalf("failed to write provider binary: %v", err)
 				}
 
@@ -124,7 +124,7 @@ func TestValidateProvider(t *testing.T) {
 				if err := os.MkdirAll(filepath.Dir(binPath), 0750); err != nil {
 					t.Fatalf("failed to create provider dir: %v", err)
 				}
-				if err := os.WriteFile(binPath, binContent, 0755); err != nil {
+				if err := os.WriteFile(binPath, binContent, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 					t.Fatalf("failed to write provider binary: %v", err)
 				}
 
@@ -161,7 +161,7 @@ func TestValidateProvider(t *testing.T) {
 					t.Fatalf("failed to create provider dir: %v", err)
 				}
 				// Write with 0644 (no execute permission)
-				if err := os.WriteFile(binPath, binContent, 0644); err != nil {
+				if err := os.WriteFile(binPath, binContent, 0600); err != nil {
 					t.Fatalf("failed to write provider binary: %v", err)
 				}
 
@@ -196,7 +196,7 @@ func TestValidateProvider(t *testing.T) {
 				if err := os.MkdirAll(filepath.Dir(binPath), 0750); err != nil {
 					t.Fatalf("failed to create provider dir: %v", err)
 				}
-				if err := os.WriteFile(binPath, []byte{}, 0755); err != nil {
+				if err := os.WriteFile(binPath, []byte{}, 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 					t.Fatalf("failed to write provider binary: %v", err)
 				}
 
@@ -263,7 +263,7 @@ func TestValidateProvider_DeletesCorruptedBinary(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(binPath), 0750); err != nil {
 		t.Fatalf("failed to create provider dir: %v", err)
 	}
-	if err := os.WriteFile(binPath, []byte("corrupted"), 0755); err != nil {
+	if err := os.WriteFile(binPath, []byte("corrupted"), 0700); err != nil { //nolint:gosec // G306: Test binary needs execute permission
 		t.Fatalf("failed to write provider binary: %v", err)
 	}
 
