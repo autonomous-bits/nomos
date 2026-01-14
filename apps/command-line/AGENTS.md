@@ -14,7 +14,7 @@ This document contains **Nomos-specific patterns** for the CLI module, providing
 
 The Nomos CLI uses a **simple switch-based routing** (not Cobra) with three core commands:
 - `build` — compile `.csl` files to configuration snapshots
-- `init` — discover and install provider dependencies
+- ~`init` — discover and install provider dependencies~
 - `help` — show usage information
 
 Command structure reflects **offline-first philosophy**: network operations (provider fetches) are explicit via `init`, not automatic during `build`.
@@ -62,37 +62,6 @@ Command structure reflects **offline-first philosophy**: network operations (pro
 
 ### Provider Commands
 
-#### `nomos init`
-Extract provider requirements from `.csl` files and install:
-
-```bash
-nomos init config.csl              # install providers
-nomos init --dry-run config.csl    # preview without installing
-nomos init --force config.csl      # overwrite existing
-nomos init --upgrade config.csl    # upgrade to latest versions
-```
-
-**Cross-platform installs:**
-```bash
-nomos init --os linux --arch amd64 config.csl  # install for different platform
-```
-
-**Flow:**
-1. Parse `.csl` files for `source:` declarations
-2. Collect unique provider requirements (type + version)
-3. Fetch from GitHub Releases via `libs/provider-downloader`
-4. Write `.nomos/providers.lock.json`
-5. Install binaries to `.nomos/providers/{type}/{version}/{os-arch}/`
-
-#### Provider Discovery Pattern
-Parser extracts from `.csl` syntax:
-```nomos
-source:
-  alias: 'aws'
-  type: 'autonomous-bits/nomos-provider-aws'
-  version: '1.2.3'
-```
-
 ### Build Command Specifics
 
 #### Offline-First Philosophy
@@ -106,6 +75,15 @@ source:
 nomos build -p config.csl --var env=prod --var region=us-west
 ```
 Passed to compiler as `vars` map for parameterized configurations.
+
+#### Provider Discovery Pattern
+Parser extracts from `.csl` syntax:
+```nomos
+source:
+  alias: 'aws'
+  type: 'autonomous-bits/nomos-provider-aws'
+  version: '1.2.3'
+```
 
 #### Strict Mode
 ```bash
