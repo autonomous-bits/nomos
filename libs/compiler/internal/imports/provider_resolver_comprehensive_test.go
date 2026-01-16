@@ -99,7 +99,7 @@ func (r *mockTypeRegistry) RegisterType(_ string, _ core.ProviderTypeConstructor
 	// Not used in tests
 }
 
-func (r *mockTypeRegistry) CreateProvider(_ context.Context, typeName string, alias string, config map[string]any) (core.Provider, error) {
+func (r *mockTypeRegistry) CreateProvider(_ context.Context, typeName string, _ string, config map[string]any) (core.Provider, error) {
 	// Check if a provider instance is registered first (test shortcut)
 	if provider, ok := r.providers[typeName]; ok {
 		return provider, nil
