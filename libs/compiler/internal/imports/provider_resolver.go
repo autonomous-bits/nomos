@@ -189,7 +189,7 @@ func initializeProvider(ctx context.Context, src SourceDecl, sourceFilePath stri
 	}
 
 	// Create and initialize the provider once
-	provider, err := typeRegistry.CreateProvider(ctx, src.Type, src.Config)
+	provider, err := typeRegistry.CreateProvider(ctx, src.Type, src.Alias, src.Config)
 	if err != nil {
 		return fmt.Errorf("failed to create provider %q of type %q: %w", src.Alias, src.Type, err)
 	}

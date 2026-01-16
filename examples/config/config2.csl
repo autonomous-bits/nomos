@@ -1,11 +1,17 @@
 source:
   alias: 'configs'
   type:  'autonomous-bits/nomos-provider-file'
-  version: '0.2.1'
+  version: '0.3.1'
   directory: './data'
 
+source:
+  alias: 'configs2'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.3.1'
+  directory: './data2'
+
 environments:
-  production: reference:configs:prod.database.name
+  production: reference:configs2:prod.database.name
   staging: reference:configs:staging.database.name
 
 app:

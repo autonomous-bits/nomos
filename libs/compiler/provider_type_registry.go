@@ -67,7 +67,7 @@ func (r *providerTypeRegistry) RegisterType(typeName string, constructor core.Pr
 }
 
 // CreateProvider implements ProviderTypeRegistry.CreateProvider.
-func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName string, config map[string]any) (core.Provider, error) {
+func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName string, alias string, config map[string]any) (core.Provider, error) {
 	// First, check for in-process constructor
 	r.mu.RLock()
 	constructor, hasConstructor := r.constructors[typeName]
@@ -90,15 +90,15 @@ func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName stri
 			return nil, fmt.Errorf("failed to resolve provider type %q: %w", typeName, err)
 		}
 
-		// Use the provider type as the alias for now (can be refined later)
+		// Use the actual provider alias for proper instance management
 		opts := core.ProviderInitOptions{
-			Alias:  typeName,
+			Alias:  alias,
 			Config: config,
 		}
 
-		provider, err := r.manager.GetProvider(ctx, typeName, binaryPath, opts)
+		provider, err := r.manager.GetProvider(ctx, alias, binaryPath, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to start remote provider %q: %w", typeName, err)
+			return nil, fmt.Errorf("failed to start remote provider %q (alias %q): %w", typeName, alias, err)
 		}
 
 		return provider, nil

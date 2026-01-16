@@ -1,0 +1,7 @@
+database:
+  host: 'staging-db.example.com'
+  port: 5432
+  name: 'staging'
+  username: 'staging_user'
+  max_connections: 50
+  ssl_mode: 'prefer'
