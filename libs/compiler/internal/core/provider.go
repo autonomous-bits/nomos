@@ -90,8 +90,9 @@ type ProviderTypeRegistry interface {
 	RegisterType(typeName string, constructor ProviderTypeConstructor)
 
 	// CreateProvider creates a new provider instance of the given type.
+	// The alias parameter is the provider's unique identifier (from source declaration).
 	// The config parameter contains provider-specific configuration.
-	CreateProvider(ctx context.Context, typeName string, config map[string]any) (Provider, error)
+	CreateProvider(ctx context.Context, typeName string, alias string, config map[string]any) (Provider, error)
 
 	// IsTypeRegistered checks if a provider type is registered.
 	IsTypeRegistered(typeName string) bool

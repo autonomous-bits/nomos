@@ -9,10 +9,19 @@ source:
   type:  'autonomous-bits/nomos-provider-terraform-remote-state'
   version: '0.1.2'
   backend_type: 'azurerm'
-  storage_account_name: "wsstate2"
-  container_name: "state"
+  storage_account_name: "wstofustate"
+  container_name: "tfstate"
   key: "storage.tfstate"
-  
+
+source:
+  alias: 'networkstate'
+  type:  'autonomous-bits/nomos-provider-terraform-remote-state'
+  version: '0.1.2'
+  backend_type: 'azurerm'
+  storage_account_name: "wstofustate"
+  container_name: "tfstate"
+  key: "network.tfstate"
+
 environments:
   production: reference:configs:prod.database.name
   staging: reference:configs:staging.database.name
@@ -20,3 +29,5 @@ environments:
 app:
   name: 'example-app'
   url: reference:tfstate:blob_url
+  network:
+    vnet_name: reference:networkstate:virtual_network_name

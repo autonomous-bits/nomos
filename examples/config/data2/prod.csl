@@ -1,0 +1,7 @@
+database:
+  host: 'prod-db.example.com'
+  port: 5432
+  name: 'production2'
+  username: 'prod_user'
+  max_connections: 100
+  ssl_mode: 'require'

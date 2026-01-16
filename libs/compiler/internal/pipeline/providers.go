@@ -46,7 +46,7 @@ func InitializeProvidersFromSources(
 			}
 
 			// Create provider from type using the type registry
-			provider, err := typeRegistry.CreateProvider(ctx, sourceDecl.Type, config)
+			provider, err := typeRegistry.CreateProvider(ctx, sourceDecl.Type, sourceDecl.Alias, config)
 			if err != nil {
 				return fmt.Errorf("failed to create provider %q of type %q: %w", sourceDecl.Alias, sourceDecl.Type, err)
 			}
