@@ -1,0 +1,20 @@
+# This is a header comment explaining the configuration
+# Author: Test User
+# Date: 2026-01-17
+
+source:
+	alias: 'folder'
+	type:  'folder'
+	path:  '../config'
+
+# Import configuration from folder
+import:folder:filename
+
+# Configuration section with key-value pairs
+config-section:
+	key1: value1
+	key2: value2
+
+# Another section
+another-section:
+	setting: enabled

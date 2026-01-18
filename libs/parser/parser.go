@@ -4,6 +4,11 @@
 // The parser accepts input via ParseFile (for filesystem paths) or Parse
 // (for io.Reader). All parse errors include precise source location information.
 //
+// The parser supports YAML-style comments using the '#' notation. Comments extend
+// from the '#' character to the end of the line and are ignored during parsing.
+// The '#' character is treated as a comment delimiter only when it appears outside
+// quoted strings; within strings, '#' is preserved as literal content.
+//
 // Example usage:
 //
 //	ast, err := parser.ParseFile("config.csl")
@@ -167,9 +172,16 @@ func (p *Parser) expectColonAfterKeyword(s *scanner.Scanner, keyword string) err
 func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 	startLine, startCol := s.Line(), s.Column()
 
-	// Check for invalid characters first
+	// Check for comments first - skip comment lines
 	ch := s.PeekChar()
-	if ch == '!' || ch == '@' || ch == '#' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
+	if s.IsCommentStart() {
+		s.SkipComment()
+		s.SkipToNextLine()
+		return nil, nil
+	}
+
+	// Check for invalid characters
+	if ch == '!' || ch == '@' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: unexpected character '%c'", ch))
 		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
@@ -346,7 +358,17 @@ func (p *Parser) parseReferenceStmt(s *scanner.Scanner, startLine, startCol int)
 // parseSectionDecl parses a configuration section.
 func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (*ast.SectionDecl, error) {
 	name := s.ReadIdentifier()
-	if s.PeekChar() != ':' {
+
+	// Check for unexpected characters after identifier (FR-014)
+	ch := s.PeekChar()
+	if ch == '\\' {
+		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+			fmt.Sprintf("invalid syntax: unexpected character '%c'", ch))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+		return nil, err
+	}
+
+	if ch != ':' {
 		// Not a valid section declaration - this is invalid syntax
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: expected ':' after identifier '%s'", name))
 		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
@@ -405,6 +427,13 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 
 		if s.IsEOF() || s.PeekChar() == '\n' {
 			break
+		}
+
+		// Skip comment lines inside section body
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
 		}
 
 		keyStartLine := s.Line()
@@ -520,6 +549,13 @@ func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[str
 			continue
 		}
 
+		// Skip comment lines inside nested map
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+
 		keyStartLine := s.Line()
 		keyStart := s.Column()
 		key := s.ReadIdentifier()
@@ -605,6 +641,19 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 
 	// ReadValue() reads the value and trims quotes/whitespace
 	valueText := s.ReadValue()
+
+	// Check for backslash error marker from scanner (FR-014)
+	if strings.HasPrefix(valueText, "\x00BACKSLASH_ERROR\x00") {
+		// Remove marker to get actual value
+		actualValue := strings.TrimPrefix(valueText, "\x00BACKSLASH_ERROR\x00")
+		// Find the position of the backslash for accurate error reporting
+		backslashPos := strings.IndexRune(actualValue, '\\')
+		errorCol := startCol + backslashPos
+		err := NewParseError(SyntaxError, s.Filename(), startLine, errorCol,
+			"invalid syntax: unexpected character '\\'")
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, errorCol))
+		return nil, err
+	}
 
 	// Validate that strings are properly terminated (ReadValue only strips matching quotes)
 	if len(valueText) > 0 && (valueText[0] == '\'' || valueText[0] == '"') {

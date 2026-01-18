@@ -23,6 +23,71 @@ See `docs/architecture/` for higher-level design docs and diagrams.
   and an optional context snippet. Use `FormatParseError` to render a
   human-friendly message with a caret marker.
 
+## Comment Support
+
+Nomos supports YAML-style comments using the `#` character. Comments help document configuration files and are ignored during compilation.
+
+### Basic Comment Syntax
+
+```csl
+# Full-line comment
+database:
+  host: localhost  # Trailing comment after value
+  port: 5432       # Another trailing comment
+  name: 'prod-db'  # Comments can explain configuration choices
+```
+
+### Comment Behavior
+
+- **Full-line comments**: Lines starting with `#` (optionally after whitespace)
+- **Trailing comments**: `#` after configuration values on the same line
+- **String preservation**: `#` inside quoted strings is preserved as part of the string value
+- **Unicode support**: Comments can contain any UTF-8 characters including emoji and non-Latin scripts
+
+### Examples
+
+**Commenting source declarations:**
+```csl
+# Configure the folder provider for local configuration
+source:
+  alias: 'config'
+  type: 'folder'
+  path: './config'  # Relative to current directory
+```
+
+**Commenting imports:**
+```csl
+import:network  # Import network configuration from source
+```
+
+**Commenting sections:**
+```csl
+# Application infrastructure settings
+infrastructure:
+  vpc_cidr: reference:network:vpc.cidr  # Reference from network source
+  region: 'us-west-2'                   # AWS region
+  # availability_zones: 'us-west-2a,us-west-2b'  # Disabled for now
+```
+
+**Hash character in strings:**
+```csl
+config:
+  password_hash: '#abc123'      # The # is part of the string value
+  css_color: '#FF5733'          # Hex color codes work fine
+  markdown: '# Header text'     # Markdown headers preserved
+```
+
+### Performance
+
+Comment processing is highly efficient:
+- Comments are stripped during tokenization (not stored in AST)
+- Minimal performance impact (<5% overhead)
+- Can parse 1000+ comment lines in under 100ms
+
+### Technical Details
+
+See [Architecture Documentation](./docs/architecture/parser-architecture.md#7-comment-support) for implementation details.
+
 ## Public API (summary)
 
 - NewParser(opts ...Option) *Parser

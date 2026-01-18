@@ -2,6 +2,8 @@
 package parser_test
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -428,4 +430,70 @@ func TestParseFile_InlineReferenceScalar(t *testing.T) {
 	}
 
 	t.Logf("Integration test: Section 'infrastructure' parsed with %d entries (parser grammar support pending)", len(infraSection.Entries))
+}
+
+// TestParseFile_CommentFixtures tests parsing of comment fixture files and verifies against golden output.
+// This is T033 from Phase 3: Verify golden tests for comment support.
+func TestParseFile_CommentFixtures(t *testing.T) {
+	fixtures := []struct {
+		name        string
+		fixturePath string
+		goldenPath  string
+	}{
+		{
+			name:        "comments_basic.csl",
+			fixturePath: "../testdata/fixtures/comments_basic.csl",
+			goldenPath:  "../testdata/golden/comments_basic.csl.json",
+		},
+		{
+			name:        "comments_inline.csl",
+			fixturePath: "../testdata/fixtures/comments_inline.csl",
+			goldenPath:  "../testdata/golden/comments_inline.csl.json",
+		},
+		{
+			name:        "comments_in_strings.csl",
+			fixturePath: "../testdata/fixtures/comments_in_strings.csl",
+			goldenPath:  "../testdata/golden/comments_in_strings.csl.json",
+		},
+	}
+
+	for _, tt := range fixtures {
+		t.Run(tt.name, func(t *testing.T) {
+			// Parse the fixture file
+			result, err := parser.ParseFile(tt.fixturePath)
+			if err != nil {
+				t.Fatalf("failed to parse %s: %v", tt.name, err)
+			}
+
+			// Serialize AST to JSON
+			actualJSON, err := json.MarshalIndent(result, "", "  ")
+			if err != nil {
+				t.Fatalf("failed to marshal AST to JSON: %v", err)
+			}
+
+			// Read expected golden file
+			//nolint:gosec // G304: goldenPath is controlled test fixture path
+			expectedJSON, err := os.ReadFile(tt.goldenPath)
+			if err != nil {
+				t.Fatalf("failed to read golden file %s: %v", tt.goldenPath, err)
+			}
+
+			// Parse both JSONs to compare structure rather than bytes
+			var expected, actual map[string]interface{}
+			if err := json.Unmarshal(expectedJSON, &expected); err != nil {
+				t.Fatalf("failed to unmarshal expected JSON: %v", err)
+			}
+			if err := json.Unmarshal(actualJSON, &actual); err != nil {
+				t.Fatalf("failed to unmarshal actual JSON: %v", err)
+			}
+
+			// Compare using reflect.DeepEqual for semantic comparison
+			if !reflect.DeepEqual(expected, actual) {
+				t.Errorf("AST JSON does not match golden file for %s.\nExpected:\n%s\n\nActual:\n%s",
+					tt.name, string(expectedJSON), string(actualJSON))
+			} else {
+				t.Logf("✓ Golden test PASS: %s matches expected output", tt.name)
+			}
+		})
+	}
 }

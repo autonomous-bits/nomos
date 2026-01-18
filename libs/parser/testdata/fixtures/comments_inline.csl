@@ -1,0 +1,13 @@
+# Configuration with inline trailing comments
+
+source:
+	alias: 'folder'  # The alias for this source
+	type:  'folder'  # Source type
+	path:  '../config'  # Path to configuration folder
+
+import:folder:filename  # Import the configuration
+
+config-section:
+	key1: value1  # First key
+	key2: value2  # Second key
+	ref_example: reference:folder:config.key  # Reference example

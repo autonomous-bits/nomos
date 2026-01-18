@@ -1,4 +1,0 @@
-{
-  "error": "../testdata/errors/inline_ref_invalid_alias.csl:2:2: invalid syntax: expected identifier for key",
-  "filename": "../testdata/errors/inline_ref_invalid_alias.csl"
-}

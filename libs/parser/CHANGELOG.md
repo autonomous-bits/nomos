@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **YAML-style comment support**: Single-line `#` comments for inline documentation
+  - Comments extend from `#` to end-of-line, supporting inline and full-line comments
+  - Context-aware parsing: `#` preserved within quoted strings (`"api#key"` remains literal)
+  - Zero breaking changes: Existing configurations without comments work unchanged
+  - Performance validated: <5% overhead (typically <1%) across all benchmark suites
+  - See [Comment Support documentation](README.md#comment-support) for usage examples
+
 ### Removed
 - **BREAKING CHANGE: ReferenceStmt removed from AST** (User Story 1)
   - Top-level `reference:alias:path` syntax no longer supported

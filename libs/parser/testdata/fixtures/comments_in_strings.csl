@@ -1,0 +1,9 @@
+# Test file for # character in quoted strings
+
+config-section:
+	hashtag: '#hashtag'  # Single-quoted hash
+	comment_syntax: "Use # for comments"  # Double-quoted hash
+	multiple_hashes: '## Header ##'  # Multiple hashes
+	mixed: "Value with # in middle"  # Hash in middle
+	urls: 'https://example.com/#section'  # URL with hash
+	empty_comment: '#'  # Just a hash character

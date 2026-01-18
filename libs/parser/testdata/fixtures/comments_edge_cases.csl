@@ -1,0 +1,12 @@
+#no space at start
+config-section:
+	key: value#no space before
+	key2: value  #extra spaces
+	#tab before comment
+    #spaces before comment
+	key3: result
+
+#
+# Empty comment above
+another-section:
+	setting: enabled

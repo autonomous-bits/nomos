@@ -1,0 +1,124 @@
+# =====================================================
+# Multi-Line Comments Comprehensive Test Fixture
+# =====================================================
+# This fixture demonstrates all multi-line comment scenarios
+# including consecutive comment blocks, commented-out keys,
+# interleaved comments with configuration, and documentation.
+# Author: Test Suite
+# Date: 2026-01-18
+
+# Import statement with documentation
+# This import brings in shared configuration
+import:shared:common
+
+# =====================================================
+# Database Configuration Section
+# =====================================================
+# Connection settings for the primary database
+# Supports PostgreSQL, MySQL, and SQLite
+database:
+	host: localhost
+	port: 5432
+	# username: admin
+	# password: secret
+	database: production_db
+	# max_connections: 100
+	# timeout: 30
+	ssl_enabled: true
+
+# =====================================================
+# API Configuration
+# =====================================================
+# External API integration settings
+# Endpoints must use HTTPS in production
+#
+# Rate limiting: 1000 requests/hour
+# Timeout: 30 seconds default
+api-config:
+	# base_url: http://legacy-api.example.com
+	base_url: https://api.example.com
+	# Comment between active keys
+	timeout: 30
+	# retry_attempts: 3
+	# retry_delay: 1000
+	api_key: production-key-12345
+	# test_api_key: test-key-67890
+	rate_limit: 1000
+
+# Cache Configuration
+# Memory-based caching for performance optimization
+cache:
+	enabled: true
+	# disabled_cache: false
+	ttl: 3600
+	# Comment in middle of section
+	max_size: 1024
+	# max_items: 10000
+	# eviction_policy: lru
+
+#
+# Empty comment lines above and below
+#
+
+# =====================================================
+# Feature Flags
+# =====================================================
+# Toggles for experimental and beta features
+# 
+# WARNING: Changing flags may require restart
+# Last updated: 2026-01-18
+#
+# Available flags:
+#   - new_ui: Enable redesigned user interface
+#   - beta_api: Enable beta API endpoints  
+#   - analytics: Enable usage analytics
+#   - debug_mode: Enable debug logging
+features:
+	new_ui: enabled
+	# old_ui: disabled
+	# legacy_mode: false
+	beta_api: disabled
+	# alpha_features: disabled
+	analytics: enabled
+	# debug_mode: false
+	# verbose_logging: false
+	experimental_cache: false
+
+# Logging Configuration
+# Controls application logging behavior
+#
+# Valid levels: DEBUG, INFO, WARN, ERROR, FATAL
+# Valid formats: json, text, structured
+logging:
+	level: INFO
+	# level: DEBUG
+	format: json
+	# format: text
+	output: /var/log/app.log
+	# output: stdout
+	# max_file_size: 100MB
+	# max_backups: 10
+	rotation: daily
+
+# =====================================================
+# Security Settings
+# =====================================================
+# Authentication and authorization configuration
+# TODO: Add support for OAuth2
+# FIXME: Implement rate limiting
+# NOTE: HTTPS required in production
+security:
+	# http_only: true
+	https_only: true
+	# allow_http: false
+	# Comment separating security options
+	tls_version: 1.3
+	# tls_version: 1.2
+	# insecure_skip_verify: false
+	cors_enabled: true
+	# cors_origins: *
+	# csrf_protection: true
+
+# Final comment block at end of file
+# This demonstrates trailing comments
+# Last line of comments

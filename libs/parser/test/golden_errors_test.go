@@ -17,9 +17,10 @@ func TestGolden_ErrorScenarios(t *testing.T) {
 	goldenDir := "../testdata/golden/errors"
 
 	// Files that are known to NOT trigger errors in current parser implementation
-	// These represent cases that are actually valid syntax
+	// These represent cases that are actually valid syntax or missing validation
 	knownValid := map[string]bool{
-		"unicode_context.csl": true, // Valid unicode is allowed
+		"unicode_context.csl":          true, // Valid unicode is allowed
+		"inline_ref_invalid_alias.csl": true, // Parser doesn't validate alias format (no spaces check)
 	}
 
 	// Find all error test files

@@ -1,4 +1,4 @@
 {
-  "error": "../testdata/errors/inline_ref_malformed.csl:7:2: invalid syntax: expected identifier for key",
+  "error": "../testdata/errors/inline_ref_malformed.csl:8:11: invalid syntax: inline reference requires a non-empty path",
   "filename": "../testdata/errors/inline_ref_malformed.csl"
 }

@@ -43,6 +43,16 @@ The scripting language supports the following keywords:
 | `import` | Using a source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
 | `reference` | Using a source, load a specific value from the configuration. Syntax should be `reference:{alias}:{path.to.property}` where the path uses dot notation to navigate into nested structures. For file providers, the format is `reference:{alias}:{filename}.{nested.path}` |
 
+**Comment Support**: Document your configurations with YAML-style `#` comments:
+```
+app:
+  name: 'my-app'
+  database:
+    host: localhost  # Production database server
+    port: 5432       # PostgreSQL default port
+```
+Comments are single-line, context-aware, and preserved within quoted strings. See the [parser documentation](libs/parser/README.md#comment-support) for complete details.
+
 ### Reference Syntax Details
 
 References allow you to access specific values from imported sources using dot-separated paths:
