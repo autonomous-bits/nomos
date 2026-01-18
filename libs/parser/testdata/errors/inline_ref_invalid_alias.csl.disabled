@@ -1,0 +1,2 @@
+infrastructure:
+	bad_ref: reference:invalid alias:path.to.value  # Invalid: space in alias

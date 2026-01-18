@@ -369,3 +369,194 @@ func TestScanner_UnicodeSupport_HandlesMultibyteCharacters(t *testing.T) {
 		t.Errorf("expected '日本語', got '%s'", result)
 	}
 }
+
+// ============================================================================
+// Comment Support Tests (Feature: 003-yaml-comments)
+// ============================================================================
+
+// TestScanner_IsCommentStart_DetectsHashCharacter tests comment detection.
+func TestScanner_IsCommentStart_DetectsHashCharacter(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		advance  int
+		expected bool
+	}{
+		{"at hash", "#comment", 0, true},
+		{"not at hash - letter", "key", 0, false},
+		{"not at hash - colon", ":", 0, false},
+		{"at hash after text", "value #comment", 6, true},
+		{"at EOF", "", 0, false},
+		{"after EOF", "a", 2, false},
+		{"hash mid-line", "key: value # comment", 11, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+			for i := 0; i < tt.advance; i++ {
+				s.Advance()
+			}
+			result := s.IsCommentStart()
+			if result != tt.expected {
+				t.Errorf("expected IsCommentStart=%v, got %v at position %d (char '%c')",
+					tt.expected, result, s.Pos(), s.PeekChar())
+			}
+		})
+	}
+}
+
+// TestScanner_SkipComment_BasicBehavior tests basic comment skipping.
+func TestScanner_SkipComment_BasicBehavior(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedAtChar rune
+		expectedEOF    bool
+	}{
+		{"simple comment", "# comment\nkey", '\n', false},
+		{"empty comment", "#\nkey", '\n', false},
+		{"comment with spaces", "#   comment text  \nkey", '\n', false},
+		{"comment with special chars", "# comment: with 'special' chars\nkey", '\n', false},
+		{"comment at EOF no newline", "# comment", 0, true},
+		{"comment with unicode", "# コメント\nkey", '\n', false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+
+			// Skip to # if not already there
+			if s.PeekChar() != '#' {
+				t.Fatal("test setup error: should start at #")
+			}
+
+			s.SkipComment()
+
+			// Check final position
+			if tt.expectedEOF {
+				if !s.IsEOF() {
+					t.Errorf("expected EOF, but not at EOF (char: '%c')", s.PeekChar())
+				}
+			} else {
+				if s.PeekChar() != tt.expectedAtChar {
+					t.Errorf("expected to stop at '%c', got '%c'",
+						tt.expectedAtChar, s.PeekChar())
+				}
+			}
+		})
+	}
+}
+
+// TestScanner_SkipComment_PositionTracking tests position updates during skip.
+func TestScanner_SkipComment_PositionTracking(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedLine int
+		expectedCol  int
+	}{
+		{"short comment", "# abc\n", 1, 6},
+		{"longer comment", "# this is a longer comment\n", 1, 27},
+		{"comment with unicode", "# 日本語\n", 1, 6}, // # + space + 3 Unicode chars = 5 chars advanced, at pos 6
+		{"empty comment", "#\n", 1, 2},
+		{"comment at EOF", "# comment", 1, 10},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+			s.SkipComment()
+
+			if s.Line() != tt.expectedLine {
+				t.Errorf("expected line %d, got %d", tt.expectedLine, s.Line())
+			}
+			if s.Column() != tt.expectedCol {
+				t.Errorf("expected column %d, got %d", tt.expectedCol, s.Column())
+			}
+		})
+	}
+}
+
+// TestScanner_SkipComment_AtEOF tests comment skipping at end of file.
+func TestScanner_SkipComment_AtEOF(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"comment at EOF", "# comment"},
+		{"empty comment at EOF", "#"},
+		{"comment with text at EOF", "# some text here"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+			s.SkipComment()
+
+			// Should be at EOF
+			if !s.IsEOF() {
+				t.Errorf("expected EOF, but scanner not at EOF (char: '%c', pos: %d)",
+					s.PeekChar(), s.Pos())
+			}
+		})
+	}
+}
+
+// TestScanner_ReadValue_StopsAtComment tests value reading with comments.
+func TestScanner_ReadValue_StopsAtComment(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"value with trailing comment", "value # comment", "value"},
+		{"value with immediate comment", "value# comment", "value"},
+		{"value with whitespace before comment", "value   # comment", "value"},
+		{"empty value with comment", "# comment", ""},
+		{"value at EOF no comment", "value", "value"},
+		{"quoted value with comment after", "'value' # comment", "value"},
+		{"double quoted with comment after", `"value" # comment`, "value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+			result := s.ReadValue()
+
+			if result != tt.expected {
+				t.Errorf("expected value '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestScanner_ReadValue_PreservesHashInQuotedStrings tests # preservation in quotes.
+func TestScanner_ReadValue_PreservesHashInQuotedStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"hash in single quotes", "'value#with#hash'", "value#with#hash"},
+		{"hash in double quotes", `"value#with#hash"`, "value#with#hash"},
+		{"hash at start in quotes", "'#value'", "#value"},
+		{"hash at end in quotes", "'value#'", "value#"},
+		{"multiple hashes in quotes", "'##value##'", "##value##"},
+		{"comment-like text in quotes", "'# this looks like comment'", "# this looks like comment"},
+		{"hash in single quotes with trailing comment", "'value#hash' # actual comment", "value#hash"},
+		{"hash in double quotes with trailing comment", `"value#hash" # actual comment`, "value#hash"},
+		{"empty quoted with hash", "'#'", "#"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := scanner.New(tt.input, "test.csl")
+			result := s.ReadValue()
+
+			if result != tt.expected {
+				t.Errorf("expected value '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}

@@ -1,0 +1,24 @@
+# これはコメントです (This is a Japanese comment)
+# 你好世界 (Hello World in Chinese)
+# مرحبا بالعالم (Welcome to the world in Arabic)
+# Emoji test: 🚀 💻 ✨ 🎉 🔥
+
+config:
+	# Comment with Japanese: 設定
+	key: value
+	# Comment with Chinese: 配置
+	setting: enabled
+	# Comment with Arabic: إعداد
+	option: true
+
+database:
+	# Database configuration (日本語)
+	host: localhost # Comment with emoji 🌐
+	port: 5432 # Another emoji 🔌
+	# Comment with mixed Unicode: 数据库 データベース قاعدة البيانات
+
+features:
+	# Feature flags with Unicode descriptions
+	new_ui: enabled # 新しいUI 🎨
+	beta: disabled # ベータ版 🧪
+	experimental: false # تجريبي ⚗️

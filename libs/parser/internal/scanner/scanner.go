@@ -55,6 +55,16 @@ func (s *Scanner) IsEOF() bool {
 	return s.pos >= len(s.input)
 }
 
+// IsCommentStart returns true if the scanner is positioned at a YAML-style comment delimiter (#).
+// The method checks whether the current character is '#', indicating the start of a comment
+// that extends to the end of the line. This method does not advance the scanner position,
+// allowing lookahead without state modification.
+//
+// Returns true if the scanner is at a '#' character, false otherwise (including at EOF).
+func (s *Scanner) IsCommentStart() bool {
+	return !s.IsEOF() && s.PeekChar() == '#'
+}
+
 // PeekChar returns the current character without consuming it.
 func (s *Scanner) PeekChar() rune {
 	if s.IsEOF() {
@@ -101,6 +111,34 @@ func (s *Scanner) SkipToNextLine() {
 			s.Advance()
 			break
 		}
+		s.Advance()
+	}
+}
+
+// SkipComment advances the scanner past a YAML-style comment that begins with '#'.
+// The scanner should be positioned at a '#' character when this method is called.
+// The method advances past the '#' delimiter and all subsequent characters on the line,
+// stopping at either a newline character or EOF. The newline itself is NOT consumed;
+// the caller is responsible for advancing past the line terminator.
+//
+// This method correctly handles UTF-8 encoded comment content, advancing by full
+// Unicode code points rather than individual bytes. Comments may contain any valid
+// UTF-8 text including emoji, non-ASCII characters, and multi-byte sequences.
+//
+// Example:
+//
+//	# This is a comment with emoji 🎉
+//	key: value  # inline comment
+//
+// After SkipComment(), the scanner is positioned at the newline or EOF.
+func (s *Scanner) SkipComment() {
+	// Skip the '#' character if we're at it
+	if !s.IsEOF() && s.PeekChar() == '#' {
+		s.Advance()
+	}
+
+	// Skip until newline or EOF
+	for !s.IsEOF() && s.PeekChar() != '\n' {
 		s.Advance()
 	}
 }
@@ -206,24 +244,68 @@ func (s *Scanner) ReadPath() string {
 	return s.input[start:s.pos]
 }
 
-// ReadValue reads a value (everything until end of line, trimming quotes and whitespace).
+// ReadValue reads a value from the current position until end of line or comment.
+// The method implements context-aware comment handling: it stops reading at a '#' character
+// when outside quoted strings (treating it as the start of a comment), but preserves '#'
+// characters that appear inside single-quoted or double-quoted strings as literal content.
+//
+// The returned value has leading/trailing whitespace trimmed and surrounding quotes removed.
+// Quote characters (' or ") are only stripped if they appear as matching pairs at the start
+// and end of the value. The method tracks quote state to handle nested quotes correctly.
+//
+// Comment handling examples:
+//
+//	key: value # comment     → returns "value" (stops at #)
+//	key: 'val#ue'            → returns "val#ue" (# inside quotes preserved)
+//	key: "test # ok"         → returns "test # ok" (# inside quotes preserved)
+//
+// The method also detects and marks unquoted backslash characters as syntax errors
+// (see FR-014 in the feature specification).
 func (s *Scanner) ReadValue() string {
 	start := s.pos
 	end := s.pos
 
-	// Read until newline
+	inSingleQuote := false
+	inDoubleQuote := false
+
+	// Read until newline, or # (outside quotes)
 	for !s.IsEOF() && s.PeekChar() != '\n' && s.PeekChar() != '\r' {
+		ch := s.PeekChar()
+
+		// Check for comment start outside quotes
+		if ch == '#' && !inSingleQuote && !inDoubleQuote {
+			break // Stop at comment
+		}
+
+		// Toggle quote states
+		if ch == '\'' && !inDoubleQuote {
+			inSingleQuote = !inSingleQuote
+		}
+		if ch == '"' && !inSingleQuote {
+			inDoubleQuote = !inDoubleQuote
+		}
+
 		s.Advance()
 		end = s.pos
 	}
 
 	value := strings.TrimSpace(s.input[start:end])
 
+	// Check if value is quoted (before stripping quotes)
+	valueWasQuoted := len(value) >= 2 && (value[0] == '\'' || value[0] == '"') && value[0] == value[len(value)-1]
+
 	// Remove surrounding quotes if present
-	if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') {
-		if value[0] == value[len(value)-1] {
-			value = value[1 : len(value)-1]
-		}
+	if valueWasQuoted {
+		value = value[1 : len(value)-1]
+	}
+
+	// Detect backslash outside quotes (FR-014)
+	// If the original value was quoted, backslashes inside are valid
+	// If not quoted, backslashes are syntax errors - include a marker
+	if !valueWasQuoted && strings.ContainsRune(value, '\\') {
+		// Prepend a special marker that the parser will detect and report as error
+		// Use a null byte as marker since it's not valid in normal text
+		value = "\x00BACKSLASH_ERROR\x00" + value
 	}
 
 	return value

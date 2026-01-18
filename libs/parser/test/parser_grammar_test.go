@@ -251,3 +251,1474 @@ func TestParse_Aliasing_VariousAliasFormats(t *testing.T) {
 		})
 	}
 }
+
+// --- Comment Support Tests (User Story 1: Single-Line Comments) ---
+
+// TestParse_Comments_FullLineIgnored tests that full-line comments are completely ignored.
+// T015: Write test: full-line comment ignored
+func TestParse_Comments_FullLineIgnored(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedStmts  int
+		validateResult func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "single full-line comment",
+			input: `# This is a comment
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateResult: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "comment at start of file",
+			input: `# Header comment
+# Another comment
+import:folder:file
+`,
+			expectedStmts: 1,
+			validateResult: func(t *testing.T, result *ast.AST) {
+				importStmt := result.Statements[0].(*ast.ImportStmt)
+				if importStmt.Alias != "folder" {
+					t.Errorf("expected alias 'folder', got '%s'", importStmt.Alias)
+				}
+			},
+		},
+		{
+			name: "comment between statements",
+			input: `import:folder:file
+# Comment between statements
+config-section:
+	key: value
+`,
+			expectedStmts: 2,
+			validateResult: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 2 {
+					t.Fatalf("expected 2 statements, got %d", len(result.Statements))
+				}
+			},
+		},
+		{
+			name: "multiple consecutive comments",
+			input: `# Comment 1
+# Comment 2
+# Comment 3
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateResult: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(result.Statements) != tt.expectedStmts {
+				t.Errorf("expected %d statements, got %d", tt.expectedStmts, len(result.Statements))
+			}
+			if tt.validateResult != nil {
+				tt.validateResult(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_TrailingAfterKeyValue tests trailing comments after key:value pairs.
+// T016: Write test: trailing comment after key:value
+func TestParse_Comments_TrailingAfterKeyValue(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKey   string
+		expectedValue string
+	}{
+		{
+			name: "trailing comment after value",
+			input: `config-section:
+	key: value # This is a comment
+`,
+			expectedKey:   "key",
+			expectedValue: "value",
+		},
+		{
+			name: "trailing comment with special chars",
+			input: `config-section:
+	key: value # Comment with: colons and 'quotes'
+`,
+			expectedKey:   "key",
+			expectedValue: "value",
+		},
+		{
+			name: "trailing comment no space before hash",
+			input: `config-section:
+	key: value# Comment immediately after value
+`,
+			expectedKey:   "key",
+			expectedValue: "value",
+		},
+		{
+			name: "trailing comment after quoted value",
+			input: `config-section:
+	key: 'quoted value' # Comment after quoted string
+`,
+			expectedKey:   "key",
+			expectedValue: "quoted value",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			valueExpr := section.Entries[tt.expectedKey]
+			if valueExpr == nil {
+				t.Fatalf("expected key '%s' not found", tt.expectedKey)
+			}
+
+			literal, ok := valueExpr.(*ast.StringLiteral)
+			if !ok {
+				t.Fatalf("expected StringLiteral, got %T", valueExpr)
+			}
+
+			if literal.Value != tt.expectedValue {
+				t.Errorf("expected value '%s', got '%s'", tt.expectedValue, literal.Value)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_BeforeSectionDeclaration tests comments before section declarations.
+// T017: Write test: comment before section declaration
+func TestParse_Comments_BeforeSectionDeclaration(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedName string
+	}{
+		{
+			name: "comment immediately before section",
+			input: `# This section contains configuration
+config-section:
+	key: value
+`,
+			expectedName: "config-section",
+		},
+		{
+			name: "multiple comments before section",
+			input: `# Documentation for this section
+# More documentation
+# Even more docs
+my-section:
+	key: value
+`,
+			expectedName: "my-section",
+		},
+		{
+			name: "comment with indentation before section",
+			input: `	# Indented comment
+config-section:
+	key: value
+`,
+			expectedName: "config-section",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if len(result.Statements) != 1 {
+				t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			if section.Name != tt.expectedName {
+				t.Errorf("expected section name '%s', got '%s'", tt.expectedName, section.Name)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_HashInSingleQuotedString tests # preserved in single-quoted strings.
+// T018: Write test: # in single-quoted string preserved
+func TestParse_Comments_HashInSingleQuotedString(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedValue string
+	}{
+		{
+			name: "hash at start of quoted string",
+			input: `config-section:
+	key: '#hashtag'
+`,
+			expectedValue: "#hashtag",
+		},
+		{
+			name: "hash in middle of quoted string",
+			input: `config-section:
+	key: 'value #with hash'
+`,
+			expectedValue: "value #with hash",
+		},
+		{
+			name: "hash at end of quoted string",
+			input: `config-section:
+	key: 'value#'
+`,
+			expectedValue: "value#",
+		},
+		{
+			name: "multiple hashes in quoted string",
+			input: `config-section:
+	key: '## Multiple ## Hashes ##'
+`,
+			expectedValue: "## Multiple ## Hashes ##",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			valueExpr := section.Entries["key"]
+			literal := valueExpr.(*ast.StringLiteral)
+
+			if literal.Value != tt.expectedValue {
+				t.Errorf("expected value '%s', got '%s'", tt.expectedValue, literal.Value)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_HashInDoubleQuotedString tests # preserved in double-quoted strings.
+// T019: Write test: # in double-quoted string preserved
+func TestParse_Comments_HashInDoubleQuotedString(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedValue string
+	}{
+		{
+			name: "hash at start of double-quoted string",
+			input: `config-section:
+	key: "#hashtag"
+`,
+			expectedValue: "#hashtag",
+		},
+		{
+			name: "hash in middle of double-quoted string",
+			input: `config-section:
+	key: "value #with hash"
+`,
+			expectedValue: "value #with hash",
+		},
+		{
+			name: "hash at end of double-quoted string",
+			input: `config-section:
+	key: "value#"
+`,
+			expectedValue: "value#",
+		},
+		{
+			name: "multiple hashes in double-quoted string",
+			input: `config-section:
+	key: "## Multiple ## Hashes ##"
+`,
+			expectedValue: "## Multiple ## Hashes ##",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			valueExpr := section.Entries["key"]
+			literal := valueExpr.(*ast.StringLiteral)
+
+			if literal.Value != tt.expectedValue {
+				t.Errorf("expected value '%s', got '%s'", tt.expectedValue, literal.Value)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_WithSpecialCharacters tests comments with special characters.
+// T020: Write test: comment with special characters (:, quotes)
+func TestParse_Comments_WithSpecialCharacters(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "comment with colons",
+			input: `# Comment with: colons: everywhere:
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "comment with single quotes",
+			input: `# Comment with 'single' quotes
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "comment with double quotes",
+			input: `# Comment with "double" quotes
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "comment with mixed special chars",
+			input: `# TODO: Fix this 'issue' with "quotes" and: colons!
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "comment with punctuation",
+			input: `# Comment with punctuation: @#$%^&*()!
+config-section:
+	key: value
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if len(result.Statements) != 1 {
+				t.Errorf("expected 1 statement, got %d", len(result.Statements))
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			if section.Name != "config-section" {
+				t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+			}
+		})
+	}
+}
+
+// TestParse_Comments_EmptyCommentLine tests empty comment lines (just #).
+// T021: Write test: empty comment line
+func TestParse_Comments_EmptyCommentLine(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "single empty comment",
+			input: `#
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "empty comment with whitespace after hash",
+			input: `#   
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "multiple empty comments",
+			input: `#
+#
+#
+config-section:
+	key: value
+`,
+		},
+		{
+			name: "empty comments mixed with text comments",
+			input: `# Text comment
+#
+# Another text comment
+#
+config-section:
+	key: value
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if len(result.Statements) != 1 {
+				t.Errorf("expected 1 statement, got %d", len(result.Statements))
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			if section.Name != "config-section" {
+				t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+			}
+		})
+	}
+}
+
+// --- Multi-Line Comment Block Tests (User Story 2: Multi-Line Comments) ---
+
+// TestParse_MultiLineComments_ConsecutiveLinesIgnored tests that consecutive comment lines are all ignored.
+// T034: Write test: consecutive comment lines ignored
+//
+// Verifies that multiple # comment lines in a row are completely skipped during parsing,
+// and the resulting AST contains only active configuration with no trace of comment content.
+func TestParse_MultiLineComments_ConsecutiveLinesIgnored(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedStmts int
+		validateAST   func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "two consecutive comment lines",
+			input: `# First comment line
+# Second comment line
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+				if len(section.Entries) != 1 {
+					t.Errorf("expected 1 entry, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name: "three consecutive comment lines",
+			input: `# Comment line 1
+# Comment line 2
+# Comment line 3
+import:source:file
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				importStmt := result.Statements[0].(*ast.ImportStmt)
+				if importStmt.Alias != "source" {
+					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
+				}
+			},
+		},
+		{
+			name: "five consecutive comment lines with documentation style",
+			input: `# ===================================
+# Configuration Section Documentation
+# ===================================
+# This section contains important settings
+# Last updated: 2026-01-18
+database-config:
+	host: localhost
+	port: 5432
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "database-config" {
+					t.Errorf("expected section name 'database-config', got '%s'", section.Name)
+				}
+				// Verify both keys are present
+				if _, ok := section.Entries["host"]; !ok {
+					t.Error("expected 'host' key in section entries")
+				}
+				if _, ok := section.Entries["port"]; !ok {
+					t.Error("expected 'port' key in section entries")
+				}
+			},
+		},
+		{
+			name: "ten consecutive comment lines forming large block",
+			input: `# Line 1
+# Line 2
+# Line 3
+# Line 4
+# Line 5
+# Line 6
+# Line 7
+# Line 8
+# Line 9
+# Line 10
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(result.Statements) != tt.expectedStmts {
+				t.Errorf("expected %d statements, got %d", tt.expectedStmts, len(result.Statements))
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_MultiLineComments_CommentedOutKeysNotInAST tests that commented-out keys don't appear in the AST.
+// T035: Write test: commented-out keys not in AST
+//
+// Verifies that when configuration keys are commented out with #, they are completely excluded
+// from the parsed AST, and only active (uncommented) keys remain.
+func TestParse_MultiLineComments_CommentedOutKeysNotInAST(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedKeys   []string
+		unexpectedKeys []string
+	}{
+		{
+			name: "single commented key",
+			input: `config-section:
+	active_key: value1
+	# commented_key: value2
+	another_active: value3
+`,
+			expectedKeys:   []string{"active_key", "another_active"},
+			unexpectedKeys: []string{"commented_key"},
+		},
+		{
+			name: "multiple consecutive commented keys",
+			input: `config-section:
+	enabled: true
+	# disabled_feature: true
+	# another_disabled: false
+	# third_disabled: maybe
+	working_feature: active
+`,
+			expectedKeys:   []string{"enabled", "working_feature"},
+			unexpectedKeys: []string{"disabled_feature", "another_disabled", "third_disabled"},
+		},
+		{
+			name: "commented keys at different indentation levels",
+			input: `parent-section:
+	level1: value1
+	# level1_commented: ignored
+	nested-section:
+		level2: value2
+		# level2_commented: ignored
+		deeper:
+			level3: value3
+			# level3_commented: ignored
+`,
+			expectedKeys:   []string{"level1", "nested-section"},
+			unexpectedKeys: []string{"level1_commented", "level2_commented", "level3_commented"},
+		},
+		{
+			name: "all keys commented out except one",
+			input: `config-section:
+	# key1: value1
+	# key2: value2
+	# key3: value3
+	# key4: value4
+	active_key: active_value
+	# key5: value5
+`,
+			expectedKeys:   []string{"active_key"},
+			unexpectedKeys: []string{"key1", "key2", "key3", "key4", "key5"},
+		},
+		{
+			name: "commented keys with complex values",
+			input: `config-section:
+	# database_url: 'postgresql://localhost:5432/mydb'
+	# api_key: "secret-key-12345"
+	# max_connections: 100
+	active_setting: enabled
+`,
+			expectedKeys:   []string{"active_setting"},
+			unexpectedKeys: []string{"database_url", "api_key", "max_connections"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+
+			// Verify expected keys ARE present
+			for _, key := range tt.expectedKeys {
+				if _, ok := section.Entries[key]; !ok {
+					t.Errorf("expected key '%s' to be present in AST, but it was not found", key)
+				}
+			}
+
+			// Verify unexpected (commented) keys are NOT present
+			for _, key := range tt.unexpectedKeys {
+				if _, ok := section.Entries[key]; ok {
+					t.Errorf("expected key '%s' to NOT be present in AST (should be commented out), but it was found", key)
+				}
+			}
+		})
+	}
+}
+
+// TestParse_MultiLineComments_InterleavedCommentsAndConfig tests comments mixed with configuration lines.
+// T036: Write test: interleaved comments and config
+//
+// Verifies that comments can be freely mixed between configuration lines, and the parser
+// correctly processes only the active configuration while completely ignoring all comments.
+func TestParse_MultiLineComments_InterleavedCommentsAndConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		validateAST func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "comments between section entries",
+			input: `config-section:
+	key1: value1
+	# Comment between entries
+	key2: value2
+	# Another comment
+	key3: value3
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 3 {
+					t.Errorf("expected 3 entries, got %d", len(section.Entries))
+				}
+				expectedKeys := []string{"key1", "key2", "key3"}
+				for _, key := range expectedKeys {
+					if _, ok := section.Entries[key]; !ok {
+						t.Errorf("expected key '%s' not found", key)
+					}
+				}
+			},
+		},
+		{
+			name: "alternating comments and config lines",
+			input: `# Header comment
+import:source:file
+# Comment after import
+config-section:
+	# Comment before first entry
+	setting1: enabled
+	# Comment between entries
+	setting2: disabled
+	# Comment at end of section
+another-section:
+	# Comment in another section
+	value: data
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 3 {
+					t.Errorf("expected 3 statements, got %d", len(result.Statements))
+				}
+				// Verify import statement
+				importStmt := result.Statements[0].(*ast.ImportStmt)
+				if importStmt.Alias != "source" {
+					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
+				}
+				// Verify first section
+				section1 := result.Statements[1].(*ast.SectionDecl)
+				if section1.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section1.Name)
+				}
+				// Verify second section
+				section2 := result.Statements[2].(*ast.SectionDecl)
+				if section2.Name != "another-section" {
+					t.Errorf("expected section name 'another-section', got '%s'", section2.Name)
+				}
+			},
+		},
+		{
+			name: "mixed full-line and trailing comments with config",
+			input: `config-section:
+	# Full-line comment
+	key1: value1 # Trailing comment
+	# Another full-line comment
+	key2: value2 # Another trailing comment
+	key3: value3
+	# Final comment
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 3 {
+					t.Errorf("expected 3 entries, got %d", len(section.Entries))
+				}
+				// Verify values are correctly parsed (trailing comments removed)
+				key1Value := section.Entries["key1"].(*ast.StringLiteral).Value
+				if key1Value != "value1" {
+					t.Errorf("expected key1='value1', got '%s'", key1Value)
+				}
+				key2Value := section.Entries["key2"].(*ast.StringLiteral).Value
+				if key2Value != "value2" {
+					t.Errorf("expected key2='value2', got '%s'", key2Value)
+				}
+			},
+		},
+		{
+			name: "comment blocks between multiple sections",
+			input: `# Section 1 documentation
+# This section handles database configuration
+database:
+	host: localhost
+	port: 5432
+
+# Section 2 documentation
+# This section handles API configuration
+# Multiple lines of documentation here
+api:
+	endpoint: /api/v1
+	timeout: 30
+
+# Section 3 documentation
+cache:
+	enabled: true
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 3 {
+					t.Errorf("expected 3 statements, got %d", len(result.Statements))
+				}
+				// Verify section names
+				section1 := result.Statements[0].(*ast.SectionDecl)
+				if section1.Name != "database" {
+					t.Errorf("expected section name 'database', got '%s'", section1.Name)
+				}
+				section2 := result.Statements[1].(*ast.SectionDecl)
+				if section2.Name != "api" {
+					t.Errorf("expected section name 'api', got '%s'", section2.Name)
+				}
+				section3 := result.Statements[2].(*ast.SectionDecl)
+				if section3.Name != "cache" {
+					t.Errorf("expected section name 'cache', got '%s'", section3.Name)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// --- Edge Cases & Error Handling Tests (Phase 6: Tasks T053-T063) ---
+
+// TestParse_EdgeCase_HashAtLineStart tests # at the start of a line with no whitespace.
+// T053: Write test: # at line start with no whitespace
+//
+// Verifies that # appearing at column 0 (no leading whitespace) is correctly treated as
+// a comment, and the entire line is ignored during parsing.
+func TestParse_EdgeCase_HashAtLineStart(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedStmts int
+		validateAST   func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "# at column 0",
+			input: `#comment at start
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "multiple # at column 0",
+			input: `#first comment
+#second comment
+#third comment
+import:source:file
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				importStmt := result.Statements[0].(*ast.ImportStmt)
+				if importStmt.Alias != "source" {
+					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
+				}
+			},
+		},
+		{
+			name: "# at column 0 with no trailing text",
+			input: `#
+config-section:
+	key: value
+`,
+			expectedStmts: 1,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(result.Statements) != tt.expectedStmts {
+				t.Errorf("expected %d statements, got %d", tt.expectedStmts, len(result.Statements))
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_HashImmediatelyAfterValue tests # immediately after value with no space.
+// T054: Write test: # immediately after value (no space)
+//
+// Verifies that # appearing directly after a value (no separating space) is correctly
+// treated as starting a comment, and the comment text is stripped from the value.
+func TestParse_EdgeCase_HashImmediatelyAfterValue(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedKey   string
+		expectedValue string
+	}{
+		{
+			name: "# immediately after unquoted value",
+			input: `config-section:
+	key: value#comment
+`,
+			expectedKey:   "key",
+			expectedValue: "value",
+		},
+		{
+			name: "# immediately after quoted value",
+			input: `config-section:
+	key: 'value'#comment
+`,
+			expectedKey:   "key",
+			expectedValue: "value",
+		},
+		{
+			name: "# with long comment immediately after value",
+			input: `config-section:
+	setting: enabled#this is a very long comment explaining the setting
+`,
+			expectedKey:   "setting",
+			expectedValue: "enabled",
+		},
+		{
+			name: "# after numeric value",
+			input: `config-section:
+	port: 8080#default port
+`,
+			expectedKey:   "port",
+			expectedValue: "8080",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			valueExpr := section.Entries[tt.expectedKey]
+			if valueExpr == nil {
+				t.Fatalf("expected key '%s' not found", tt.expectedKey)
+			}
+
+			literal, ok := valueExpr.(*ast.StringLiteral)
+			if !ok {
+				t.Fatalf("expected StringLiteral, got %T", valueExpr)
+			}
+
+			if literal.Value != tt.expectedValue {
+				t.Errorf("expected value '%s', got '%s'", tt.expectedValue, literal.Value)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_UnicodeInComments tests Unicode characters in comments.
+// T055: Write test: Unicode characters in comments
+//
+// Verifies that comments can contain Unicode characters (non-ASCII) without causing
+// parsing errors, and all Unicode text after # is treated as comment content.
+func TestParse_EdgeCase_UnicodeInComments(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		validateAST func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "Japanese characters in comment",
+			input: `# これはコメントです (This is a comment)
+config-section:
+	key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "Chinese characters in comment",
+			input: `# 你好世界 (Hello World)
+config-section:
+	key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+		{
+			name: "Arabic characters in comment",
+			input: `# مرحبا بالعالم (Welcome to the world)
+config-section:
+	key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+		{
+			name: "Emoji in comment",
+			input: `# 🚀 Rocket launch config 💻 ✨
+config-section:
+	key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 1 {
+					t.Errorf("expected 1 entry, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name: "Mixed Unicode characters in trailing comment",
+			input: `config-section:
+	key: value # Comment with 日本語, 中文, العربية, and 🎉
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				valueExpr := section.Entries["key"]
+				literal := valueExpr.(*ast.StringLiteral)
+				if literal.Value != "value" {
+					t.Errorf("expected value 'value', got '%s'", literal.Value)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_MixedTabsSpacesBeforeHash tests comments with mixed tabs/spaces.
+// T056: Write test: comment with mixed tabs/spaces
+//
+// Verifies that mixing tabs and spaces before # doesn't cause parsing errors.
+// Whitespace is parsed normally, and # starts the comment regardless of preceding whitespace type.
+func TestParse_EdgeCase_MixedTabsSpacesBeforeHash(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		validateAST func(*testing.T, *ast.AST)
+	}{
+		{
+			name:  "tabs before # on full-line comment",
+			input: "config-section:\n\tkey: value\n\t\t\t# comment with tabs before\n",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 1 {
+					t.Errorf("expected 1 entry, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name: "spaces before # on full-line comment",
+			input: `config-section:
+	key: value
+        # comment with spaces before
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 1 {
+					t.Errorf("expected 1 entry, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name:  "mixed tabs and spaces before #",
+			input: "config-section:\n\tkey: value\n\t    \t# comment with mixed whitespace\n",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "trailing comment with spaces before #",
+			input: `config-section:
+	key: value    # trailing comment with spaces
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				valueExpr := section.Entries["key"]
+				literal := valueExpr.(*ast.StringLiteral)
+				if literal.Value != "value" {
+					t.Errorf("expected value 'value', got '%s'", literal.Value)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_CommentAtDifferentIndentationLevels tests comments at various indentation levels.
+// T057: Write test: comment at different indentation levels
+//
+// Verifies that comments can appear at any indentation level without affecting
+// indentation-sensitive structure parsing or causing indentation errors.
+func TestParse_EdgeCase_CommentAtDifferentIndentationLevels(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		validateAST func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "comments at different levels in nested structure",
+			input: `# Top-level comment (no indent)
+config-section:
+	# Comment indented once
+	key1: value1
+		# Comment indented twice
+	key2: value2
+# Comment back at top level
+another-section:
+	# Comment in second section
+	key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 2 {
+					t.Errorf("expected 2 statements, got %d", len(result.Statements))
+				}
+				section1 := result.Statements[0].(*ast.SectionDecl)
+				if len(section1.Entries) != 2 {
+					t.Errorf("expected 2 entries in first section, got %d", len(section1.Entries))
+				}
+			},
+		},
+		{
+			name: "comment at column 0 followed by indented config",
+			input: `#comment at column 0
+	config-section:
+		key: value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+		{
+			name: "deeply indented comment",
+			input: `config-section:
+	key: value
+			# Very deep comment
+	another_key: another_value
+`,
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 2 {
+					t.Errorf("expected 2 entries, got %d", len(section.Entries))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_CommentAtEOFWithoutNewline tests comment at EOF without trailing newline.
+// T058: Write test: comment at EOF without newline
+//
+// Verifies that when a file ends with a comment line that has no trailing newline,
+// the scanner correctly detects EOF and terminates without errors.
+func TestParse_EdgeCase_CommentAtEOFWithoutNewline(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		validateAST func(*testing.T, *ast.AST)
+	}{
+		{
+			name:  "comment at EOF no newline",
+			input: "config-section:\n\tkey: value\n# final comment with no newline",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name:  "trailing comment at EOF no newline",
+			input: "config-section:\n\tkey: value # comment at end of file",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				valueExpr := section.Entries["key"]
+				literal := valueExpr.(*ast.StringLiteral)
+				if literal.Value != "value" {
+					t.Errorf("expected value 'value', got '%s'", literal.Value)
+				}
+			},
+		},
+		{
+			name:  "only comment no newline",
+			input: "# single comment line",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 0 {
+					t.Errorf("expected 0 statements, got %d", len(result.Statements))
+				}
+			},
+		},
+		{
+			name:  "config then comment at EOF",
+			input: "import:source:file\n# trailing comment",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				if len(result.Statements) != 1 {
+					t.Errorf("expected 1 statement, got %d", len(result.Statements))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}
+
+// TestParse_EdgeCase_EscapedHashError tests that escaped \# outside strings produces error.
+// T059: Write test: escaped \# outside string produces error
+//
+// Verifies that escape sequences (like \#) are not supported outside of quoted strings
+// and are treated as syntax errors. Nomos does not support escape sequences in unquoted contexts.
+func TestParse_EdgeCase_EscapedHashError(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "escaped hash in value",
+			input:       "config-section:\n\tkey: value\\#notvalid\n",
+			wantErr:     true,
+			errContains: "unexpected character",
+		},
+		{
+			name:        "escaped hash at start of value",
+			input:       "config-section:\n\tkey: \\#invalid\n",
+			wantErr:     true,
+			errContains: "unexpected character",
+		},
+		{
+			name:        "escaped hash in section name",
+			input:       "config\\#section:\n\tkey: value\n",
+			wantErr:     true,
+			errContains: "unexpected character",
+		},
+		{
+			name:    "hash in quoted string is valid",
+			input:   "config-section:\n\tkey: 'value\\#valid'\n",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			_, err := parser.Parse(reader, "test.csl")
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("error = %q, want to contain %q", err.Error(), tt.errContains)
+				}
+			} else if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// TestParse_MultiLineComments_DocumentationBlockBeforeSection tests documentation blocks preceding sections.
+// T037: Write test: documentation block before section
+//
+// Verifies that multi-line comment blocks used as documentation before section declarations
+// are completely ignored, and the section parses correctly. This is a common real-world pattern.
+func TestParse_MultiLineComments_DocumentationBlockBeforeSection(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedName string
+		validateAST  func(*testing.T, *ast.AST)
+	}{
+		{
+			name: "simple documentation block before section",
+			input: `# Database Configuration
+# This section configures database connections
+database:
+	host: localhost
+	port: 5432
+`,
+			expectedName: "database",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 2 {
+					t.Errorf("expected 2 entries, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name: "formatted documentation block with separators",
+			input: `# ========================================
+# API Configuration Section
+# ========================================
+# Endpoint: Defines the base API URL
+# Timeout: Request timeout in seconds
+api-config:
+	endpoint: https://api.example.com
+	timeout: 30
+`,
+			expectedName: "api-config",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "api-config" {
+					t.Errorf("expected section name 'api-config', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "multi-paragraph documentation block",
+			input: `# Feature Flags Configuration
+#
+# This section controls feature toggles for the application.
+# Each flag can be independently enabled or disabled.
+#
+# WARNING: Changing these values requires application restart.
+# Last updated: 2026-01-18
+features:
+	new_ui: enabled
+	beta_features: disabled
+	experimental: false
+`,
+			expectedName: "features",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if len(section.Entries) != 3 {
+					t.Errorf("expected 3 entries, got %d", len(section.Entries))
+				}
+			},
+		},
+		{
+			name: "TODO and FIXME style documentation",
+			input: `# TODO: Refactor this configuration section
+# FIXME: Add validation for port ranges
+# NOTE: This is temporary configuration
+# HACK: Workaround for issue #123
+server-config:
+	address: 0.0.0.0
+	port: 8080
+`,
+			expectedName: "server-config",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "server-config" {
+					t.Errorf("expected section name 'server-config', got '%s'", section.Name)
+				}
+			},
+		},
+		{
+			name: "documentation with examples and usage",
+			input: `# Logging Configuration
+# 
+# Valid levels: DEBUG, INFO, WARN, ERROR
+# Format options: json, text, structured
+# 
+# Example usage:
+#   level: INFO
+#   format: json
+#   output: /var/log/app.log
+logging:
+	level: INFO
+	format: json
+`,
+			expectedName: "logging",
+			validateAST: func(t *testing.T, result *ast.AST) {
+				section := result.Statements[0].(*ast.SectionDecl)
+				// Verify specific values
+				levelExpr := section.Entries["level"]
+				if levelExpr == nil {
+					t.Fatal("expected 'level' entry")
+				}
+				levelValue := levelExpr.(*ast.StringLiteral).Value
+				if levelValue != "INFO" {
+					t.Errorf("expected level='INFO', got '%s'", levelValue)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if len(result.Statements) != 1 {
+				t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+			}
+
+			section := result.Statements[0].(*ast.SectionDecl)
+			if section.Name != tt.expectedName {
+				t.Errorf("expected section name '%s', got '%s'", tt.expectedName, section.Name)
+			}
+
+			if tt.validateAST != nil {
+				tt.validateAST(t, result)
+			}
+		})
+	}
+}

@@ -1,9 +1,12 @@
+# Configuration file example 2
+# This file demonstrates multiple sources and environment references.
 source:
-  alias: 'configs'
+  alias: 'configs' # Alias for this source
   type:  'autonomous-bits/nomos-provider-file'
   version: '0.3.1'
   directory: './data'
 
+# Second source configuration
 source:
   alias: 'configs2'
   type:  'autonomous-bits/nomos-provider-file'
