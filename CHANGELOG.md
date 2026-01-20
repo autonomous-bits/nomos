@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [Compiler] Preserve list expressions during AST conversion for configuration data
 ## Nomos Refactoring Initiative (Phases 1-6) - 2025-12-26
 
 A comprehensive 12-week refactoring effort across all Nomos modules, improving code quality, test coverage, architecture, and user experience.

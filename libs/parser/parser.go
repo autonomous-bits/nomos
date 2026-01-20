@@ -324,7 +324,28 @@ func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*
 	// Check for optional path
 	if s.PeekChar() == ':' {
 		s.Advance() // consume ':'
-		path = s.ReadIdentifier()
+		s.SkipWhitespace()
+		pathStartCol := s.Column()
+		path = s.ReadValue()
+
+		if strings.HasPrefix(path, "\x00BACKSLASH_ERROR\x00") {
+			actualValue := strings.TrimPrefix(path, "\x00BACKSLASH_ERROR\x00")
+			backslashPos := strings.IndexRune(actualValue, '\\')
+			errorCol := pathStartCol
+			if backslashPos >= 0 {
+				errorCol = pathStartCol + backslashPos
+			}
+			err := NewParseError(SyntaxError, s.Filename(), startLine, errorCol,
+				"invalid syntax: unexpected character '\\'")
+			err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, errorCol))
+			return nil, err
+		}
+
+		if len(path) > 0 && (path[0] == '\'' || path[0] == '"') {
+			quote := path[0]
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, pathStartCol,
+				fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
+		}
 	}
 
 	s.SkipToNextLine()
@@ -376,6 +397,31 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (
 	}
 	_ = s.Expect(':') // Error already checked via PeekChar
 
+	s.SkipWhitespace()
+	if !s.IsEOF() && s.PeekChar() != '\n' && s.PeekChar() != '\r' && !s.IsCommentStart() {
+		valueStartLine, valueStartCol := s.Line(), s.Column()
+		valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
+		if err != nil {
+			return nil, err
+		}
+
+		endLine, endCol := s.Line(), s.Column()
+		entries := map[string]ast.Expr{"": valueExpr}
+		s.SkipToNextLine()
+
+		return &ast.SectionDecl{
+			Name:    name,
+			Entries: entries,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: startLine,
+				StartCol:  startCol,
+				EndLine:   endLine,
+				EndCol:    endCol,
+			},
+		}, nil
+	}
+
 	// Parse indented entries
 	entries, err := p.parseConfigBlock(s)
 	if err != nil {
@@ -398,17 +444,54 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (
 }
 
 // parseConfigBlock parses an indented block of key-value pairs.
-// It can now handle nested map structures.
+// It can now handle nested map structures and direct lists (when a section contains only list items).
 func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, error) {
 	config := make(map[string]ast.Expr)
 
 	s.SkipToNextLine()
-
-	// Get the base indentation level for this block
-	var baseIndent int
-	if !s.IsEOF() && s.IsIndented() {
-		baseIndent = s.GetIndentLevel()
+	if p.isWhitespaceOnlyIndentedBlock(s) {
+		startLine, startCol := s.Line(), s.Column()
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, listWhitespaceOnlyErrorMessage())
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+		return nil, err
 	}
+
+	baseIndent, hasIndent := p.findBaseIndent(s)
+	if !hasIndent {
+		if p.isWhitespaceOnlyIndentedBlock(s) {
+			startLine, startCol := s.Line(), s.Column()
+			err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, listWhitespaceOnlyErrorMessage())
+			err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+			return nil, err
+		}
+		return config, nil
+	}
+
+	listOnly := p.isListOnlyBlock(s, baseIndent)
+	if listOnly {
+		if !p.seekToIndentedContent(s, baseIndent) {
+			return config, nil
+		}
+		listLine, listCol := s.Line(), s.Column()
+		listExpr, err := p.parseListExpr(s, baseIndent, 1, listLine, listCol)
+		if err != nil {
+			return nil, err
+		}
+		config[""] = listExpr
+		return config, nil
+	}
+
+	listSnapshot := s.Snapshot()
+	if p.seekToIndentedContent(s, baseIndent) && p.isListItemMarker(s) {
+		listLine, listCol := s.Line(), s.Column()
+		listExpr, err := p.parseListExpr(s, baseIndent, 1, listLine, listCol)
+		if err != nil {
+			return nil, err
+		}
+		config[""] = listExpr
+		return config, nil
+	}
+	s.Restore(listSnapshot)
 
 	// Parse indented key-value pairs
 	for !s.IsEOF() {
@@ -417,13 +500,12 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 			break
 		}
 
-		currentIndent := s.GetIndentLevel()
+		s.SkipWhitespace()
+		currentIndent := s.Column() - 1
 		if currentIndent < baseIndent {
 			// Less indented - end of this block
 			break
 		}
-
-		s.SkipWhitespace()
 
 		if s.IsEOF() || s.PeekChar() == '\n' {
 			break
@@ -434,6 +516,17 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 			s.SkipComment()
 			s.SkipToNextLine()
 			continue
+		}
+
+		if p.isListItemMarker(s) {
+			listLine, listCol := s.Line(), s.Column()
+			if _, err := p.parseListExpr(s, currentIndent, 1, listLine, listCol); err != nil {
+				return nil, err
+			}
+			parseErr := NewParseError(SyntaxError, s.Filename(), listLine, listCol,
+				"invalid syntax: list items must be nested under a key")
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, listLine, listCol))
+			return nil, parseErr
 		}
 
 		keyStartLine := s.Line()
@@ -460,24 +553,48 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 		}
 		s.SkipWhitespace()
 
-		// Check if this is a nested map or a value
+		// Check if this is a nested map, list, or a value
 		// A nested map is indicated by: key: \n with more indentation following
 		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
-			// Newline after colon - might be a nested map
+			// Newline after colon - might be a nested map or list
 			s.SkipToNextLine()
 
-			// Check if next line is more indented
-			if !s.IsEOF() && s.IsIndented() {
-				nextIndent := s.GetIndentLevel()
+			// Find the next non-empty, non-comment line
+			foundContent := false
+			for !s.IsEOF() && s.IsIndented() {
+				s.SkipWhitespace()
+				if s.IsCommentStart() {
+					s.SkipComment()
+					s.SkipToNextLine()
+					continue
+				}
+				if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+					s.SkipToNextLine()
+					continue
+				}
+				foundContent = true
+				break
+			}
+
+			if foundContent {
+				nextIndent := s.Column() - 1
 				if nextIndent > currentIndent {
-					// This is a nested map
+					if p.isListItemMarker(s) {
+						listExpr, err := p.parseListExpr(s, nextIndent, 1, keyStartLine, keyStart)
+						if err != nil {
+							return nil, err
+						}
+						config[key] = listExpr
+						continue
+					}
+
 					nestedEntries, err := p.parseNestedMap(s, nextIndent)
 					if err != nil {
 						return nil, err
 					}
 
-					// Create MapExpr
-					endLine, endCol := s.Line(), s.Column()
+					endLine := s.Line()
+					endCol := p.mapEndColumn(s)
 					config[key] = &ast.MapExpr{
 						Entries: nestedEntries,
 						SourceSpan: ast.SourceSpan{
@@ -522,6 +639,12 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 
 // parseNestedMap parses a nested map at a specific indentation level.
 func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[string]ast.Expr, error) {
+	return p.parseNestedMapWithListDepth(s, expectedIndent, 1)
+}
+
+// parseNestedMapWithListDepth parses a nested map at a specific indentation level,
+// using listDepth for any lists encountered within the map.
+func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent int, listDepth int) (map[string]ast.Expr, error) {
 	entries := make(map[string]ast.Expr)
 
 	for !s.IsEOF() {
@@ -530,19 +653,17 @@ func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[str
 			break
 		}
 
-		currentIndent := s.GetIndentLevel()
+		s.SkipWhitespace()
+		currentIndent := s.Column() - 1
 		if currentIndent < expectedIndent {
 			// Less indented - end of nested map
 			break
 		}
 
 		if currentIndent > expectedIndent {
-			// More indented than expected - skip this line (might be part of a deeper nesting)
-			s.SkipToNextLine()
-			continue
+			// More indented than expected - stop and let the caller handle deeper nesting
+			break
 		}
-
-		s.SkipWhitespace()
 
 		if s.IsEOF() || s.PeekChar() == '\n' {
 			s.SkipToNextLine()
@@ -554,6 +675,17 @@ func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[str
 			s.SkipComment()
 			s.SkipToNextLine()
 			continue
+		}
+
+		if p.isListItemMarker(s) {
+			listLine, listCol := s.Line(), s.Column()
+			if _, err := p.parseListExpr(s, currentIndent, listDepth, listLine, listCol); err != nil {
+				return nil, err
+			}
+			parseErr := NewParseError(SyntaxError, s.Filename(), listLine, listCol,
+				"invalid syntax: list items must be nested under a key")
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, listLine, listCol))
+			return nil, parseErr
 		}
 
 		keyStartLine := s.Line()
@@ -578,20 +710,44 @@ func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[str
 		}
 		s.SkipWhitespace()
 
-		// Check for nested map
+		// Check for nested map or list
 		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
 			s.SkipToNextLine()
 
-			if !s.IsEOF() && s.IsIndented() {
-				nextIndent := s.GetIndentLevel()
+			foundContent := false
+			for !s.IsEOF() && s.IsIndented() {
+				s.SkipWhitespace()
+				if s.IsCommentStart() {
+					s.SkipComment()
+					s.SkipToNextLine()
+					continue
+				}
+				if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+					s.SkipToNextLine()
+					continue
+				}
+				foundContent = true
+				break
+			}
+
+			if foundContent {
+				nextIndent := s.Column() - 1
 				if nextIndent > currentIndent {
-					// Recursively parse nested map
-					nestedEntries, err := p.parseNestedMap(s, nextIndent)
+					if p.isListItemMarker(s) {
+						listExpr, err := p.parseListExpr(s, nextIndent, listDepth, keyStartLine, keyStart)
+						if err != nil {
+							return nil, err
+						}
+						entries[key] = listExpr
+						continue
+					}
+					nestedEntries, err := p.parseNestedMapWithListDepth(s, nextIndent, listDepth)
 					if err != nil {
 						return nil, err
 					}
 
-					endLine, endCol := s.Line(), s.Column()
+					endLine := s.Line()
+					endCol := p.mapEndColumn(s)
 					entries[key] = &ast.MapExpr{
 						Entries: nestedEntries,
 						SourceSpan: ast.SourceSpan{
@@ -634,10 +790,41 @@ func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[str
 	return entries, nil
 }
 
-// parseValueExpr parses a value expression, which can be either a string literal
-// or an inline reference expression of the form reference:alias:dotted.path
+// parseValueExpr parses a value expression, which can be either a string literal,
+// an inline reference expression of the form reference:alias:dotted.path, or a list.
 func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (ast.Expr, error) {
 	// startLine and startCol point to where the value starts (after skipping whitespace)
+
+	// Check for empty list syntax []
+	if s.PeekChar() == '[' {
+		s.Advance() // consume '['
+
+		s.SkipWhitespace()
+		if s.PeekChar() == ']' {
+			// Empty list
+			s.Advance() // consume ']'
+			return &ast.ListExpr{
+				Elements: []ast.Expr{},
+				SourceSpan: ast.SourceSpan{
+					Filename:  s.Filename(),
+					StartLine: startLine,
+					StartCol:  startCol,
+					EndLine:   startLine,
+					EndCol:    startCol + 1, // Points to ']'
+				},
+			}, nil
+		}
+
+		// Not an empty list - the '[' will be treated as part of the value
+		// ReadValue() will handle it (it may be an error like unterminated string)
+	}
+
+	// Check for list item marker (dash + space)
+	if p.isListItemMarker(s) {
+		// This is a list - need to determine base indentation
+		baseIndent := s.GetIndentLevel()
+		return p.parseListExpr(s, baseIndent, 1, startLine, startCol)
+	}
 
 	// ReadValue() reads the value and trims quotes/whitespace
 	valueText := s.ReadValue()
@@ -686,8 +873,10 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 				"invalid syntax: inline reference requires a non-empty path")
 		}
 
-		// Split path by dots
-		pathComponents := strings.Split(pathStr, ".")
+		pathComponents, err := p.parseInlineReferencePath(pathStr, s.Filename(), startLine, startCol)
+		if err != nil {
+			return nil, err
+		}
 
 		// Calculate the end column (1-indexed, inclusive)
 		// startCol is the 1-indexed column where the value starts
@@ -724,6 +913,625 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 			EndCol:    literalEndCol,
 		},
 	}, nil
+}
+
+// parseInlineReferencePath splits an inline reference path into components.
+// It supports dot-separated components with optional list index notation, e.g. "matrix[0][1]".
+// Indexes are appended to the current component (e.g., "matrix[0][1]").
+// Errors are returned for malformed bracket usage (missing closing bracket, empty or non-numeric index,
+// stray ']' or '[') and include actionable messages.
+func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col int) ([]string, error) {
+	if !strings.ContainsAny(pathStr, "[]") {
+		return strings.Split(pathStr, "."), nil
+	}
+
+	var components []string
+	var current strings.Builder
+
+	for i := 0; i < len(pathStr); i++ {
+		switch pathStr[i] {
+		case '.':
+			components = append(components, current.String())
+			current.Reset()
+		case '[':
+			if current.Len() == 0 {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path has stray '[' without a preceding path segment")
+			}
+
+			indexStart := i + 1
+			if indexStart >= len(pathStr) {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path index is missing closing ']' (e.g., [0])")
+			}
+			if pathStr[indexStart] == ']' {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path index cannot be empty (e.g., [0])")
+			}
+
+			j := indexStart
+			for ; j < len(pathStr) && pathStr[j] != ']'; j++ {
+				if pathStr[j] < '0' || pathStr[j] > '9' {
+					return nil, NewParseError(SyntaxError, filename, line, col,
+						"invalid syntax: inline reference path index must be numeric (e.g., [0])")
+				}
+			}
+			if j >= len(pathStr) {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path index is missing closing ']' (e.g., [0])")
+			}
+
+			current.WriteString(pathStr[i : j+1])
+			i = j
+		case ']':
+			return nil, NewParseError(SyntaxError, filename, line, col,
+				"invalid syntax: inline reference path has stray ']' without a matching '['")
+		default:
+			current.WriteByte(pathStr[i])
+		}
+	}
+
+	components = append(components, current.String())
+	return components, nil
+}
+
+// parseListExpr parses a list expression with YAML-style block notation (dash markers).
+// It enforces 2-space indentation, validates against empty items, supports nested lists,
+// and enforces the maximum nesting depth.
+//
+// Parameters:
+//   - s: Scanner positioned at the first list item marker or after the key that introduced the list
+//   - baseIndent: Expected indentation level for list items (must be consistent)
+//   - depth: Current nesting depth (1 for top-level list)
+//   - startLine: Source line where the list started (for error reporting)
+//   - startCol: Source column where the list started (for error reporting)
+//
+// Returns:
+//   - *ast.ListExpr with parsed elements
+//   - error if validation fails (empty items, inconsistent indentation, tabs, whitespace-only)
+func (p *Parser) parseListExpr(s *scanner.Scanner, baseIndent int, depth int, startLine, startCol int) (*ast.ListExpr, error) {
+	var elements []ast.Expr
+	hasAnyNonCommentContent := false
+	inlineFirstItemUsed := false
+
+	if depth > scanner.MaxListNestingDepth {
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			listDepthExceededErrorMessage(depth, scanner.MaxListNestingDepth))
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+		return nil, err
+	}
+
+	for !s.IsEOF() {
+		// Check for end of input or blank lines
+		if s.IsEOF() || s.PeekChar() == '\n' {
+			s.SkipToNextLine()
+			if s.IsEOF() || !s.IsIndented() {
+				break
+			}
+			continue
+		}
+
+		// Check if we're still at the expected indentation level
+		if !s.IsIndented() {
+			break
+		}
+
+		currentIndent, hasTab := p.peekIndentLevel(s)
+		if hasTab {
+			err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(), listTabIndentationErrorMessage())
+			err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+			return nil, err
+		}
+		if currentIndent < baseIndent {
+			if depth == 1 {
+				snapshot := s.Snapshot()
+				s.SkipWhitespace()
+				isListItem := p.isListItemMarker(s)
+				s.Restore(snapshot)
+				if isListItem {
+					parseErr := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+						listInconsistentIndentErrorMessage(baseIndent, currentIndent))
+					parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+					return nil, parseErr
+				}
+			}
+			break
+		}
+
+		// Skip whitespace after indentation
+		s.SkipWhitespace()
+
+		// Skip empty lines after indentation
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+			continue
+		}
+
+		// Skip comment lines
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+
+		inlineFirstItemAllowed := !inlineFirstItemUsed && s.Line() == startLine && currentIndent == baseIndent-2
+
+		// Enforce consistent indentation for list items
+		if p.isListItemMarker(s) && currentIndent != baseIndent && !inlineFirstItemAllowed {
+			parseErr := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				listInconsistentIndentErrorMessage(baseIndent, currentIndent))
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+			return nil, parseErr
+		}
+
+		// Check for list item marker
+		if !p.isListItemMarker(s) {
+			// Not a list item at this indentation level - end of list
+			break
+		}
+
+		// Validate indentation consistency
+		if currentIndent != baseIndent && !inlineFirstItemAllowed {
+			parseErr := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
+				listInconsistentIndentErrorMessage(baseIndent, currentIndent))
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+			return nil, parseErr
+		}
+
+		if inlineFirstItemAllowed {
+			inlineFirstItemUsed = true
+		}
+
+		// Consume the dash and optional space
+		itemLine, itemCol := s.Line(), s.Column()
+		s.Advance() // consume '-'
+		if s.PeekChar() == ' ' {
+			s.Advance() // consume optional space
+		}
+
+		// Skip any additional whitespace after dash
+		s.SkipWhitespace()
+
+		// Check for comment after dash (also counts as empty item)
+		if s.IsCommentStart() {
+			err := NewParseError(SyntaxError, s.Filename(), itemLine, itemCol, listEmptyItemErrorMessage())
+			err.SetSnippet(generateSnippetFromSource(p.sourceText, itemLine, itemCol))
+			return nil, err
+		}
+
+		// Parse the value after the dash
+		valueStartLine, valueStartCol := s.Line(), s.Column()
+		ch := s.PeekChar()
+
+		// Nested list on next line (dash with no inline value)
+		if ch == '\n' || ch == '\r' || s.IsEOF() {
+			s.SkipToNextLine()
+			if s.IsEOF() || !s.IsIndented() {
+				err := NewParseError(SyntaxError, s.Filename(), itemLine, itemCol, listEmptyItemErrorMessage())
+				err.SetSnippet(generateSnippetFromSource(p.sourceText, itemLine, itemCol))
+				return nil, err
+			}
+
+			nextIndent, hasTab := p.peekIndentLevel(s)
+			if hasTab {
+				err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(), listTabIndentationErrorMessage())
+				err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
+				return nil, err
+			}
+			if nextIndent <= baseIndent {
+				err := NewParseError(SyntaxError, s.Filename(), itemLine, itemCol, listEmptyItemErrorMessage())
+				err.SetSnippet(generateSnippetFromSource(p.sourceText, itemLine, itemCol))
+				return nil, err
+			}
+
+			s.SkipWhitespace()
+			if !p.isListItemMarker(s) {
+				err := NewParseError(SyntaxError, s.Filename(), itemLine, itemCol, listEmptyItemErrorMessage())
+				err.SetSnippet(generateSnippetFromSource(p.sourceText, itemLine, itemCol))
+				return nil, err
+			}
+
+			nestedStartLine, nestedStartCol := s.Line(), s.Column()
+			nestedList, err := p.parseListExpr(s, nextIndent, depth+1, nestedStartLine, nestedStartCol)
+			if err != nil {
+				return nil, err
+			}
+			elements = append(elements, nestedList)
+			hasAnyNonCommentContent = true
+			continue
+		}
+
+		hasAnyNonCommentContent = true
+
+		// Inline object list item (e.g., "- name: alice")
+		mapSnapshot := s.Snapshot()
+		mapKeyStartLine, mapKeyStartCol := s.Line(), s.Column()
+		mapKey := s.ReadIdentifier()
+		if mapKey != "" {
+			s.SkipWhitespace()
+			if s.PeekChar() == ':' {
+				_ = s.Expect(':')
+				if p.isInlineMapDelimiter(s.PeekChar()) {
+					s.SkipWhitespace()
+					keyIndent := mapKeyStartCol - 1
+
+					valueExpr, valueConsumedLine, err := p.parseInlineMapValue(s, mapKey, mapKeyStartLine, mapKeyStartCol, keyIndent, depth+1)
+					if err != nil {
+						return nil, err
+					}
+
+					if !valueConsumedLine {
+						s.SkipToNextLine()
+					}
+
+					entries := map[string]ast.Expr{mapKey: valueExpr}
+					if err := p.parseInlineMapAdditionalEntries(s, keyIndent, entries, depth+1); err != nil {
+						return nil, err
+					}
+
+					endLine := s.Line()
+					endCol := p.mapEndColumn(s)
+					elements = append(elements, &ast.MapExpr{
+						Entries: entries,
+						SourceSpan: ast.SourceSpan{
+							Filename:  s.Filename(),
+							StartLine: mapKeyStartLine,
+							StartCol:  mapKeyStartCol,
+							EndLine:   endLine,
+							EndCol:    endCol,
+						},
+					})
+					hasAnyNonCommentContent = true
+					continue
+				}
+			}
+		}
+		s.Restore(mapSnapshot)
+
+		// Inline nested list (e.g., "- - 1")
+		if p.isListItemMarker(s) {
+			nestedList, err := p.parseListExpr(s, baseIndent+2, depth+1, valueStartLine, valueStartCol)
+			if err != nil {
+				return nil, err
+			}
+			elements = append(elements, nestedList)
+			s.SkipToNextLine()
+			continue
+		}
+
+		// Check if the value is a nested list (dash on next line with more indentation)
+		if ch == '\n' || ch == '\r' {
+			s.SkipToNextLine()
+			if !s.IsEOF() && s.IsIndented() {
+				nextIndent := s.GetIndentLevel()
+				if nextIndent > baseIndent {
+					s.SkipWhitespace()
+					if p.isListItemMarker(s) {
+						// Nested list
+						nestedList, err := p.parseListExpr(s, nextIndent, depth+1, valueStartLine, valueStartCol)
+						if err != nil {
+							return nil, err
+						}
+						elements = append(elements, nestedList)
+						continue
+					}
+				}
+			}
+			// Empty value after dash - this is an error
+			err := NewParseError(SyntaxError, s.Filename(), itemLine, itemCol,
+				listEmptyItemErrorMessage())
+			err.SetSnippet(generateSnippetFromSource(p.sourceText, itemLine, itemCol))
+			return nil, err
+		}
+
+		// Parse value expression (can be scalar, reference, or nested structure)
+		valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
+		if err != nil {
+			return nil, err
+		}
+
+		elements = append(elements, valueExpr)
+
+		// Move to next line
+		s.SkipToNextLine()
+	}
+
+	// Check for whitespace-only list (no actual items found)
+	if !hasAnyNonCommentContent && len(elements) == 0 {
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, listWhitespaceOnlyErrorMessage())
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+		return nil, err
+	}
+
+	endLine, endCol := s.Line(), s.Column()
+
+	return &ast.ListExpr{
+		Elements: elements,
+		SourceSpan: ast.SourceSpan{
+			Filename:  s.Filename(),
+			StartLine: startLine,
+			StartCol:  startCol,
+			EndLine:   endLine,
+			EndCol:    endCol,
+		},
+	}, nil
+}
+
+// parseInlineMapValue parses the value for an inline map entry within a list item.
+// It returns the parsed expression and whether the parser already consumed the next line.
+func (p *Parser) parseInlineMapValue(
+	s *scanner.Scanner,
+	key string,
+	keyStartLine int,
+	keyStartCol int,
+	keyIndent int,
+	listDepth int,
+) (ast.Expr, bool, error) {
+	if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+		s.SkipToNextLine()
+
+		foundContent := false
+		for !s.IsEOF() && s.IsIndented() {
+			s.SkipWhitespace()
+			if s.IsCommentStart() {
+				s.SkipComment()
+				s.SkipToNextLine()
+				continue
+			}
+			if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+				s.SkipToNextLine()
+				continue
+			}
+			foundContent = true
+			break
+		}
+
+		if foundContent {
+			nextIndent := s.Column() - 1
+			if nextIndent > keyIndent {
+				if p.isListItemMarker(s) {
+					listStartLine, listStartCol := s.Line(), s.Column()
+					listExpr, err := p.parseListExpr(s, nextIndent, listDepth, listStartLine, listStartCol)
+					return listExpr, true, err
+				}
+
+				nestedEntries, err := p.parseNestedMapWithListDepth(s, nextIndent, listDepth)
+				if err != nil {
+					return nil, true, err
+				}
+
+				endLine := s.Line()
+				endCol := p.mapEndColumn(s)
+				return &ast.MapExpr{
+					Entries: nestedEntries,
+					SourceSpan: ast.SourceSpan{
+						Filename:  s.Filename(),
+						StartLine: keyStartLine,
+						StartCol:  keyStartCol,
+						EndLine:   endLine,
+						EndCol:    endCol,
+					},
+				}, true, nil
+			}
+		}
+
+		return &ast.StringLiteral{
+			Value: "",
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: keyStartLine,
+				StartCol:  keyStartCol,
+				EndLine:   keyStartLine,
+				EndCol:    keyStartCol + len(key) + 1,
+			},
+		}, true, nil
+	}
+
+	valueStartLine, valueStartCol := s.Line(), s.Column()
+	valueExpr, err := p.parseValueExpr(s, valueStartLine, valueStartCol)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return valueExpr, false, nil
+}
+
+// parseInlineMapAdditionalEntries parses additional entries for a list item map at the same indentation level.
+func (p *Parser) parseInlineMapAdditionalEntries(s *scanner.Scanner, expectedIndent int, entries map[string]ast.Expr, listDepth int) error {
+	snapshot := s.Snapshot()
+	if p.seekToIndentedContent(s, expectedIndent) {
+		currentIndent := s.Column() - 1
+		if currentIndent == expectedIndent {
+			s.Restore(snapshot)
+			additionalEntries, err := p.parseNestedMapWithListDepth(s, expectedIndent, listDepth)
+			if err != nil {
+				return err
+			}
+			for key, value := range additionalEntries {
+				entries[key] = value
+			}
+			return nil
+		}
+	}
+
+	s.Restore(snapshot)
+	return nil
+}
+
+// findBaseIndent scans forward to find the base indentation for a block.
+// It skips empty lines and comments without consuming scanner state.
+func (p *Parser) findBaseIndent(s *scanner.Scanner) (int, bool) {
+	snapshot := s.Snapshot()
+	defer s.Restore(snapshot)
+
+	for !s.IsEOF() {
+		if !s.IsIndented() {
+			if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+				s.SkipToNextLine()
+				continue
+			}
+			return 0, false
+		}
+
+		s.SkipWhitespace()
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+			continue
+		}
+
+		return s.Column() - 1, true
+	}
+
+	return 0, false
+}
+
+// isWhitespaceOnlyIndentedBlock returns true if the upcoming indented block
+// contains only blank lines or comments before dedenting or EOF.
+func (p *Parser) isWhitespaceOnlyIndentedBlock(s *scanner.Scanner) bool {
+	snapshot := s.Snapshot()
+	defer s.Restore(snapshot)
+
+	seenIndented := false
+	for !s.IsEOF() {
+		if !s.IsIndented() {
+			if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+				s.SkipToNextLine()
+				continue
+			}
+			return seenIndented
+		}
+
+		seenIndented = true
+		s.SkipWhitespace()
+		if s.IsEOF() {
+			return seenIndented
+		}
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+			continue
+		}
+		return false
+	}
+
+	return seenIndented
+}
+
+// mapEndColumn normalizes map end columns to the start of the current line.
+func (p *Parser) mapEndColumn(s *scanner.Scanner) int {
+	if s.Column() > 1 {
+		return 1
+	}
+	return s.Column()
+}
+
+// isListOnlyBlock determines whether a block contains only list items at baseIndent.
+func (p *Parser) isListOnlyBlock(s *scanner.Scanner, baseIndent int) bool {
+	snapshot := s.Snapshot()
+	defer s.Restore(snapshot)
+
+	seenList := false
+	for !s.IsEOF() {
+		if !s.IsIndented() {
+			break
+		}
+		s.SkipWhitespace()
+		currentIndent := s.Column() - 1
+		if currentIndent < baseIndent {
+			break
+		}
+
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+			continue
+		}
+
+		if currentIndent == baseIndent {
+			if p.isListItemMarker(s) {
+				seenList = true
+				s.SkipToNextLine()
+				continue
+			}
+			return false
+		}
+		if p.isListItemMarker(s) {
+			seenList = true
+		}
+		s.SkipToNextLine()
+	}
+
+	return seenList
+}
+
+// peekIndentLevel calculates indentation from the current line start without moving the scanner.
+// It returns the indentation level (spaces) and whether a tab was found in the indentation.
+func (p *Parser) peekIndentLevel(s *scanner.Scanner) (int, bool) {
+	lineStart := s.Pos() - (s.Column() - 1)
+	if lineStart < 0 {
+		lineStart = 0
+	}
+
+	indent := 0
+	for i := lineStart; i < len(p.sourceText); i++ {
+		switch p.sourceText[i] {
+		case ' ':
+			indent++
+		case '\t':
+			return indent, true
+		default:
+			return indent, false
+		}
+	}
+
+	return indent, false
+}
+
+// seekToIndentedContent advances the scanner to the next non-empty, non-comment line.
+func (p *Parser) seekToIndentedContent(s *scanner.Scanner, baseIndent int) bool {
+	for !s.IsEOF() && s.IsIndented() {
+		s.SkipWhitespace()
+		currentIndent := s.Column() - 1
+		if currentIndent < baseIndent {
+			return false
+		}
+		if s.IsCommentStart() {
+			s.SkipComment()
+			s.SkipToNextLine()
+			continue
+		}
+		if s.PeekChar() == '\n' || s.PeekChar() == '\r' {
+			s.SkipToNextLine()
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// isListItemMarker returns true if the scanner is positioned at a list item marker (dash + space).
+// This delegates to the scanner's implementation to keep list marker detection consistent.
+func (p *Parser) isListItemMarker(s *scanner.Scanner) bool {
+	return s.IsListItemMarker()
+}
+
+// isInlineMapDelimiter reports whether the rune following a colon indicates a map value boundary.
+// This avoids treating scalar values containing colons (e.g., inline references or URLs) as map items.
+func (p *Parser) isInlineMapDelimiter(ch rune) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '#' || ch == 0
 }
 
 // generateSnippetFromSource is a convenience wrapper around generateSnippet from errors.go.

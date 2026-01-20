@@ -21,6 +21,35 @@ const (
 	IOError
 )
 
+const (
+	listEmptyItemErrorTitle          = "empty list item"
+	listInconsistentIndentErrorTitle = "inconsistent list indentation"
+	// listDepthExceededErrorTitle is used when list nesting exceeds the allowed limit.
+	listDepthExceededErrorTitle  = "list nesting depth exceeded"
+	listTabIndentationErrorTitle = "tab character in indentation"
+	listWhitespaceOnlyErrorTitle = "list contains only whitespace"
+)
+
+func listEmptyItemErrorMessage() string {
+	return fmt.Sprintf("%s\n\nList items cannot be empty. Provide a value after the dash.", listEmptyItemErrorTitle)
+}
+
+func listInconsistentIndentErrorMessage(expected, got int) string {
+	return fmt.Sprintf("%s\n\nExpected %d spaces (matching previous list item), got %d spaces.", listInconsistentIndentErrorTitle, expected, got)
+}
+
+func listDepthExceededErrorMessage(currentDepth, maxDepth int) string {
+	return fmt.Sprintf("%s\n\nMaximum list nesting depth is %d levels. Current depth: %d.\nSimplify your data structure or split into multiple sections.", listDepthExceededErrorTitle, maxDepth, currentDepth)
+}
+
+func listTabIndentationErrorMessage() string {
+	return fmt.Sprintf("%s\n\nIndentation must use spaces only. Replace tabs with 2 spaces per level.", listTabIndentationErrorTitle)
+}
+
+func listWhitespaceOnlyErrorMessage() string {
+	return fmt.Sprintf("%s\n\nList must have explicit items or use empty list syntax: []", listWhitespaceOnlyErrorTitle)
+}
+
 // String returns the string representation of the error kind.
 func (k ParseErrorKind) String() string {
 	switch k {

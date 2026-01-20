@@ -1,0 +1,9 @@
+users:
+  - name: alice
+    role: admin
+    tags:
+      - oncall
+      - platform
+  - name: bob
+    role: user
+    active: true

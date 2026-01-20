@@ -55,6 +55,10 @@ func sectionToData(section *ast.SectionDecl) (map[string]any, error) {
 
 // exprToValue converts an AST expression to a runtime value.
 func exprToValue(expr ast.Expr) (any, error) {
+	if expr == nil {
+		return nil, fmt.Errorf("nil expression")
+	}
+
 	switch e := expr.(type) {
 	case *ast.StringLiteral:
 		return e.Value, nil
@@ -74,6 +78,18 @@ func exprToValue(expr ast.Expr) (any, error) {
 				return nil, fmt.Errorf("failed to convert nested key %q: %w", k, err)
 			}
 			result[k] = val
+		}
+		return result, nil
+
+	case *ast.ListExpr:
+		// ListExpr represents an ordered list of values
+		result := make([]any, 0, len(e.Elements))
+		for idx, element := range e.Elements {
+			val, err := exprToValue(element)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert list element %d: %w", idx, err)
+			}
+			result = append(result, val)
 		}
 		return result, nil
 

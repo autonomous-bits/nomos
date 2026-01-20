@@ -1,0 +1,6 @@
+servers:
+  - web01
+  - web02
+
+refs:
+  all_servers: reference:base:servers

@@ -8,6 +8,14 @@ import (
 	"unicode/utf8"
 )
 
+// MaxListNestingDepth defines the maximum allowed nesting depth for lists.
+// This limit prevents excessive recursion and maintains reasonable parsing performance.
+// A depth of 20 levels should accommodate complex configuration structures while
+// preventing pathological cases that could lead to stack overflow or performance issues.
+//
+// Example: A list nested 20 levels deep would have indentation of 40 spaces (20 * 2).
+const MaxListNestingDepth = 20
+
 // Scanner represents a lexical scanner for Nomos source text.
 type Scanner struct {
 	input     string // The input string
@@ -16,6 +24,15 @@ type Scanner struct {
 	line      int    // Current line number (1-indexed)
 	col       int    // Current column number (1-indexed)
 	lineStart int    // Position of start of current line
+}
+
+// Snapshot captures the current scanner position for later restoration.
+// It is intended for internal parser lookahead operations.
+type Snapshot struct {
+	pos       int
+	line      int
+	col       int
+	lineStart int
 }
 
 // New creates a new Scanner for the given input.
@@ -28,6 +45,24 @@ func New(input, filename string) *Scanner {
 		col:       1,
 		lineStart: 0,
 	}
+}
+
+// Snapshot returns a snapshot of the current scanner position.
+func (s *Scanner) Snapshot() Snapshot {
+	return Snapshot{
+		pos:       s.pos,
+		line:      s.line,
+		col:       s.col,
+		lineStart: s.lineStart,
+	}
+}
+
+// Restore resets the scanner to a previously captured snapshot.
+func (s *Scanner) Restore(snapshot Snapshot) {
+	s.pos = snapshot.pos
+	s.line = snapshot.line
+	s.col = snapshot.col
+	s.lineStart = snapshot.lineStart
 }
 
 // Filename returns the source filename.
@@ -55,10 +90,9 @@ func (s *Scanner) IsEOF() bool {
 	return s.pos >= len(s.input)
 }
 
-// IsCommentStart returns true if the scanner is positioned at a YAML-style comment delimiter (#).
-// The method checks whether the current character is '#', indicating the start of a comment
-// that extends to the end of the line. This method does not advance the scanner position,
-// allowing lookahead without state modification.
+// IsCommentStart reports whether the scanner is positioned at a YAML-style comment delimiter (#).
+// It checks the current character without advancing, allowing comment lookahead
+// without state modification.
 //
 // Returns true if the scanner is at a '#' character, false otherwise (including at EOF).
 func (s *Scanner) IsCommentStart() bool {
@@ -117,11 +151,11 @@ func (s *Scanner) SkipToNextLine() {
 
 // SkipComment advances the scanner past a YAML-style comment that begins with '#'.
 // The scanner should be positioned at a '#' character when this method is called.
-// The method advances past the '#' delimiter and all subsequent characters on the line,
+// It advances past the '#' delimiter and all subsequent characters on the line,
 // stopping at either a newline character or EOF. The newline itself is NOT consumed;
 // the caller is responsible for advancing past the line terminator.
 //
-// This method correctly handles UTF-8 encoded comment content, advancing by full
+// SkipComment correctly handles UTF-8 encoded comment content, advancing by full
 // Unicode code points rather than individual bytes. Comments may contain any valid
 // UTF-8 text including emoji, non-ASCII characters, and multi-byte sequences.
 //
@@ -153,25 +187,76 @@ func (s *Scanner) IsIndented() bool {
 	return s.col > 1 && s.pos > s.lineStart
 }
 
-// GetIndentLevel returns the indentation level (number of leading spaces/tabs) of the current line.
-// Must be called at the start of a line. Tabs count as 1 indent level each.
-// Optimized to scan forward without saving/restoring state.
-func (s *Scanner) GetIndentLevel() int {
-	level := 0
-	pos := s.pos
+// IsListItemMarker reports whether the scanner is positioned at a list item marker (dash + space).
+// It checks for the pattern "- " (hyphen followed by exactly one space), which indicates
+// the start of a list item in YAML-style block notation. This method does not advance the scanner,
+// allowing lookahead without state modification.
+//
+// Returns true if at "- " pattern, false otherwise (including at EOF).
+func (s *Scanner) IsListItemMarker() bool {
+	if s.IsEOF() {
+		return false
+	}
 
-	// Scan forward counting whitespace, stop at first non-whitespace or newline
-	for pos < len(s.input) {
-		ch := s.input[pos]
-		if ch == ' ' || ch == '\t' {
-			level++
-			pos++
-		} else {
-			break
+	// Check if current position has '-'
+	if s.PeekChar() != '-' {
+		return false
+	}
+
+	// Check if next position has ' ' (space)
+	if s.pos+1 >= len(s.input) {
+		return false
+	}
+
+	return s.input[s.pos+1] == ' '
+}
+
+// GetIndentLevel returns the number of space characters from the start of the current line
+// to the current scanner position. This method is used to validate list item indentation
+// consistency. Tab characters are not counted as valid indentation (lists require spaces only).
+//
+// Returns the indentation level as a count of space characters. Returns 0 if at start of line
+// or if any non-space characters (including tabs) appear before current position.
+func (s *Scanner) GetIndentLevel() int {
+	// Calculate distance from line start
+	indentChars := s.pos - s.lineStart
+
+	if indentChars <= 0 {
+		return 0
+	}
+
+	// Verify all characters are spaces (no tabs)
+	for i := s.lineStart; i < s.pos; i++ {
+		if s.input[i] != ' ' {
+			return 0 // Tab or other character found
 		}
 	}
 
-	return level
+	return indentChars
+}
+
+// ValidateListIndentation validates that the current line's indentation matches the expected level.
+// This enforces the 2-space indentation requirement for lists. The method checks:
+// - Indentation is exactly expectedIndent spaces (no more, no less)
+// - No tab characters in the indentation
+// - Consistent spacing across all list items
+//
+// Returns nil if indentation is valid, or an error with details about the violation.
+func (s *Scanner) ValidateListIndentation(expectedIndent int) error {
+	actualIndent := s.GetIndentLevel()
+
+	if actualIndent != expectedIndent {
+		return fmt.Errorf(
+			"%s:%d:%d: invalid list indentation: expected %d spaces, found %d spaces",
+			s.filename,
+			s.line,
+			s.col,
+			expectedIndent,
+			actualIndent,
+		)
+	}
+
+	return nil
 }
 
 // PeekToken peeks at the next identifier token without consuming it.

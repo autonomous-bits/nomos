@@ -31,7 +31,10 @@ func TestExtractImports_FromAST(t *testing.T) {
 	}
 
 	// Extract
-	extracted := ExtractImports(tree)
+	extracted, err := ExtractImports(tree)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Verify sources
 	if len(extracted.Sources) != 1 {

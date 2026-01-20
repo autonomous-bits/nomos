@@ -19,3 +19,12 @@ environments:
 
 app:
   name: 'example-app'
+  list:
+    - item1
+    - item2
+    - item3
+  objects:
+    - key1: value1
+      key2: value2
+    - keyA: valueA
+      keyB: valueB

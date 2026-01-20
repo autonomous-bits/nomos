@@ -138,6 +138,120 @@ func TestASTToData_WithReferenceExpr(t *testing.T) {
 	}
 }
 
+func TestASTToData_ListExprConversion(t *testing.T) {
+	refExpr := &ast.ReferenceExpr{
+		Alias:      "network",
+		Path:       []string{"vpc", "cidr"},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+	}
+
+	listExpr := &ast.ListExpr{
+		Elements: []ast.Expr{
+			&ast.StringLiteral{Value: "web01"},
+			refExpr,
+			&ast.MapExpr{
+				Entries: map[string]ast.Expr{
+					"port": &ast.StringLiteral{Value: "8080"},
+				},
+			},
+			&ast.ListExpr{
+				Elements: []ast.Expr{
+					&ast.StringLiteral{Value: "nested"},
+				},
+			},
+		},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+	}
+
+	tree := &ast.AST{
+		Statements: []ast.Stmt{
+			&ast.SectionDecl{
+				Name: "servers",
+				Entries: map[string]ast.Expr{
+					"targets": listExpr,
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+		},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+	}
+
+	result, err := ASTToData(tree)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	serversMap := result["servers"].(map[string]any)
+	listValue, ok := serversMap["targets"].([]any)
+	if !ok {
+		t.Fatalf("expected list conversion, got %T", serversMap["targets"])
+	}
+
+	if listValue[1] != refExpr {
+		t.Errorf("expected ReferenceExpr to be preserved in list, got %v", listValue[1])
+	}
+
+	mapValue, ok := listValue[2].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map conversion in list, got %T", listValue[2])
+	}
+	if mapValue["port"] != "8080" {
+		t.Errorf("expected nested map value '8080', got %v", mapValue["port"])
+	}
+
+	nestedList, ok := listValue[3].([]any)
+	if !ok {
+		t.Fatalf("expected nested list conversion, got %T", listValue[3])
+	}
+	if len(nestedList) != 1 || nestedList[0] != "nested" {
+		t.Errorf("expected nested list to contain 'nested', got %v", nestedList)
+	}
+}
+
+func TestASTToData_ListExprWithPathAndIdent(t *testing.T) {
+	listExpr := &ast.ListExpr{
+		Elements: []ast.Expr{
+			&ast.PathExpr{Components: []string{"network", "subnet"}},
+			&ast.IdentExpr{Name: "region"},
+		},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+	}
+
+	tree := &ast.AST{
+		Statements: []ast.Stmt{
+			&ast.SectionDecl{
+				Name: "config",
+				Entries: map[string]ast.Expr{
+					"items": listExpr,
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+		},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+	}
+
+	result, err := ASTToData(tree)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	configMap := result["config"].(map[string]any)
+	listValue, ok := configMap["items"].([]any)
+	if !ok {
+		t.Fatalf("expected list conversion, got %T", configMap["items"])
+	}
+
+	if len(listValue) != 2 {
+		t.Fatalf("expected 2 list elements, got %d", len(listValue))
+	}
+	if listValue[0] != "network.subnet" {
+		t.Errorf("expected path conversion to 'network.subnet', got %v", listValue[0])
+	}
+	if listValue[1] != "region" {
+		t.Errorf("expected ident conversion to 'region', got %v", listValue[1])
+	}
+}
+
 func TestASTToData_IgnoresNonSectionStatements(t *testing.T) {
 	tree := &ast.AST{
 		Statements: []ast.Stmt{

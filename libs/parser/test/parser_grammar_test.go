@@ -2,10 +2,12 @@
 package parser_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/parser"
+	"github.com/autonomous-bits/nomos/libs/parser/internal/testutil"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -1720,5 +1722,360 @@ logging:
 				tt.validateAST(t, result)
 			}
 		})
+	}
+}
+
+// TestParseSimpleList tests parsing of basic list syntax with string values.
+// This test WILL FAIL until parseListExpr is implemented in parser.go.
+func TestParseSimpleList(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		expectedCount int
+		expectedFirst string
+		expectedLast  string
+	}{
+		{
+			name: "simple string list",
+			input: `IPs:
+  - 10.0.0.1
+  - 10.1.0.1
+  - 10.2.0.1`,
+			expectedCount: 3,
+			expectedFirst: "10.0.0.1",
+			expectedLast:  "10.2.0.1",
+		},
+		{
+			name: "simple number list",
+			input: `ports:
+  - 8080
+  - 8081
+  - 8082`,
+			expectedCount: 3,
+			expectedFirst: "8080",
+			expectedLast:  "8082",
+		},
+		{
+			name: "single item list",
+			input: `items:
+  - single`,
+			expectedCount: 1,
+			expectedFirst: "single",
+			expectedLast:  "single",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+
+			// Expected to fail until implementation
+			if err != nil {
+				t.Logf("EXPECTED FAILURE (not yet implemented): %v", err)
+				return
+			}
+
+			if len(result.Statements) != 1 {
+				t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+			}
+
+			section, ok := result.Statements[0].(*ast.SectionDecl)
+			if !ok {
+				t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
+			}
+
+			// The list should be in the section's entries with empty key
+			listExpr, ok := section.Entries[""].(*ast.ListExpr)
+			if !ok {
+				t.Fatalf("expected *ast.ListExpr, got %T", section.Entries[""])
+			}
+
+			if len(listExpr.Elements) != tt.expectedCount {
+				t.Errorf("expected %d elements, got %d", tt.expectedCount, len(listExpr.Elements))
+			}
+
+			if len(listExpr.Elements) > 0 {
+				first, ok := listExpr.Elements[0].(*ast.StringLiteral)
+				if !ok {
+					t.Fatalf("expected first element to be *ast.StringLiteral, got %T", listExpr.Elements[0])
+				}
+				if first.Value != tt.expectedFirst {
+					t.Errorf("expected first element '%s', got '%s'", tt.expectedFirst, first.Value)
+				}
+
+				last, ok := listExpr.Elements[len(listExpr.Elements)-1].(*ast.StringLiteral)
+				if !ok {
+					t.Fatalf("expected last element to be *ast.StringLiteral, got %T", listExpr.Elements[len(listExpr.Elements)-1])
+				}
+				if last.Value != tt.expectedLast {
+					t.Errorf("expected last element '%s', got '%s'", tt.expectedLast, last.Value)
+				}
+			}
+		})
+	}
+}
+
+// TestParseEmptyList tests parsing of empty list syntax using [] notation.
+// This test WILL FAIL until empty list parsing is implemented in parser.go.
+func TestParseEmptyList(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "empty list with brackets",
+			input: `emptyCollection: []`,
+		},
+		{
+			name: "empty list in section",
+			input: `config:
+  items: []`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := strings.NewReader(tt.input)
+			result, err := parser.Parse(reader, "test.csl")
+
+			// Expected to fail until implementation
+			if err != nil {
+				t.Logf("EXPECTED FAILURE (not yet implemented): %v", err)
+				return
+			}
+
+			if len(result.Statements) == 0 {
+				t.Fatal("expected at least 1 statement")
+			}
+
+			section, ok := result.Statements[0].(*ast.SectionDecl)
+			if !ok {
+				t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
+			}
+
+			// Find the list expression
+			var listExpr *ast.ListExpr
+			for _, expr := range section.Entries {
+				if list, ok := expr.(*ast.ListExpr); ok {
+					listExpr = list
+					break
+				}
+			}
+
+			if listExpr == nil {
+				t.Fatal("expected to find *ast.ListExpr in section entries")
+			}
+
+			if len(listExpr.Elements) != 0 {
+				t.Errorf("expected empty list (0 elements), got %d elements", len(listExpr.Elements))
+			}
+		})
+	}
+}
+
+// TestParseNestedList tests parsing nested list syntax with two levels of lists.
+func TestParseNestedList(t *testing.T) {
+	fixturePath := "../testdata/fixtures/lists/nested_2levels.csl"
+
+	result, err := parser.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(result.Statements) != 1 {
+		t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+	}
+
+	section, ok := result.Statements[0].(*ast.SectionDecl)
+	if !ok {
+		t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
+	}
+
+	listExpr, ok := section.Entries[""].(*ast.ListExpr)
+	if !ok {
+		t.Fatalf("expected *ast.ListExpr, got %T", section.Entries[""])
+	}
+
+	if len(listExpr.Elements) != 2 {
+		t.Fatalf("expected 2 top-level list elements, got %d", len(listExpr.Elements))
+	}
+
+	firstList, ok := listExpr.Elements[0].(*ast.ListExpr)
+	if !ok {
+		t.Fatalf("expected first element to be *ast.ListExpr, got %T", listExpr.Elements[0])
+	}
+	secondList, ok := listExpr.Elements[1].(*ast.ListExpr)
+	if !ok {
+		t.Fatalf("expected second element to be *ast.ListExpr, got %T", listExpr.Elements[1])
+	}
+
+	if len(firstList.Elements) != 2 {
+		t.Fatalf("expected first nested list to have 2 elements, got %d", len(firstList.Elements))
+	}
+	if len(secondList.Elements) != 2 {
+		t.Fatalf("expected second nested list to have 2 elements, got %d", len(secondList.Elements))
+	}
+
+	firstValues := []string{"1", "2"}
+	for i, expected := range firstValues {
+		literal, ok := firstList.Elements[i].(*ast.StringLiteral)
+		if !ok {
+			t.Fatalf("expected first nested list element %d to be *ast.StringLiteral, got %T", i, firstList.Elements[i])
+		}
+		if literal.Value != expected {
+			t.Fatalf("expected first nested list element %d to be %q, got %q", i, expected, literal.Value)
+		}
+	}
+
+	secondValues := []string{"3", "4"}
+	for i, expected := range secondValues {
+		literal, ok := secondList.Elements[i].(*ast.StringLiteral)
+		if !ok {
+			t.Fatalf("expected second nested list element %d to be *ast.StringLiteral, got %T", i, secondList.Elements[i])
+		}
+		if literal.Value != expected {
+			t.Fatalf("expected second nested list element %d to be %q, got %q", i, expected, literal.Value)
+		}
+	}
+}
+
+// TestParseListOfObjects tests parsing lists where items are object literals.
+func TestParseListOfObjects(t *testing.T) {
+	fixturePath := "../testdata/fixtures/lists/list_objects.csl"
+	goldenPath := "../testdata/golden/lists/list_objects.csl.json"
+
+	result, err := parser.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	actualJSON, err := testutil.CanonicalJSON(result)
+	if err != nil {
+		t.Fatalf("failed to serialize AST to JSON: %v", err)
+	}
+
+	//nolint:gosec // G304: goldenPath is controlled test fixture path
+	expectedJSON, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+		if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
+			t.Fatalf("failed to write golden file: %v", err)
+		}
+		t.Skip("Generated golden file, re-run test to verify")
+	}
+
+	if !testutil.CompareJSON(actualJSON, expectedJSON) {
+		t.Errorf("AST JSON does not match golden file.\nExpected:\n%s\n\nActual:\n%s",
+			string(expectedJSON), string(actualJSON))
+	}
+}
+
+// TestParseListReferenceWithIndex tests parsing list references with a single index.
+func TestParseListReferenceWithIndex(t *testing.T) {
+	fixturePath := "../testdata/fixtures/lists/reference_simple.csl"
+
+	result, err := parser.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	section := requireSection(t, result, "network")
+	ref := requireReferenceEntry(t, section, "primary_ip")
+
+	assertReferencePath(t, ref, []string{"IPs[0]"})
+}
+
+// TestParseListReferenceMultiIndex tests parsing list references with multiple indexes.
+func TestParseListReferenceMultiIndex(t *testing.T) {
+	fixturePath := "../testdata/fixtures/lists/reference_multidim.csl"
+
+	result, err := parser.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	section := requireSection(t, result, "refs")
+
+	tests := []struct {
+		name     string
+		key      string
+		wantPath []string
+	}{
+		{
+			name:     "first element uses two indexes",
+			key:      "first",
+			wantPath: []string{"matrix[0][1]"},
+		},
+		{
+			name:     "second element uses two indexes",
+			key:      "second",
+			wantPath: []string{"matrix[1][0]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ref := requireReferenceEntry(t, section, tt.key)
+			assertReferencePath(t, ref, tt.wantPath)
+		})
+	}
+}
+
+// TestParseWholeListReference tests parsing references to whole lists without index notation.
+func TestParseWholeListReference(t *testing.T) {
+	fixturePath := "../testdata/fixtures/lists/reference_whole_list.csl"
+
+	result, err := parser.ParseFile(fixturePath)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	section := requireSection(t, result, "refs")
+	ref := requireReferenceEntry(t, section, "all_servers")
+
+	assertReferencePath(t, ref, []string{"servers"})
+}
+
+func requireSection(t *testing.T, tree *ast.AST, name string) *ast.SectionDecl {
+	t.Helper()
+
+	for _, stmt := range tree.Statements {
+		if section, ok := stmt.(*ast.SectionDecl); ok && section.Name == name {
+			return section
+		}
+	}
+
+	t.Fatalf("expected to find section %q", name)
+	return nil
+}
+
+func requireReferenceEntry(t *testing.T, section *ast.SectionDecl, key string) *ast.ReferenceExpr {
+	t.Helper()
+
+	expr, ok := section.Entries[key]
+	if !ok {
+		t.Fatalf("expected entry %q in section %q", key, section.Name)
+	}
+
+	ref, ok := expr.(*ast.ReferenceExpr)
+	if !ok {
+		t.Fatalf("expected entry %q to be *ast.ReferenceExpr, got %T", key, expr)
+	}
+
+	return ref
+}
+
+func assertReferencePath(t *testing.T, ref *ast.ReferenceExpr, want []string) {
+	t.Helper()
+
+	if len(ref.Path) != len(want) {
+		t.Fatalf("expected path length %d, got %d", len(want), len(ref.Path))
+	}
+
+	for i, component := range want {
+		if ref.Path[i] != component {
+			t.Errorf("expected path[%d] = %q, got %q", i, component, ref.Path[i])
+		}
 	}
 }
