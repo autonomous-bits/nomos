@@ -9,6 +9,7 @@
   "statements": [
     {
       "alias": "base",
+      "path": "./config/base.csl",
       "source_span": {
         "end_col": 1,
         "end_line": 2,
@@ -19,6 +20,7 @@
     },
     {
       "alias": "network",
+      "path": "./network/vpc.csl",
       "source_span": {
         "end_col": 1,
         "end_line": 3,

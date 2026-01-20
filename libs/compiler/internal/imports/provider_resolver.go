@@ -54,7 +54,7 @@ type ImportDecl struct {
 }
 
 // ExtractImports extracts source declarations, imports, and data from a parsed AST.
-func ExtractImports(tree *ast.AST) ExtractedData {
+func ExtractImports(tree *ast.AST) (ExtractedData, error) {
 	var sources []SourceDecl
 	var imports []ImportDecl
 
@@ -64,7 +64,7 @@ func ExtractImports(tree *ast.AST) ExtractedData {
 			Sources: sources,
 			Imports: imports,
 			Data:    make(map[string]any),
-		}
+		}, nil
 	}
 
 	for _, stmt := range tree.Statements {
@@ -73,7 +73,11 @@ func ExtractImports(tree *ast.AST) ExtractedData {
 			// Extract source declaration
 			config := make(map[string]any)
 			for k, expr := range s.Config {
-				config[k] = exprToValue(expr)
+				value, err := exprToValue(expr)
+				if err != nil {
+					return ExtractedData{}, fmt.Errorf("failed to convert source %q config %q: %w", s.Alias, k, err)
+				}
+				config[k] = value
 			}
 			sources = append(sources, SourceDecl{
 				Alias:  s.Alias,
@@ -101,26 +105,68 @@ func ExtractImports(tree *ast.AST) ExtractedData {
 	}
 
 	// Convert remaining sections to data
-	data, _ := converter.ASTToData(tree)
+	data, err := converter.ASTToData(tree)
+	if err != nil {
+		return ExtractedData{}, fmt.Errorf("failed to convert AST data: %w", err)
+	}
 
 	return ExtractedData{
 		Sources: sources,
 		Imports: imports,
 		Data:    data,
-	}
+	}, nil
 }
 
 // exprToValue converts an AST expression to a Go value.
-func exprToValue(expr ast.Expr) any {
+func exprToValue(expr ast.Expr) (any, error) {
+	if expr == nil {
+		return nil, fmt.Errorf("nil expression")
+	}
+
 	switch e := expr.(type) {
 	case *ast.StringLiteral:
-		return e.Value
+		return e.Value, nil
 	case *ast.ReferenceExpr:
 		// References are not resolved here - kept as ReferenceExpr
-		return e
+		return e, nil
+	case *ast.MapExpr:
+		result := make(map[string]any, len(e.Entries))
+		for k, v := range e.Entries {
+			val, err := exprToValue(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert map key %q: %w", k, err)
+			}
+			result[k] = val
+		}
+		return result, nil
+	case *ast.ListExpr:
+		result := make([]any, 0, len(e.Elements))
+		for idx, element := range e.Elements {
+			val, err := exprToValue(element)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert list element %d: %w", idx, err)
+			}
+			result = append(result, val)
+		}
+		return result, nil
+	case *ast.PathExpr:
+		return pathExprToString(e), nil
+	case *ast.IdentExpr:
+		return e.Name, nil
 	default:
-		return nil
+		return nil, fmt.Errorf("unsupported expression type: %T", expr)
 	}
+}
+
+func pathExprToString(p *ast.PathExpr) string {
+	if len(p.Components) == 0 {
+		return ""
+	}
+	result := p.Components[0]
+	for i := 1; i < len(p.Components); i++ {
+		result += "." + p.Components[i]
+	}
+	return result
 }
 
 // ResolveImports resolves imports using the provider registry and type registry.
@@ -148,7 +194,10 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 	}
 
 	// Extract declarations
-	extracted := ExtractImports(tree)
+	extracted, err := ExtractImports(tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract imports for %q: %w", filePath, err)
+	}
 
 	// Initialize providers from source declarations
 	for _, src := range extracted.Sources {

@@ -4,6 +4,7 @@ package parser_test
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -495,6 +496,42 @@ func BenchmarkParse_ConfigWith1000Comments(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		reader := bytes.NewReader([]byte(source))
 		_, err := parser.Parse(reader, "test.csl")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkParseListSimple benchmarks parsing a simple list fixture.
+func BenchmarkParseListSimple(b *testing.B) {
+	path := "testdata/fixtures/lists/simple_list.csl"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		b.Fatalf("failed to read fixture %s: %v", path, err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reader := bytes.NewReader(data)
+		_, err := parser.Parse(reader, path)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkParseListNested benchmarks parsing a nested list fixture.
+func BenchmarkParseListNested(b *testing.B) {
+	path := "testdata/fixtures/lists/nested_lists.csl"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		b.Fatalf("failed to read fixture %s: %v", path, err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reader := bytes.NewReader(data)
+		_, err := parser.Parse(reader, path)
 		if err != nil {
 			b.Fatal(err)
 		}

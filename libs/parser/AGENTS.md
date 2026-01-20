@@ -19,14 +19,35 @@ testdata/
 ├── fixtures/       # Input .csl files for testing
 │   ├── simple.csl
 │   ├── references.csl
-│   └── nested.csl
+│   ├── nested.csl
+│   └── lists/      # List-specific test inputs
+│       ├── simple_list.csl
+│       ├── nested_lists.csl
+│       ├── empty_list.csl
+│       ├── list_with_objects.csl
+│       └── list_in_reference.csl
 ├── golden/         # Expected AST outputs (JSON)
 │   ├── simple.csl.json
+│   ├── lists/      # Expected AST for list tests
+│   │   ├── simple_list.csl.json
+│   │   ├── nested_lists.csl.json
+│   │   └── ...
 │   └── ...
 └── errors/         # Error test cases
     ├── invalid_syntax.csl
+    ├── lists/      # List-specific error tests
+    │   ├── empty_item.csl
+    │   ├── inconsistent_indent.csl
+    │   ├── tab_character.csl
+    │   ├── whitespace_only.csl
+    │   └── depth_exceeded.csl
     └── ...
 ```
+
+**Directory Structure for List Tests**:
+- `testdata/fixtures/lists/` - Valid and edge-case list syntax inputs
+- `testdata/golden/lists/` - Canonical AST JSON for list tests
+- `testdata/errors/lists/` - Invalid list syntax that should produce errors
 
 **Golden Test Pattern**:
 1. Parse input file from `fixtures/`
@@ -38,6 +59,77 @@ testdata/
 - Test files in `errors/` directory
 - Assertions on `ParseError.Kind()`, message content, and location
 - Verify error messages are actionable and user-friendly
+
+#### List Parsing Test Patterns
+
+**List Golden Tests** - Test AST generation for valid list syntax:
+
+```go
+// Test simple list parsing
+func TestParse_Lists_Simple(t *testing.T) {
+    input := readFixture("testdata/fixtures/lists/simple_list.csl")
+    ast, err := parser.Parse(input)
+    require.NoError(t, err)
+    
+    actual := testutil.CanonicalJSON(ast)
+    golden := readGolden("testdata/golden/lists/simple_list.csl.json")
+    assert.JSONEq(t, golden, actual)
+}
+```
+
+**List Error Tests** - Validate error handling for invalid list syntax:
+
+```go
+// Test empty list item rejection
+func TestParse_Lists_EmptyItem_Error(t *testing.T) {
+    input := readFixture("testdata/errors/lists/empty_item.csl")
+    _, err := parser.Parse(input)
+    require.Error(t, err)
+    
+    parseErr := err.(parser.ParseError)
+    assert.Equal(t, parser.SyntaxError, parseErr.Kind())
+    assert.Contains(t, parseErr.Message(), "empty list item")
+    assert.Contains(t, parseErr.Message(), "use [] for empty lists")
+}
+```
+
+**List Integration Tests** - End-to-end parsing workflows:
+
+```go
+// Test parser + scanner cooperation for list syntax
+func TestParse_Lists_Integration(t *testing.T) {
+    tests := []struct {
+        name    string
+        fixture string
+        verify  func(*testing.T, *ast.Node)
+    }{
+        {
+            name:    "nested lists",
+            fixture: "testdata/fixtures/lists/nested_lists.csl",
+            verify:  verifyNestedListStructure,
+        },
+        {
+            name:    "lists with objects",
+            fixture: "testdata/fixtures/lists/list_with_objects.csl",
+            verify:  verifyMixedListStructure,
+        },
+    }
+    // Run integration tests...
+}
+```
+
+**List Test File Naming Conventions**:
+- `simple_list.csl` - Basic list with scalar values
+- `nested_lists.csl` - Lists containing other lists (2-3 levels)
+- `empty_list.csl` - Empty list using `[]` notation
+- `list_with_objects.csl` - Lists containing object/section items
+- `list_in_reference.csl` - Lists used in reference expressions
+- `deep_nesting.csl` - Maximum depth testing (19-21 levels)
+- `empty_item.csl` - Error case: `- ` with no value
+- `inconsistent_indent.csl` - Error case: non-2-space indentation
+- `tab_character.csl` - Error case: tabs instead of spaces
+- `whitespace_only.csl` - Error case: list with only whitespace
+- `depth_exceeded.csl` - Error case: >20 levels of nesting
 
 ### Performance Benchmarks
 
@@ -92,6 +184,61 @@ Nomos parser errors follow a specific format with actionable guidance:
 **Error Formatting**:
 Use `FormatParseError(err, sourceText)` to generate multi-line output with context and caret marker (rune-aware for UTF-8).
 
+#### List Validation Error Patterns
+
+**List Indentation Errors** - 2-space indentation strictly enforced:
+```
+list_items.csl:5:3: syntax error: inconsistent list item indentation
+
+    -   value
+    ^
+Expected 2-space indentation for list items, got 4 spaces.
+```
+
+**Empty List Item Errors** - Empty items must use `[]` notation:
+```
+list_items.csl:8:5: syntax error: empty list item not allowed
+
+  - 
+    ^
+List items cannot be empty. Use [] for an empty list.
+```
+
+**Tab Character Errors** - Tabs are not allowed in list indentation:
+```
+list_items.csl:3:1: syntax error: tab character in indentation
+
+	- item
+^
+Indentation must use spaces only. Replace tabs with 2 spaces per level.
+```
+
+**Whitespace-Only List Errors** - Lists must contain actual values:
+```
+list_items.csl:10:1: syntax error: list contains only whitespace
+
+  - 
+  -   
+^
+List must contain at least one non-whitespace value or use [].
+```
+
+**Depth Limit Errors** - Maximum nesting depth of 20 levels:
+```
+deep_list.csl:45:41: syntax error: list nesting depth exceeded
+
+                                        - item
+                                        ^
+Maximum list nesting depth is 20 levels. Current depth: 21.
+Simplify your data structure or split into multiple sections.
+```
+
+**List Validation Requirements**:
+- 2-space indentation per level (no tabs, no 4-space, no mixed)
+- Maximum nesting depth: 20 levels
+- Empty list items rejected (use `[]` for empty lists)
+- Error messages include: line number, column number, context line, actionable guidance
+
 ### Nomos Language Constructs
 
 The parser implements these Nomos-specific language features:
@@ -120,6 +267,137 @@ database:
 app:
   db_host: reference:base:database.host
 ```
+
+**List/Array Syntax** - YAML-style list support:
+```
+# Simple list with scalars
+servers:
+  - web01
+  - web02
+  - web03
+
+# Nested lists
+matrix:
+  - - 1
+    - 2
+  - - 3
+    - 4
+
+# Empty list
+tags: []
+
+# List with objects
+users:
+  - name: alice
+    role: admin
+  - name: bob
+    role: user
+
+# Lists in references
+backup_servers: reference:aws:database.replicas
+```
+
+**List Parsing Rules**:
+- List items begin with `- ` (hyphen + space)
+- 2-space indentation strictly enforced (no tabs)
+- Maximum nesting depth: 20 levels
+- Empty lists use `[]` notation
+- Empty list items (`- ` with no value) are not allowed
+- List items can be: scalars (strings, numbers, booleans), nested lists, or objects/sections
+
+### List Test Coverage Requirements
+
+**Required Test Scenarios** - All list implementations must include tests for:
+
+1. **Simple Lists** (`testdata/fixtures/lists/simple_list.csl`):
+   - List of strings
+   - List of numbers
+   - List of booleans
+   - Mixed scalar types
+
+2. **Nested Lists** (`testdata/fixtures/lists/nested_lists.csl`):
+   - 2-level nesting (list of lists)
+   - 3-level nesting (list of lists of lists)
+   - Mixed nesting with scalars at different depths
+
+3. **Empty Lists** (`testdata/fixtures/lists/empty_list.csl`):
+   - Using `[]` notation
+   - Empty list as value
+   - Empty list in nested structure
+
+4. **Lists with Objects** (`testdata/fixtures/lists/list_with_objects.csl`):
+   - List items that are sections/objects
+   - Mixed list (objects and scalars)
+   - Objects with nested lists
+
+5. **Lists in References** (`testdata/fixtures/lists/list_in_reference.csl`):
+   - Reference to entire list
+   - Reference to list item by index
+   - List containing references
+
+6. **Maximum Depth** (`testdata/fixtures/lists/deep_nesting.csl`):
+   - 19 levels (should pass)
+   - 20 levels (should pass - at limit)
+   - 21 levels (should fail - exceeds limit)
+
+**Required Error Test Scenarios** - Must validate rejection of:
+
+1. **Empty Items** (`testdata/errors/lists/empty_item.csl`):
+   ```
+   items:
+     - value1
+     - 
+     - value2
+   ```
+   Error: "empty list item not allowed"
+
+2. **Inconsistent Indentation** (`testdata/errors/lists/inconsistent_indent.csl`):
+   ```
+   items:
+     - item1
+       - nested  # Wrong: should be 2 spaces from parent
+   ```
+   Error: "inconsistent list item indentation"
+
+3. **Tab Characters** (`testdata/errors/lists/tab_character.csl`):
+   ```
+   items:
+   	- item  # Tab character used
+   ```
+   Error: "tab character in indentation"
+
+4. **Whitespace-Only Lists** (`testdata/errors/lists/whitespace_only.csl`):
+   ```
+   items:
+     - 
+     -   
+   ```
+   Error: "list contains only whitespace"
+
+5. **Depth Exceeded** (`testdata/errors/lists/depth_exceeded.csl`):
+   - 21+ levels of nesting
+   Error: "list nesting depth exceeded"
+
+**Golden File Format** - AST representation in JSON:
+```json
+{
+  "type": "Section",
+  "key": "servers",
+  "value": {
+    "type": "List",
+    "items": [
+      {"type": "String", "value": "web01"},
+      {"type": "String", "value": "web02"}
+    ]
+  }
+}
+```
+
+**Integration Test Requirements**:
+- Parser and scanner must cooperate correctly on list token boundaries
+- List parsing must work in combination with other language features (imports, references, sources)
+- List AST nodes must serialize/deserialize correctly
+- List error recovery must not corrupt subsequent parsing
 
 ### Deprecated Syntax Handling
 

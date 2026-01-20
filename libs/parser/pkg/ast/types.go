@@ -164,3 +164,24 @@ type MapExpr struct {
 func (m *MapExpr) Span() SourceSpan { return m.SourceSpan }
 func (m *MapExpr) node()            {}
 func (m *MapExpr) expr()            {}
+
+// ListExpr represents a list/array expression in a Nomos configuration.
+// Example:
+//
+//	servers:
+//	  - web01
+//	  - web02
+//	  - web03
+//
+// ListExpr preserves item order and supports scalar values, nested lists,
+// maps, and inline references. Empty lists are represented by [] at the value
+// position.
+type ListExpr struct {
+	Elements   []Expr     `json:"elements"`    // Ordered list of expressions
+	SourceSpan SourceSpan `json:"source_span"` // Precise source location
+}
+
+// Span implements Node for ListExpr.
+func (l *ListExpr) Span() SourceSpan { return l.SourceSpan }
+func (l *ListExpr) node()            {}
+func (l *ListExpr) expr()            {}

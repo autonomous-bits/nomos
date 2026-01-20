@@ -157,6 +157,92 @@ Top-level `reference:` statements (e.g. `reference:alias:path`) are rejected by
 the parser with a `SyntaxError` and a clear migration message. The compiler
 should expect references to appear in value positions.
 
+## List syntax (basic)
+
+Nomos supports YAML-style lists using block notation. Lists are value expressions
+and can appear anywhere a value is allowed.
+
+List merge semantics are handled by the compiler. The parser only validates list
+syntax and emits list AST nodes; it does not apply merge behavior.
+
+### Simple list
+
+```csl
+IPs:
+  - 10.0.0.1
+  - 10.1.0.1
+  - 10.2.0.1
+```
+
+### Nested lists
+
+```csl
+matrix:
+  - - 1
+    - 2
+  - - 3
+    - 4
+```
+
+Nested lists can also be written with the nested list on the next line:
+
+```csl
+matrix:
+  -
+    - 1
+    - 2
+  -
+    - 3
+    - 4
+```
+
+### Empty list
+
+Use explicit bracket syntax for empty lists:
+
+```csl
+emptyCollection: []
+```
+
+### List references
+
+Reference list elements using index notation in inline references:
+
+```csl
+source:
+  alias: network
+  type: file
+  directory: ./network-config
+
+app:
+  primaryIP: reference:network:IPs[0]
+  backupIP: reference:network:IPs[1]
+```
+
+Lists can also contain references:
+
+```csl
+source:
+  alias: baseConfig
+  type: file
+
+app:
+  inheritedIPs:
+    - reference:baseConfig:networking.primary
+    - reference:baseConfig:networking.secondary
+    - 10.0.0.100
+```
+
+### Index notation
+
+Use square brackets to select list elements in reference paths. Indexes are zero-based.
+
+```csl
+app:
+  firstIP: reference:network:IPs[0]
+  firstSubnetMask: reference:network:subnets[0].mask
+  matrixValue: reference:network:matrix[1][2]
+```
 ## Error handling
 
 Parse errors are returned as `*ParseError` with the following properties:

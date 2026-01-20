@@ -33,6 +33,7 @@
     },
     {
       "alias": "module1",
+      "path": "./module1.csl",
       "source_span": {
         "end_col": 1,
         "end_line": 7,

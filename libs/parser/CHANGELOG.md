@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [Parser] Add list and nested list syntax support in CSL files
+  - Use dash notation for block lists:
+    - `servers:`
+    - `  - web-01`
+    - `  - web-02`
+  - Use `[]` for empty lists: `tags: []`
+  - Reference list items with index notation: `reference:alias:config.servers[0]`
 - **YAML-style comment support**: Single-line `#` comments for inline documentation
   - Comments extend from `#` to end-of-line, supporting inline and full-line comments
   - Context-aware parsing: `#` preserved within quoted strings (`"api#key"` remains literal)

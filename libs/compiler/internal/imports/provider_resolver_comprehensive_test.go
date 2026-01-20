@@ -707,7 +707,10 @@ func TestDeepMerge_EmptyOverride(t *testing.T) {
 
 func TestExprToValue_StringLiteral(t *testing.T) {
 	expr := &ast.StringLiteral{Value: "test"}
-	result := exprToValue(expr)
+	result, err := exprToValue(expr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if result != "test" {
 		t.Errorf("expected 'test', got %v", result)
@@ -720,7 +723,10 @@ func TestExprToValue_ReferenceExpr(t *testing.T) {
 		Path:  []string{"db", "host"},
 	}
 
-	result := exprToValue(expr)
+	result, err := exprToValue(expr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	ref, ok := result.(*ast.ReferenceExpr)
 	if !ok {
@@ -733,10 +739,9 @@ func TestExprToValue_ReferenceExpr(t *testing.T) {
 }
 
 func TestExprToValue_UnsupportedType(t *testing.T) {
-	result := exprToValue(nil)
-
-	if result != nil {
-		t.Errorf("expected nil for unsupported type, got %v", result)
+	_, err := exprToValue(nil)
+	if err == nil {
+		t.Fatal("expected error for nil expression, got nil")
 	}
 }
 
