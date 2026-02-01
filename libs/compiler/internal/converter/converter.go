@@ -38,8 +38,16 @@ func ASTToData(tree *ast.AST) (map[string]any, error) {
 	return result, nil
 }
 
-// sectionToData converts a SectionDecl to map[string]any.
-func sectionToData(section *ast.SectionDecl) (map[string]any, error) {
+// sectionToData converts a SectionDecl to either a scalar value or map[string]any.
+// If the section has an inline Value (e.g., region: "us-west-2"), returns the scalar.
+// If the section has Entries (nested map), returns map[string]any.
+func sectionToData(section *ast.SectionDecl) (any, error) {
+	// Check for inline scalar value first
+	if section.Value != nil {
+		return exprToValue(section.Value)
+	}
+
+	// Otherwise, process as nested map
 	result := make(map[string]any, len(section.Entries))
 
 	for key, expr := range section.Entries {

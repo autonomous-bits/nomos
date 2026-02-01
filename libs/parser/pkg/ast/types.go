@@ -77,9 +77,14 @@ func (i *ImportStmt) stmt()            {}
 //
 //	key1: value1
 //	key2: value2
+//
+// For inline scalar values (e.g., region: "us-west-2"), the Value field is set
+// and Entries is nil. For nested maps, Entries is populated and Value is nil.
+// Exactly one of Value or Entries should be set (mutually exclusive).
 type SectionDecl struct {
 	Name       string          `json:"name"`
-	Entries    map[string]Expr `json:"entries"` // Values are expressions (StringLiteral or ReferenceExpr)
+	Value      Expr            `json:"value,omitempty"`   // For inline scalar values (mutually exclusive with Entries)
+	Entries    map[string]Expr `json:"entries,omitempty"` // For nested maps (mutually exclusive with Value)
 	SourceSpan SourceSpan      `json:"source_span"`
 }
 

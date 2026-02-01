@@ -18,6 +18,7 @@ apps/*/nomos
 
 # Test binary, built with `go test -c`
 *.test
+*-test
 
 # Go workspace file
 go.work.sum

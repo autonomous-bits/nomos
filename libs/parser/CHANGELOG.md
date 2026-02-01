@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Performance validated: <5% overhead (typically <1%) across all benchmark suites
   - See [Comment Support documentation](README.md#comment-support) for usage examples
 
+### Fixed
+- [Parser] `SectionDecl` now uses `Value` field for inline scalar values instead of creating map entries with empty-string keys, enabling clean HCL/tfvars serialization
+
 ### Removed
 - **BREAKING CHANGE: ReferenceStmt removed from AST** (User Story 1)
   - Top-level `reference:alias:path` syntax no longer supported

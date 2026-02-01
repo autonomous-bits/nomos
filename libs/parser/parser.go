@@ -406,12 +406,13 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (
 		}
 
 		endLine, endCol := s.Line(), s.Column()
-		entries := map[string]ast.Expr{"": valueExpr}
 		s.SkipToNextLine()
 
+		// Inline scalar value - set Value field, not Entries
 		return &ast.SectionDecl{
 			Name:    name,
-			Entries: entries,
+			Value:   valueExpr, // Direct scalar value, no empty-string key
+			Entries: nil,       // nil indicates inline scalar, not nested map
 			SourceSpan: ast.SourceSpan{
 				Filename:  s.Filename(),
 				StartLine: startLine,
