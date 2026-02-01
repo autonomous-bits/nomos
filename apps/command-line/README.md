@@ -584,13 +584,15 @@ The numeric prefixes ensure predictable ordering. Without them, lexicographic or
 
 ### Output Formats and Serialization
 
-The CLI currently supports JSON output format via the `--format` flag, with deterministic serialization to ensure byte-for-byte identical results for identical inputs (critical for CI reproducibility).
+The CLI supports multiple output formats via the `--format` flag, with deterministic serialization to ensure byte-for-byte identical results for identical inputs (critical for CI reproducibility).
 
 **Supported Formats:**
 
-- `json` (default, only supported format) — Canonical JSON with deterministic key ordering
+- `json` (default) — Canonical JSON with deterministic key ordering
+- `yaml` — YAML format for Kubernetes, Ansible, Docker Compose
+- `tfvars` — Terraform .tfvars format (HCL syntax)
 
-**JSON Format (Canonical)**
+#### JSON Format (Default)
 
 The JSON serializer implements canonical serialization that guarantees:
 
@@ -650,34 +652,314 @@ The JSON serializer implements canonical serialization that guarantees:
 
 Note the sorted key order: `alpha` < `middle` < `zebra` in data and all nested maps.
 
-**Output Destination:**
-
-- Default: Writes to stdout
-- With `--out` flag: Writes to specified file path
-- Directories are created automatically if they don't exist
-- Non-writable paths result in exit code 2 with clear error message
-
-**Examples:**
+**Usage:**
 
 ```bash
 # JSON to stdout (default)
 nomos build -p config.csl
 
-# JSON to file
-nomos build -p config.csl -o output.json
+# JSON to file (extension added automatically)
+nomos build -p config.csl -o output
+# Creates: output.json
 
-# Create nested directories
-nomos build -p config.csl -o build/snapshots/output.json
+# Explicit JSON format
+nomos build -p config.csl --format json -o output.json
 ```
+
+#### YAML Format
+
+The YAML serializer produces valid YAML 1.2 output compatible with standard YAML parsers and tools like Kubernetes, Ansible, Docker Compose, and GitHub Actions.
+
+**Features:**
+
+- **Deterministic ordering**: Map keys sorted alphabetically (arrays preserve insertion order)
+- **2-space indentation**: Following YAML conventions
+- **Full snapshot**: Includes both `data` and `metadata` sections
+- **Proper escaping**: Strings with special characters are quoted and escaped correctly
+
+**Format-Specific Validation:**
+
+- Keys cannot contain null bytes (`\x00`) as prohibited by YAML specification
+- Unsupported Go types (channels, functions) cause compilation errors with clear messages
+
+**Example YAML Output:**
+
+```yaml
+data:
+  alpha:
+    value: first
+  middle:
+    nested: value
+  zebra:
+    value: last
+metadata:
+  end_time: "2025-10-26T20:00:00Z"
+  errors: []
+  input_files:
+    - /path/to/config.csl
+  per_key_provenance:
+    alpha:
+      provider_alias: ""
+      source: /path/to/config.csl
+    middle:
+      provider_alias: ""
+      source: /path/to/config.csl
+    zebra:
+      provider_alias: ""
+      source: /path/to/config.csl
+  provider_aliases: []
+  start_time: "2025-10-26T20:00:00Z"
+  warnings: []
+```
+
+**Usage:**
+
+```bash
+# YAML to stdout
+nomos build -p config.csl --format yaml
+
+# YAML to file (extension added automatically)
+nomos build -p config.csl --format yaml -o kubernetes-config
+# Creates: kubernetes-config.yaml
+
+# Use with Kubernetes
+nomos build -p k8s/app.csl --format yaml -o deployment.yaml
+kubectl apply -f deployment.yaml
+
+# Use with Docker Compose
+nomos build -p docker/services.csl --format yaml -o docker-compose.yaml
+docker-compose -f docker-compose.yaml up
+```
+
+**Common Use Cases:**
+
+- **Kubernetes**: Generate ConfigMaps, Deployments, Services
+- **Docker Compose**: Multi-container application definitions
+- **Ansible**: Playbook variable files
+- **GitHub Actions**: Workflow configuration
+- **Helm**: Values files for chart customization
+
+#### Terraform .tfvars Format
+
+The tfvars serializer produces valid HCL (HashiCorp Configuration Language) output for use with Terraform variable files.
+
+**Features:**
+
+- **HCL syntax**: Native Terraform variable file format
+- **Deterministic ordering**: Keys sorted alphabetically
+- **Type preservation**: Strings, numbers, booleans, maps, and lists
+- **Data only**: Only the `data` section is serialized (metadata omitted for Terraform compatibility)
+
+**Format-Specific Validation:**
+
+- **Strict identifier rules**: Keys must match HCL identifier pattern `[a-zA-Z_][a-zA-Z0-9_-]*`
+  - Must start with letter or underscore
+  - Can contain only letters, digits, underscores, and hyphens
+  - Examples: `region` ✓, `vpc_id` ✓, `enable-dns` ✓, `my-key` ✗ (space), `123key` ✗ (starts with digit)
+- Invalid keys cause compilation errors with clear messages listing all problematic keys
+
+**Example .tfvars Output:**
+
+```hcl
+alpha = "first"
+middle = {
+  nested = "value"
+}
+vpc = {
+  cidr_block = "10.0.0.0/16"
+  enable_dns = true
+  subnets = [
+    {
+      cidr = "10.0.1.0/24"
+      zone = "us-west-2a"
+    },
+    {
+      cidr = "10.0.2.0/24"
+      zone = "us-west-2b"
+    }
+  ]
+}
+zebra = "last"
+```
+
+**Usage:**
+
+```bash
+# Tfvars to stdout
+nomos build -p config.csl --format tfvars
+
+# Tfvars to file (extension added automatically)
+nomos build -p terraform/vars.csl --format tfvars -o terraform
+# Creates: terraform.tfvars
+
+# Use with Terraform
+nomos build -p terraform/prod.csl --format tfvars -o prod.tfvars
+terraform plan -var-file=prod.tfvars
+terraform apply -var-file=prod.tfvars
+
+# Multi-environment setup
+nomos build -p envs/dev.csl --format tfvars -o dev.auto.tfvars
+nomos build -p envs/prod.csl --format tfvars -o prod.auto.tfvars
+# Terraform automatically loads *.auto.tfvars files
+```
+
+**Common Use Cases:**
+
+- **Terraform modules**: Variable definitions for infrastructure modules
+- **Environment-specific configs**: Separate .tfvars files per environment (dev, staging, prod)
+- **Team collaboration**: Shared variable definitions in version control
+- **CI/CD pipelines**: Generated variable files from configuration sources
+
+**Terraform Integration Pattern:**
+
+```bash
+# 1. Define variables in Terraform
+# variables.tf:
+variable "region" { type = string }
+variable "vpc" { type = object({ cidr_block = string }) }
+
+# 2. Generate .tfvars from Nomos
+nomos build -p config.csl --format tfvars -o terraform.tfvars
+
+# 3. Use in Terraform
+terraform apply -var-file=terraform.tfvars
+```
+
+#### Automatic File Extension Handling
+
+When using the `--out` flag without an explicit extension, the CLI automatically appends the correct extension based on the format:
+
+```bash
+# Automatic extensions
+nomos build -p config.csl --format json -o output    # Creates: output.json
+nomos build -p config.csl --format yaml -o config    # Creates: config.yaml
+nomos build -p config.csl --format tfvars -o vars    # Creates: vars.tfvars
+
+# Explicit extensions are preserved  
+nomos build -p config.csl --format yaml -o data.yml  # Creates: data.yml (not .yaml)
+nomos build -p config.csl --format json -o out.json  # Creates: out.json
+```
+
+**Extension Rules:**
+
+- **Recognized extensions are preserved**: `.json`, `.yaml`, `.yml`, `.tfvars`, `.hcl`
+- **Unrecognized suffixes get format extension**: `config.prod` → `config.prod.json` (for JSON format)
+- **Multi-part tfvars extensions**: `.auto.tfvars` is recognized and preserved
+- **Directories are created automatically**: `nomos build -p config.csl -o build/snapshots/output` creates `build/snapshots/output.json`
+
+#### Format Validation and Error Handling
+
+The CLI validates configuration compatibility with the target format before serialization:
+
+**YAML Validation:**
+- Checks for null bytes in keys (prohibited by YAML spec)
+- Detects unsupported Go types (channels, functions, complex numbers)
+- Error example: `YAML key cannot contain null bytes: "invalid\x00key"`
+
+**Tfvars Validation:**
+- Validates all keys match HCL identifier pattern
+- Detects unsupported types
+- Error example: `invalid keys for HCL identifiers (must match [a-zA-Z_][a-zA-Z0-9_-]*): ["my key", "123invalid"]`
+
+**General Validation:**
+- Directory writability checked before compilation
+- Invalid format values rejected with supported format list
+- Clear error messages with file locations and problematic keys
+
+**Output Destination:**
+
+- **Default**: Writes to stdout
+- **With `--out` flag**: Writes to specified file path
+- **Directories created automatically** if they don't exist
+- **Non-writable paths** result in exit code 2 with clear error message
 
 **Implementation Details:**
 
 The serializer is located in `internal/serialize` and provides:
 - `ToJSON(snapshot)` — Canonical JSON serialization
+- `ToYAML(snapshot)` — YAML 1.2 serialization with sorted keys
+- `ToTfvars(snapshot)` — HCL .tfvars serialization with validation
 
-See `internal/serialize/serialize_test.go` for comprehensive determinism tests.
+See `internal/serialize/` tests for comprehensive validation and determinism tests.
 
-**Note:** YAML and HCL output formats may be added in future releases if user demand justifies the complexity. For now, JSON provides a canonical, deterministic format suitable for all use cases.
+#### Format-Specific Type Handling
+
+Different output formats handle data types according to their specifications. Understanding these differences helps you choose the right format for your use case.
+
+**Type Preservation Behavior**
+
+| Type | JSON | YAML | Tfvars |
+|------|------|------|--------|
+| Numbers | Preserves strings | Native numbers (type inference) | Native numbers |
+| Empty strings | `""` | `null` | `""` |
+| Booleans | Preserves strings | Native booleans (type inference) | Native booleans |
+
+**Format Recommendations**
+
+**Choose JSON when:**
+- Exact string preservation is required
+- Consuming system expects JSON format
+- Working with APIs or generic data processors
+- You need deterministic serialization
+
+**Choose YAML when:**
+- Deploying to Kubernetes (ConfigMaps, manifests)
+- Human readability is important
+- Native type inference is desired (strings → numbers/booleans)
+- Working with tools that expect YAML input
+
+**Choose Tfvars when:**
+- Integrating with Terraform
+- Strong typing is required (HCL semantics)
+- Variable declarations needed for IaC tools
+- Working with HashiCorp ecosystem
+
+**Cross-Format Equivalence**
+
+**Note:** Cross-format type preservation is not guaranteed for all types due to differences in format specifications. When type fidelity is critical:
+
+1. Use JSON for exact preservation
+2. Define explicit types in your source `.csl` files
+3. Test with target system to verify compatibility
+
+**Examples**
+
+**Source (.csl):**
+```nomos
+region: "us-west-2"
+port: 5432
+enabled: true
+tags: []
+```
+
+**JSON Output:**
+```json
+{
+  "data": {
+    "region": "us-west-2",
+    "port": "5432",
+    "enabled": "true",
+    "tags": []
+  }
+}
+```
+
+**YAML Output:**
+```yaml
+data:
+  region: us-west-2    # string
+  port: 5432           # number (inferred)
+  enabled: true        # boolean (inferred)
+  tags: []             # empty array
+```
+
+**Tfvars Output:**
+```hcl
+region = "us-west-2"   # string
+port = "5432"          # string (as quoted in source)
+enabled = "true"       # string (as quoted in source)
+tags = []              # empty list
+```
 
 ### Compilation Flow
 

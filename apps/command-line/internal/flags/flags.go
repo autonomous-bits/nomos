@@ -83,6 +83,9 @@ func Parse(args []string) (BuildFlags, error) {
 		return BuildFlags{}, errors.New("path is required")
 	}
 
+	// Normalize format to lowercase for case-insensitive matching
+	flags.Format = strings.ToLower(flags.Format)
+
 	// Validate format
 	validFormats := map[string]bool{"json": true, "yaml": true, "hcl": true}
 	if !validFormats[flags.Format] {

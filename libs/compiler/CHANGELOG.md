@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [Compiler] Converter properly handles `SectionDecl.Value` field for inline scalars, producing flat output structure compatible with tfvars format
+
 ## [0.7.0] - 2025-12-26
 
 ### BREAKING CHANGES

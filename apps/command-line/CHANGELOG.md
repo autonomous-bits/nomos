@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [CLI] YAML output format support via `--format yaml` flag
+- [CLI] Terraform .tfvars output format support via `--format tfvars` flag
+- [CLI] Automatic file extension handling for all output formats (`.json`, `.yaml`, `.tfvars`)
+- [CLI] Format-specific key validation (HCL identifiers for tfvars, null byte check for YAML)
+- [CLI] Format-specific type handling documentation in README explaining type preservation differences across JSON, YAML, and tfvars formats
+- [CLI] Validation for negative `--max-concurrent-providers` flag values (rejects with clear error message)
+
+### Changed
+- [CLI] Exit code for I/O errors (non-writable output paths) is now 1 (runtime error) instead of 2
+
+### Fixed
+- [CLI] Non-writable output path test now uses portable read-only directory approach with correct exit code expectation
+- [CLI] Parser now uses `Value` field for inline scalar values instead of empty-string keys, enabling clean HCL/tfvars serialization
+- [CLI] Compiler output structure is now clean and flat for scalar values, fully supporting tfvars format
+
 ## [2.0.0] - 2026-01-11
 
 ### BREAKING CHANGES

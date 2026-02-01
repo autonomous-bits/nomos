@@ -1817,20 +1817,24 @@ func TestParseSimpleList(t *testing.T) {
 }
 
 // TestParseEmptyList tests parsing of empty list syntax using [] notation.
-// This test WILL FAIL until empty list parsing is implemented in parser.go.
 func TestParseEmptyList(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
+		name       string
+		input      string
+		checkValue bool   // If true, check section.Value; if false, check section.Entries[entryKey]
+		entryKey   string // The key in Entries map (only used when checkValue is false)
 	}{
 		{
-			name:  "empty list with brackets",
-			input: `emptyCollection: []`,
+			name:       "empty list with brackets",
+			input:      `emptyCollection: []`,
+			checkValue: true, // Top-level key:value uses Value field
 		},
 		{
 			name: "empty list in section",
 			input: `config:
   items: []`,
+			checkValue: false,
+			entryKey:   "items", // Nested entry uses Entries map
 		},
 	}
 
@@ -1839,10 +1843,8 @@ func TestParseEmptyList(t *testing.T) {
 			reader := strings.NewReader(tt.input)
 			result, err := parser.Parse(reader, "test.csl")
 
-			// Expected to fail until implementation
 			if err != nil {
-				t.Logf("EXPECTED FAILURE (not yet implemented): %v", err)
-				return
+				t.Fatalf("expected no error, got %v", err)
 			}
 
 			if len(result.Statements) == 0 {
@@ -1854,17 +1856,19 @@ func TestParseEmptyList(t *testing.T) {
 				t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
 			}
 
-			// Find the list expression
 			var listExpr *ast.ListExpr
-			for _, expr := range section.Entries {
-				if list, ok := expr.(*ast.ListExpr); ok {
-					listExpr = list
-					break
+			if tt.checkValue {
+				// Check the Value field for top-level scalar values
+				listExpr, ok = section.Value.(*ast.ListExpr)
+				if !ok {
+					t.Fatalf("expected *ast.ListExpr in Value field, got %T", section.Value)
 				}
-			}
-
-			if listExpr == nil {
-				t.Fatal("expected to find *ast.ListExpr in section entries")
+			} else {
+				// Check the Entries map for nested values
+				listExpr, ok = section.Entries[tt.entryKey].(*ast.ListExpr)
+				if !ok {
+					t.Fatalf("expected *ast.ListExpr at key %q, got %T", tt.entryKey, section.Entries[tt.entryKey])
+				}
 			}
 
 			if len(listExpr.Elements) != 0 {

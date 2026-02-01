@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/diagnostics"
 	"github.com/autonomous-bits/nomos/apps/command-line/internal/options"
@@ -37,7 +38,8 @@ var buildCmd = &cobra.Command{
 	Long: `Build compiles Nomos .csl configuration scripts into versioned snapshots.
 
 The build command discovers .csl files in the specified path (file or directory),
-compiles them using the Nomos compiler, and produces deterministic JSON output.
+compiles them using the Nomos compiler, and produces deterministic output in
+JSON, YAML, or Terraform .tfvars format.
 
 File Discovery:
   - If --path points to a file, only that file is compiled
@@ -50,6 +52,36 @@ Provider Management:
   - Use --force-providers to force re-download of all providers
   - Use --dry-run to preview provider operations without executing
   - Use --allow-missing-provider to tolerate missing providers (non-deterministic)
+
+Output Formats:
+  json   - Canonical JSON with sorted keys (default)
+  yaml   - YAML 1.2 format for Kubernetes, Ansible, Docker Compose
+  tfvars - Terraform .tfvars format (HCL syntax)
+
+Examples:
+  # Compile to JSON (default)
+  nomos build -p config.csl -o output.json
+
+  # Compile to YAML for Kubernetes
+  nomos build -p config.csl --format yaml -o deployment.yaml
+  kubectl apply -f deployment.yaml
+
+  # Compile to Terraform .tfvars
+  nomos build -p config.csl --format tfvars -o terraform.tfvars
+  terraform apply -var-file=terraform.tfvars
+
+  # Automatic extension handling
+  nomos build -p config.csl --format yaml -o config
+  # Creates: config.yaml
+
+  # Multiple environments
+  nomos build -p envs/prod.csl --format tfvars -o prod.auto.tfvars
+  nomos build -p k8s/app.csl --format yaml -o deployment.yaml
+
+Format Validation:
+  - YAML: Keys cannot contain null bytes (\x00)
+  - Tfvars: Keys must match HCL identifier pattern [a-zA-Z_][a-zA-Z0-9_-]*
+  - Invalid keys cause compilation errors with clear messages
 
 Exit Codes:
   0 - Success
@@ -64,7 +96,7 @@ func init() {
 	_ = buildCmd.MarkFlagRequired("path") // Error only occurs if flag doesn't exist
 
 	// Output flags
-	buildCmd.Flags().StringVarP(&buildFlags.format, "format", "f", "json", "Output format (only json currently supported)")
+	buildCmd.Flags().StringVarP(&buildFlags.format, "format", "f", "json", "Output format: json, yaml, or tfvars")
 	buildCmd.Flags().StringVarP(&buildFlags.out, "out", "o", "", "Output file (default: stdout)")
 
 	// Configuration flags
@@ -84,6 +116,11 @@ func init() {
 
 // buildCommand executes the build subcommand.
 func buildCommand(_ *cobra.Command, _ []string) error {
+	// Validate flags
+	if buildFlags.maxConcurrentProviders < 0 {
+		return fmt.Errorf("max-concurrent-providers must be non-negative (got %d)", buildFlags.maxConcurrentProviders)
+	}
+
 	// Phase 0: Provider Management (before compilation)
 	// Convert build flags to provider options
 	providerFlags := providercmd.BuildFlags{
@@ -114,11 +151,6 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 	// If dry-run mode, exit successfully after showing provider summary
 	if buildFlags.dryRun {
 		return nil
-	}
-
-	// Validate format
-	if buildFlags.format != "json" {
-		return fmt.Errorf("invalid format %q, only json is currently supported", buildFlags.format)
 	}
 
 	// Create provider registries (supports external providers via lockfile)
@@ -203,21 +235,27 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 
 	// Write output
 	if buildFlags.out != "" {
+		// Resolve output path with extension handling
+		resolvedPath, err := resolveOutputPath(buildFlags.out, serialize.OutputFormat(strings.ToLower(buildFlags.format)))
+		if err != nil {
+			return fmt.Errorf("invalid output path: %w", err)
+		}
+
 		// Ensure output directory exists
-		dir := filepath.Dir(buildFlags.out)
+		dir := filepath.Dir(resolvedPath)
 		if dir != "" && dir != "." {
 			if err := os.MkdirAll(dir, 0750); err != nil {
 				return fmt.Errorf("cannot create output directory: %w", err)
 			}
 		}
 
-		// Write file
-		if err := os.WriteFile(buildFlags.out, output, 0600); err != nil {
+		// Write file using resolved path
+		if err := os.WriteFile(resolvedPath, output, 0600); err != nil {
 			return fmt.Errorf("cannot write output file: %w", err)
 		}
 
 		if !globalFlags.quiet {
-			fmt.Fprintf(os.Stderr, "Output written to %s\n", buildFlags.out)
+			fmt.Fprintf(os.Stderr, "Output written to %s\n", resolvedPath)
 		}
 	} else {
 		// Write to stdout
@@ -228,12 +266,130 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 }
 
 // serializeSnapshot serializes a snapshot to the requested format.
-// Currently only JSON is supported.
+// Supported formats: json, yaml, tfvars
 func serializeSnapshot(snapshot compiler.Snapshot, format string) ([]byte, error) {
-	if format != "json" {
-		return nil, fmt.Errorf("unsupported format: %s (only json is currently supported)", format)
+	// Normalize format to lowercase for case-insensitive matching
+	normalizedFormat := strings.ToLower(format)
+
+	switch serialize.OutputFormat(normalizedFormat) {
+	case serialize.FormatJSON:
+		return serialize.ToJSON(snapshot)
+	case serialize.FormatYAML:
+		return serialize.ToYAML(snapshot)
+	case serialize.FormatTfvars:
+		return serialize.ToTfvars(snapshot)
+	default:
+		return nil, fmt.Errorf("unsupported format: %s (supported: json, yaml, tfvars)", format)
 	}
-	return serialize.ToJSON(snapshot)
+}
+
+// resolveOutputPath resolves and validates the output file path.
+// It automatically appends the format's default extension if the path
+// has no extension. If the path already has an extension, it is preserved
+// to respect the user's explicit choice.
+//
+// The function also validates that:
+//   - The path is not empty or whitespace-only
+//   - The path is not just an extension (e.g., ".json")
+//   - The path does not end with a path separator (must be a file)
+//   - The format is valid
+//
+// Extension Detection:
+// Only recognized file extensions are treated as actual extensions.
+// Unrecognized suffixes (like .prod, .v2) are treated as part of the
+// filename and the format extension is appended.
+//
+// Parameters:
+//   - outputPath: User-provided output path (may or may not have extension)
+//   - format: Output format (json, yaml, tfvars)
+//
+// Returns:
+//   - Fully resolved path with appropriate extension
+//   - Error if path is invalid or format is unsupported
+//
+// Examples:
+//   - resolveOutputPath("output", FormatYAML) → "output.yaml", nil
+//   - resolveOutputPath("config.yml", FormatYAML) → "config.yml", nil
+//   - resolveOutputPath("config.prod", FormatJSON) → "config.prod.json", nil
+//   - resolveOutputPath("", FormatJSON) → "", error
+func resolveOutputPath(outputPath string, format serialize.OutputFormat) (string, error) {
+	// Validate path is not empty or whitespace-only
+	trimmedPath := strings.TrimSpace(outputPath)
+	if trimmedPath == "" {
+		return "", fmt.Errorf("output path must not be empty")
+	}
+
+	// Check if original path ends with separator before cleaning
+	// (filepath.Clean removes trailing slashes, so we check first)
+	if strings.HasSuffix(trimmedPath, string(filepath.Separator)) || strings.HasSuffix(trimmedPath, "/") {
+		return "", fmt.Errorf("output path must be a file, not a directory")
+	}
+
+	// Clean the path to normalize it
+	cleanedPath := filepath.Clean(trimmedPath)
+
+	// Get the base filename to check special cases
+	base := filepath.Base(cleanedPath)
+
+	// Check if it's just an extension (e.g., ".json", ".yaml", ".tfvars")
+	// These are invalid because there's no actual filename
+	if base == ".json" || base == ".yaml" || base == ".yml" || base == ".tfvars" {
+		return "", fmt.Errorf("invalid output path: path cannot be just an extension")
+	}
+
+	// Validate format is supported
+	if err := format.Validate(); err != nil {
+		return "", err
+	}
+
+	// Check for special multi-part extension .auto.tfvars
+	if strings.HasSuffix(cleanedPath, ".auto.tfvars") {
+		return cleanedPath, nil
+	}
+
+	// Get the extension
+	ext := filepath.Ext(cleanedPath)
+
+	// Check if path has a recognized file extension
+	// Standard file extensions that should always be preserved
+	recognizedExtensions := map[string]bool{
+		".json":   true,
+		".yaml":   true,
+		".yml":    true,
+		".tfvars": true,
+		".txt":    true,
+		".conf":   true,
+		".hcl":    true,
+		".data":   true,
+		".xml":    true,
+		".backup": true,
+	}
+
+	// Extensions that are only preserved when they're the sole dot in the filename
+	// (e.g., "app.config" preserves .config, but "app.v2.config" does not)
+	// However, hidden files like ".config" (where base == ".config") are NOT treated
+	// as having an extension - they should get the format extension appended.
+	contextualExtensions := map[string]bool{
+		".config": true,
+	}
+
+	// If we have a recognized extension, preserve it
+	if ext != "" && recognizedExtensions[ext] {
+		return cleanedPath, nil
+	}
+
+	// For contextual extensions, only preserve if:
+	// 1. It's the only dot in the basename AND
+	// 2. The base is not just the extension (i.e., not a hidden file like ".config")
+	if ext != "" && contextualExtensions[ext] {
+		dotCount := strings.Count(base, ".")
+		if dotCount == 1 && base != ext {
+			return cleanedPath, nil
+		}
+	}
+
+	// No recognized extension - append format's default extension
+	return cleanedPath + format.Extension(), nil
 }
 
 // shouldUseColor determines whether to colorize output based on flags and terminal
