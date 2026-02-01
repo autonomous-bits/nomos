@@ -1,6 +1,6 @@
 module github.com/autonomous-bits/nomos/apps/command-line
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/hashicorp/hcl/v2 v2.19.1
