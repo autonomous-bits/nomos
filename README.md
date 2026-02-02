@@ -166,7 +166,7 @@ Nomos libraries are published as independent Go modules and can be imported into
 // In your project's go.mod
 module github.com/example/my-project
 
-go 1.25
+go 1.25.6
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0
