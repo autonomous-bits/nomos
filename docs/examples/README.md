@@ -28,7 +28,7 @@ Each example directory contains:
 ## Prerequisites
 
 - Nomos CLI installed (`nomos` command available)
-- Go 1.25+ (for building example providers)
+- Go 1.25.6+ (for building example providers)
 - Basic understanding of Nomos configuration syntax
 
 ## Running the Examples
