@@ -128,8 +128,10 @@ func FormatDiagnostic(d *Diagnostic, sourceText string, parseErr error) string {
 // It shows 1-3 lines of context centered around the error line.
 // This implementation mirrors the parser's snippet generation for consistency.
 func generateSnippet(sourceText string, line, col int) string {
-	lines := []string{""}
-	lines = append(lines, splitLines(sourceText)...)
+	sourceLines := splitLines(sourceText)
+	lines := make([]string, 0, len(sourceLines)+1)
+	lines = append(lines, "")
+	lines = append(lines, sourceLines...)
 
 	if line < 1 || line >= len(lines) {
 		return ""

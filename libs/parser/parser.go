@@ -16,7 +16,7 @@
 //		log.Fatal(err)
 //	}
 //	// Process ast...
-package parser
+package parser //nolint:revive // public package name is intentional and descriptive
 
 import (
 	"fmt"

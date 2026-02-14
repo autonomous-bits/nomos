@@ -3,7 +3,7 @@
 // The AST represents the syntactic structure of Nomos configuration files.
 // All node types include source location information via SourceSpan for
 // precise error reporting and tooling support.
-package ast
+package ast //nolint:revive // standard AST package name, no actual conflict
 
 // SourceSpan represents a source code location with file name and position.
 // All AST nodes embed or include a SourceSpan to enable precise diagnostics.
