@@ -43,7 +43,7 @@ func TestSerializeSnapshot_CaseInsensitive(t *testing.T) {
 			// Create minimal snapshot with simple test data
 			snapshot := createMinimalSnapshot()
 
-			output, err := serializeSnapshot(snapshot, tt.format)
+			output, err := serializeSnapshot(snapshot, tt.format, true)
 
 			// Verify error expectation
 			if (err != nil) != tt.wantErr {
@@ -149,7 +149,7 @@ func TestSerializeSnapshot_InvalidFormat(t *testing.T) {
 			// Create minimal snapshot
 			snapshot := createMinimalSnapshot()
 
-			output, err := serializeSnapshot(snapshot, tt.format)
+			output, err := serializeSnapshot(snapshot, tt.format, true)
 
 			// Verify error expectation
 			if (err != nil) != tt.wantErr {
@@ -198,7 +198,7 @@ func TestSerializeSnapshot_DefaultFormat(t *testing.T) {
 		snapshot := createMinimalSnapshot()
 
 		// Test explicit "json" format (what the flag defaults to)
-		output, err := serializeSnapshot(snapshot, "json")
+		output, err := serializeSnapshot(snapshot, "json", true)
 
 		if err != nil {
 			t.Errorf("serializeSnapshot() with default format 'json' returned error: %v", err)
@@ -229,7 +229,7 @@ func TestSerializeSnapshot_DefaultFormat(t *testing.T) {
 
 		snapshot := createMinimalSnapshot()
 
-		output, err := serializeSnapshot(snapshot, "")
+		output, err := serializeSnapshot(snapshot, "", true)
 
 		// Empty format should be treated as invalid
 		if err == nil {

@@ -210,7 +210,7 @@ func BenchmarkToJSON_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToJSON(snapshot)
+		_, err := ToJSON(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToJSON failed: %v", err)
 		}
@@ -225,7 +225,7 @@ func BenchmarkToJSON_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToJSON(snapshot)
+		_, err := ToJSON(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToJSON failed: %v", err)
 		}
@@ -240,7 +240,7 @@ func BenchmarkToJSON_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToJSON(snapshot)
+		_, err := ToJSON(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToJSON failed: %v", err)
 		}
@@ -255,7 +255,7 @@ func BenchmarkToYAML_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToYAML(snapshot)
+		_, err := ToYAML(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToYAML failed: %v", err)
 		}
@@ -270,7 +270,7 @@ func BenchmarkToYAML_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToYAML(snapshot)
+		_, err := ToYAML(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToYAML failed: %v", err)
 		}
@@ -285,7 +285,7 @@ func BenchmarkToYAML_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToYAML(snapshot)
+		_, err := ToYAML(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToYAML failed: %v", err)
 		}
@@ -300,7 +300,7 @@ func BenchmarkToTfvars_Small(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToTfvars(snapshot)
+		_, err := ToTfvars(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToTfvars failed: %v", err)
 		}
@@ -315,7 +315,7 @@ func BenchmarkToTfvars_Medium(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToTfvars(snapshot)
+		_, err := ToTfvars(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToTfvars failed: %v", err)
 		}
@@ -330,7 +330,7 @@ func BenchmarkToTfvars_Large(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_, err := ToTfvars(snapshot)
+		_, err := ToTfvars(snapshot, true)
 		if err != nil {
 			b.Fatalf("ToTfvars failed: %v", err)
 		}

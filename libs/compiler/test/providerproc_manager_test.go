@@ -206,7 +206,7 @@ func createFakeProviderBinary(t *testing.T) string {
 	// Create a go.mod for the fake provider
 	goMod := fmt.Sprintf(`module fake-provider
 
-go 1.25.6
+go 1.26.0
 
 require (
 	github.com/autonomous-bits/nomos/libs/provider-proto v0.0.0

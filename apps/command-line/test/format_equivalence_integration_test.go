@@ -474,7 +474,7 @@ func buildFormat(t *testing.T, binPath, fixturePath, outFile, format string) err
 	t.Helper()
 
 	//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
-	cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", format, "-o", outFile)
+	cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", format, "-o", outFile, "--include-metadata")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("build failed: %w\nOutput: %s", err, output)

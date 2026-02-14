@@ -41,7 +41,7 @@ func TestToTfvars_Determinism(t *testing.T) {
 	// Serialize 10 times and compare bytes
 	var firstOutput []byte
 	for i := 0; i < 10; i++ {
-		output, err := ToTfvars(snapshot)
+		output, err := ToTfvars(snapshot, true)
 		if err != nil {
 			t.Fatalf("iteration %d: ToTfvars failed: %v", i, err)
 		}
@@ -121,7 +121,7 @@ func TestToTfvars_KeyOrdering(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := ToTfvars(tt.snapshot)
+			output, err := ToTfvars(tt.snapshot, true)
 			if err != nil {
 				t.Fatalf("ToTfvars failed: %v", err)
 			}
@@ -296,7 +296,7 @@ func TestToTfvars_InvalidKeys(t *testing.T) {
 				Data: tt.data,
 			}
 
-			_, err := ToTfvars(snapshot)
+			_, err := ToTfvars(snapshot, true)
 
 			if tt.wantErr {
 				if err == nil {
@@ -449,7 +449,7 @@ func TestToTfvars_TypePreservation(t *testing.T) {
 				Data: tt.data,
 			}
 
-			output, err := ToTfvars(snapshot)
+			output, err := ToTfvars(snapshot, true)
 			if err != nil {
 				t.Fatalf("ToTfvars failed: %v", err)
 			}
@@ -614,7 +614,7 @@ func TestToTfvars_NestedStructures(t *testing.T) {
 				Data: tt.data,
 			}
 
-			output, err := ToTfvars(snapshot)
+			output, err := ToTfvars(snapshot, true)
 			if err != nil {
 				t.Fatalf("ToTfvars failed: %v", err)
 			}
@@ -714,7 +714,7 @@ func TestToTfvars_ErrorMessageQuality(t *testing.T) {
 				Data: tt.data,
 			}
 
-			_, err := ToTfvars(snapshot)
+			_, err := ToTfvars(snapshot, true)
 			if err == nil {
 				t.Fatal("expected error for unsupported type, got nil")
 			}
@@ -751,5 +751,157 @@ func TestToTfvars_ErrorMessageQuality(t *testing.T) {
 				t.Errorf("error message should indicate unsupported type, got: %v", err)
 			}
 		})
+	}
+}
+
+// TestToTfvars_IgnoresIncludeMetadataParameter tests that the includeMetadata
+// parameter is accepted but ignored by ToTfvars, since .tfvars format already
+// excludes metadata by design. The behavior should be identical regardless of
+// the parameter value.
+//
+// T009: Unit test for ToTfvars with includeMetadata parameter
+func TestToTfvars_IgnoresIncludeMetadataParameter(t *testing.T) {
+	tests := []struct {
+		name            string
+		snapshot        compiler.Snapshot
+		includeMetadata bool // Should be ignored
+		expectedKeys    []string
+	}{
+		{
+			name: "includeMetadata=false - simple data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+			},
+			includeMetadata: false,
+			expectedKeys:    []string{"region", "count"},
+		},
+		{
+			name: "includeMetadata=true - still excludes metadata",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+			},
+			includeMetadata: true,
+			expectedKeys:    []string{"region", "count"},
+		},
+		{
+			name: "includeMetadata=false - complex data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"vpc": map[string]any{
+						"cidr": "10.0.0.0/16",
+					},
+					"enabled": true,
+					"count":   5,
+				},
+			},
+			includeMetadata: false,
+			expectedKeys:    []string{"vpc", "enabled", "count"},
+		},
+		{
+			name: "includeMetadata=true - complex data still excludes metadata",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"vpc": map[string]any{
+						"cidr": "10.0.0.0/16",
+					},
+					"enabled": true,
+					"count":   5,
+				},
+			},
+			includeMetadata: true,
+			expectedKeys:    []string{"vpc", "enabled", "count"},
+		},
+		{
+			name: "empty data - both parameter values",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{},
+			},
+			includeMetadata: false,
+			expectedKeys:    []string{},
+		},
+	}
+
+	// Run each test with both true and false to ensure behavior is identical
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := ToTfvars(tt.snapshot, tt.includeMetadata)
+			if err != nil {
+				t.Fatalf("ToTfvars failed: %v", err)
+			}
+
+			outputStr := string(output)
+
+			// Verify expected keys are present
+			for _, key := range tt.expectedKeys {
+				if !strings.Contains(outputStr, key) {
+					t.Errorf("expected key %q not found in output", key)
+					t.Logf("Output:\n%s", outputStr)
+				}
+			}
+
+			// Verify NO metadata-related keys appear
+			// Tfvars format never includes metadata section
+			if strings.Contains(outputStr, "metadata") {
+				t.Error("output should not contain 'metadata' in tfvars format")
+				t.Logf("Output:\n%s", outputStr)
+			}
+			if strings.Contains(outputStr, "input_files") {
+				t.Error("output should not contain metadata fields like 'input_files'")
+				t.Logf("Output:\n%s", outputStr)
+			}
+			if strings.Contains(outputStr, "provider_aliases") {
+				t.Error("output should not contain metadata fields like 'provider_aliases'")
+				t.Logf("Output:\n%s", outputStr)
+			}
+		})
+	}
+}
+
+// TestToTfvars_IgnoresIncludeMetadataParameter_Determinism tests that the
+// includeMetadata parameter doesn't affect deterministic output. Two calls
+// with different parameter values but the same snapshot should produce identical
+// output (both will exclude metadata).
+func TestToTfvars_IgnoresIncludeMetadataParameter_Determinism(t *testing.T) {
+	snapshot := compiler.Snapshot{
+		Data: map[string]any{
+			"zebra":  "last",
+			"alpha":  "first",
+			"middle": "mid",
+			"config": map[string]any{
+				"enabled": true,
+				"count":   10,
+			},
+		},
+	}
+
+	// Generate output with includeMetadata=false
+	outputFalse, err := ToTfvars(snapshot, false)
+	if err != nil {
+		t.Fatalf("ToTfvars(includeMetadata=false) failed: %v", err)
+	}
+
+	// Generate output with includeMetadata=true
+	outputTrue, err := ToTfvars(snapshot, true)
+	if err != nil {
+		t.Fatalf("ToTfvars(includeMetadata=true) failed: %v", err)
+	}
+
+	// Both outputs should be byte-for-byte identical
+	if string(outputFalse) != string(outputTrue) {
+		t.Error("ToTfvars output differs based on includeMetadata parameter (should be identical)")
+		t.Logf("With includeMetadata=false:\n%s", outputFalse)
+		t.Logf("With includeMetadata=true:\n%s", outputTrue)
+	}
+
+	// Verify neither contains metadata
+	outputStr := string(outputFalse)
+	if strings.Contains(outputStr, "metadata") {
+		t.Error("output should not contain 'metadata' regardless of parameter value")
 	}
 }

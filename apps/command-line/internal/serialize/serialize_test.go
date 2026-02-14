@@ -40,7 +40,7 @@ func TestToJSON_Deterministic(t *testing.T) {
 	// Serialize 10 times and compare bytes
 	var firstOutput []byte
 	for i := 0; i < 10; i++ {
-		output, err := ToJSON(snapshot)
+		output, err := ToJSON(snapshot, true)
 		if err != nil {
 			t.Fatalf("iteration %d: ToJSON failed: %v", i, err)
 		}
@@ -71,7 +71,7 @@ func TestToJSON_MapKeyOrdering(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestToJSON_NestedMapKeyOrdering(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestToJSON_EmptyData(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestToJSON_ComplexNesting(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -211,7 +211,7 @@ func TestToJSON_ArraysPreserveOrder(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestToJSON_InvalidUTF8(t *testing.T) {
 		},
 	}
 
-	output, err := ToJSON(snapshot)
+	output, err := ToJSON(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
@@ -260,6 +260,245 @@ func TestToJSON_InvalidUTF8(t *testing.T) {
 	if err := json.Unmarshal(output, &result); err != nil {
 		t.Fatalf("failed to parse JSON output: %v", err)
 	}
+}
+
+// TestToJSON_ExcludeMetadata tests that when includeMetadata=false,
+// the output contains ONLY the data section at root level (no "data:" wrapper,
+// no "metadata:" section). This enables cleaner output for tools that only
+// need the configuration data without build metadata.
+//
+// T008: Unit test for ToJSON with includeMetadata=false
+func TestToJSON_ExcludeMetadata(t *testing.T) {
+	now := time.Date(2025, 10, 26, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name            string
+		snapshot        compiler.Snapshot
+		includeMetadata bool
+		wantDataWrapper bool     // Should output have "data" key?
+		wantMetadata    bool     // Should output have "metadata" key?
+		expectedKeys    []string // Keys expected at root level
+	}{
+		{
+			name: "includeMetadata=false - simple data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"test.csl"},
+					ProviderAliases: []string{"test"},
+					StartTime:       now,
+					EndTime:         now.Add(1 * time.Second),
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{"region", "count"},
+		},
+		{
+			name: "includeMetadata=true - includes all sections",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"test.csl"},
+					ProviderAliases: []string{"test"},
+					StartTime:       now,
+					EndTime:         now.Add(1 * time.Second),
+				},
+			},
+			includeMetadata: true,
+			wantDataWrapper: true,
+			wantMetadata:    true,
+			expectedKeys:    []string{"data", "metadata"},
+		},
+		{
+			name: "includeMetadata=false - nested data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"vpc": map[string]any{
+						"cidr": "10.0.0.0/16",
+						"tags": map[string]any{
+							"Name": "main",
+							"Env":  "prod",
+						},
+					},
+					"region": "us-east-1",
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"config.csl"},
+					ProviderAliases: []string{"aws"},
+					StartTime:       now,
+					EndTime:         now.Add(2 * time.Second),
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{"vpc", "region"},
+		},
+		{
+			name: "includeMetadata=false - empty data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"empty.csl"},
+					ProviderAliases: []string{},
+					StartTime:       now,
+					EndTime:         now,
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{},
+		},
+		{
+			name: "includeMetadata=false - complex types",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"string": "value",
+					"number": 42,
+					"float":  3.14,
+					"bool":   true,
+					"null":   nil,
+					"array":  []any{1, 2, 3},
+					"object": map[string]any{
+						"nested": "data",
+					},
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"complex.csl"},
+					ProviderAliases: []string{"test"},
+					StartTime:       now,
+					EndTime:         now.Add(1 * time.Second),
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{"string", "number", "float", "bool", "null", "array", "object"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := ToJSON(tt.snapshot, tt.includeMetadata)
+			if err != nil {
+				t.Fatalf("ToJSON failed: %v", err)
+			}
+
+			// Parse the JSON output
+			var result map[string]any
+			if err := json.Unmarshal(output, &result); err != nil {
+				t.Fatalf("failed to parse JSON output: %v", err)
+			}
+
+			// Check for "data" wrapper
+			_, hasDataKey := result["data"]
+			if hasDataKey != tt.wantDataWrapper {
+				t.Errorf("data wrapper: got %v, want %v", hasDataKey, tt.wantDataWrapper)
+				t.Logf("Output:\n%s", output)
+			}
+
+			// Check for "metadata" section
+			_, hasMetadataKey := result["metadata"]
+			if hasMetadataKey != tt.wantMetadata {
+				t.Errorf("metadata section: got %v, want %v", hasMetadataKey, tt.wantMetadata)
+				t.Logf("Output:\n%s", output)
+			}
+
+			// When includeMetadata=false, verify expected keys are at root level
+			if !tt.includeMetadata {
+				for _, key := range tt.expectedKeys {
+					if _, exists := result[key]; !exists {
+						t.Errorf("expected key %q at root level, not found", key)
+						t.Logf("Root keys: %v", getKeys(result))
+						t.Logf("Output:\n%s", output)
+					}
+				}
+
+				// Verify NO "data" or "metadata" keys at root
+				if _, exists := result["data"]; exists {
+					t.Error("should not have 'data' key at root when includeMetadata=false")
+					t.Logf("Output:\n%s", output)
+				}
+				if _, exists := result["metadata"]; exists {
+					t.Error("should not have 'metadata' key at root when includeMetadata=false")
+					t.Logf("Output:\n%s", output)
+				}
+			}
+
+			// Verify output is valid JSON (already parsed above)
+			if !json.Valid(output) {
+				t.Error("output is not valid JSON")
+				t.Logf("Output:\n%s", output)
+			}
+		})
+	}
+}
+
+// TestToJSON_ExcludeMetadata_KeyOrdering tests that when includeMetadata=false,
+// keys at the root level are still sorted alphabetically for deterministic output.
+func TestToJSON_ExcludeMetadata_KeyOrdering(t *testing.T) {
+	snapshot := compiler.Snapshot{
+		Data: map[string]any{
+			"zebra":  "last",
+			"alpha":  "first",
+			"middle": "mid",
+		},
+		Metadata: compiler.Metadata{
+			InputFiles:      []string{"test.csl"},
+			ProviderAliases: []string{},
+			StartTime:       time.Time{},
+			EndTime:         time.Time{},
+		},
+	}
+
+	output, err := ToJSON(snapshot, false) // includeMetadata=false
+	if err != nil {
+		t.Fatalf("ToJSON failed: %v", err)
+	}
+
+	outputStr := string(output)
+
+	// Keys should appear in sorted order at root level
+	alphaPos := indexOf(outputStr, `"alpha"`)
+	middlePos := indexOf(outputStr, `"middle"`)
+	zebraPos := indexOf(outputStr, `"zebra"`)
+
+	if alphaPos == -1 || middlePos == -1 || zebraPos == -1 {
+		t.Fatalf("expected keys not found in output:\n%s", outputStr)
+	}
+
+	if alphaPos >= middlePos || middlePos >= zebraPos {
+		t.Errorf("keys not in sorted order: alpha=%d, middle=%d, zebra=%d", alphaPos, middlePos, zebraPos)
+		t.Logf("Output:\n%s", outputStr)
+	}
+
+	// Verify no "data" or "metadata" keys in output
+	if indexOf(outputStr, `"data"`) != -1 {
+		t.Error("output should not contain 'data' key when includeMetadata=false")
+		t.Logf("Output:\n%s", outputStr)
+	}
+	if indexOf(outputStr, `"metadata"`) != -1 {
+		t.Error("output should not contain 'metadata' key when includeMetadata=false")
+		t.Logf("Output:\n%s", outputStr)
+	}
+}
+
+// getKeys returns the keys of a map as a slice for debugging
+func getKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // Helper functions
