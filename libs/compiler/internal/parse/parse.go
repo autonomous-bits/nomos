@@ -1,5 +1,5 @@
 // Package parse provides parser integration helpers for the compiler.
-package parse
+package parse //nolint:revive // internal package, no actual conflict with stdlib
 
 import (
 	"fmt"

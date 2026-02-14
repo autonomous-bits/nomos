@@ -21,7 +21,7 @@ The CLI is a thin wrapper around the compiler library (`libs/compiler`) and is r
 
 ### Prerequisites
 
-- Go 1.25.6 or later
+- Go 1.26.0 or later
 - macOS, Linux, or Windows (tested primarily on macOS)
 
 ### Build from Source
@@ -365,6 +365,7 @@ nomos build [flags]
 - `--allow-missing-provider` — Allow missing provider fetches
 - `--timeout-per-provider <duration>` — Timeout for each provider fetch (e.g., 5s, 1m)
 - `--max-concurrent-providers <int>` — Maximum concurrent provider fetches
+- `--include-metadata` — Include compilation metadata in output (opt-in for debugging/auditing)
 - `--verbose, -v` — Enable verbose logging
 - `--color <mode>` — **[Phase 2]** Colorize output: auto, always, never (default: auto)
 - `--quiet, -q` — **[Phase 2]** Suppress non-error output
@@ -581,6 +582,99 @@ The numeric prefixes ensure predictable ordering. Without them, lexicographic or
 - **Single file**: When `--path` is a file, no discovery occurs; that single file is used
 
 **Note:** The compiler library itself currently discovers files in a single directory level only. The CLI's traverse package supports recursive discovery for future compiler enhancements.
+
+### Metadata Output Control
+
+**Default Behavior (v2.0.0+):** The CLI outputs only the compiled configuration data without metadata. This produces cleaner, production-ready configuration files that are smaller and faster to parse.
+
+**When You Need Metadata:** Use the `--include-metadata` flag when you need:
+- **Debugging**: See which files contributed which values
+- **Auditing**: Track configuration provenance for compliance
+- **Tooling**: Parse metadata for custom workflows
+- **Migration**: Temporary compatibility with v1.x behavior
+
+**Example - Default Output (No Metadata):**
+
+```bash
+nomos build -p config.csl
+```
+
+```json
+{
+  "app": "example",
+  "database": {
+    "host": "localhost",
+    "port": 5432
+  }
+}
+```
+
+**Example - With Metadata:**
+
+```bash
+nomos build -p config.csl --include-metadata
+```
+
+```json
+{
+  "data": {
+    "app": "example",
+    "database": {
+      "host": "localhost",
+      "port": 5432
+    }
+  },
+  "metadata": {
+    "start_time": "2026-02-14T10:00:00Z",
+    "end_time": "2026-02-14T10:00:01Z",
+    "input_files": ["/path/to/config.csl"],
+    "provider_aliases": [],
+    "per_key_provenance": {
+      "app": {
+        "source": "/path/to/config.csl",
+        "provider_alias": ""
+      },
+      "database": {
+        "source": "/path/to/config.csl",
+        "provider_alias": ""
+      }
+    },
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+**YAML Format with Metadata:**
+
+```bash
+nomos build -p config.csl --format yaml --include-metadata
+```
+
+```yaml
+data:
+  app: example
+  database:
+    host: localhost
+    port: 5432
+metadata:
+  start_time: "2026-02-14T10:00:00Z"
+  end_time: "2026-02-14T10:00:01Z"
+  input_files:
+    - /path/to/config.csl
+  provider_aliases: []
+  per_key_provenance:
+    app:
+      source: /path/to/config.csl
+      provider_alias: ""
+    database:
+      source: /path/to/config.csl
+      provider_alias: ""
+  errors: []
+  warnings: []
+```
+
+**Migration Note:** In v1.x, metadata was included by default. Starting in v2.0.0, metadata is opt-in via `--include-metadata`. See the [migration guide](../../docs/guides/migration-v2.md#optional-metadata-output-v200) for details.
 
 ### Output Formats and Serialization
 
@@ -976,7 +1070,7 @@ tags = []              # empty list
 
 ### Prerequisites
 
-- Go 1.25.6 or later
+- Go 1.26.0 or later
 - Access to `libs/compiler` and `libs/parser` via workspace
 
 ### Building

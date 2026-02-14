@@ -25,14 +25,26 @@ import (
 
 // ToJSON serializes a snapshot to canonical JSON with deterministic ordering.
 // Maps are serialized with sorted keys, and values are normalized for stability.
-func ToJSON(snapshot compiler.Snapshot) ([]byte, error) {
+//
+// Parameters:
+//   - snapshot: The compiler snapshot to serialize
+//   - includeMetadata: When false, serializes only snapshot.Data at root level.
+//     When true, serializes full snapshot with "data" and "metadata" sections.
+func ToJSON(snapshot compiler.Snapshot, includeMetadata bool) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 
 	// Canonicalize the snapshot structure
-	canonical := canonicalizeValue(snapshot)
+	var canonical any
+	if includeMetadata {
+		// Include full snapshot with "data" and "metadata" sections
+		canonical = canonicalizeValue(snapshot)
+	} else {
+		// Serialize only the data section at root level
+		canonical = canonicalizeValue(snapshot.Data)
+	}
 
 	if err := enc.Encode(canonical); err != nil {
 		return nil, fmt.Errorf("failed to encode JSON: %w", err)

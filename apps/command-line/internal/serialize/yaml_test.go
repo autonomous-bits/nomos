@@ -44,7 +44,7 @@ func TestToYAML_Deterministic(t *testing.T) {
 	// Serialize 10 times and compare bytes
 	var firstOutput []byte
 	for i := 0; i < 10; i++ {
-		output, err := ToYAML(snapshot)
+		output, err := ToYAML(snapshot, true)
 		if err != nil {
 			t.Fatalf("iteration %d: ToYAML failed: %v", i, err)
 		}
@@ -78,7 +78,7 @@ func TestToYAML_KeyOrdering(t *testing.T) {
 		},
 	}
 
-	output, err := ToYAML(snapshot)
+	output, err := ToYAML(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToYAML failed: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestToYAML_NestedKeyOrdering(t *testing.T) {
 		},
 	}
 
-	output, err := ToYAML(snapshot)
+	output, err := ToYAML(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToYAML failed: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestToYAML_ValidYAML(t *testing.T) {
 				},
 			}
 
-			output, err := ToYAML(snapshot)
+			output, err := ToYAML(snapshot, true)
 			if err != nil {
 				t.Fatalf("ToYAML failed: %v", err)
 			}
@@ -242,7 +242,7 @@ func TestToYAML_NestedStructures(t *testing.T) {
 		},
 	}
 
-	output, err := ToYAML(snapshot)
+	output, err := ToYAML(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToYAML failed: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestToYAML_EdgeCases(t *testing.T) {
 				},
 			}
 
-			output, err := ToYAML(snapshot)
+			output, err := ToYAML(snapshot, true)
 			if err != nil {
 				t.Fatalf("ToYAML failed: %v", err)
 			}
@@ -358,7 +358,7 @@ func TestToYAML_ArraysPreserveOrder(t *testing.T) {
 		},
 	}
 
-	output, err := ToYAML(snapshot)
+	output, err := ToYAML(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToYAML failed: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestToYAML_NullByteRejection(t *testing.T) {
 		},
 	}
 
-	_, err := ToYAML(snapshot)
+	_, err := ToYAML(snapshot, true)
 	if err == nil {
 		t.Fatal("expected error for null byte in key, got nil")
 	}
@@ -443,7 +443,7 @@ func TestToYAML_ErrorMessageQuality(t *testing.T) {
 				},
 			}
 
-			_, err := ToYAML(snapshot)
+			_, err := ToYAML(snapshot, true)
 			if err == nil {
 				t.Fatal("expected error for unsupported type, got nil")
 			}
@@ -477,7 +477,7 @@ func TestToYAML_TypePreservation(t *testing.T) {
 		},
 	}
 
-	output, err := ToYAML(snapshot)
+	output, err := ToYAML(snapshot, true)
 	if err != nil {
 		t.Fatalf("ToYAML failed: %v", err)
 	}
@@ -535,5 +535,206 @@ func TestToYAML_TypePreservation(t *testing.T) {
 	// Validate object is present (YAML may use map[string]interface{} or map[interface{}]interface{})
 	if data["object"] == nil {
 		t.Error("object: expected non-nil value")
+	}
+}
+
+// TestToYAML_ExcludeMetadata tests that when includeMetadata=false,
+// the output contains ONLY the data section at root level (no "data:" wrapper,
+// no "metadata:" section). This enables cleaner output for tools that only
+// need the configuration data without build metadata.
+//
+// T007: Unit test for ToYAML with includeMetadata=false
+func TestToYAML_ExcludeMetadata(t *testing.T) {
+	now := time.Date(2025, 10, 26, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name            string
+		snapshot        compiler.Snapshot
+		includeMetadata bool
+		wantDataWrapper bool     // Should output have "data:" wrapper?
+		wantMetadata    bool     // Should output have "metadata:" section?
+		expectedKeys    []string // Keys expected at root level
+	}{
+		{
+			name: "includeMetadata=false - simple data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"test.csl"},
+					ProviderAliases: []string{"test"},
+					StartTime:       now,
+					EndTime:         now.Add(1 * time.Second),
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{"region", "count"},
+		},
+		{
+			name: "includeMetadata=true - includes all sections",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"region": "us-west-2",
+					"count":  3,
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"test.csl"},
+					ProviderAliases: []string{"test"},
+					StartTime:       now,
+					EndTime:         now.Add(1 * time.Second),
+				},
+			},
+			includeMetadata: true,
+			wantDataWrapper: true,
+			wantMetadata:    true,
+			expectedKeys:    []string{"data", "metadata"},
+		},
+		{
+			name: "includeMetadata=false - nested data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{
+					"vpc": map[string]any{
+						"cidr": "10.0.0.0/16",
+						"tags": map[string]any{
+							"Name": "main",
+							"Env":  "prod",
+						},
+					},
+					"region": "us-east-1",
+				},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"config.csl"},
+					ProviderAliases: []string{"aws"},
+					StartTime:       now,
+					EndTime:         now.Add(2 * time.Second),
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{"vpc", "region"},
+		},
+		{
+			name: "includeMetadata=false - empty data",
+			snapshot: compiler.Snapshot{
+				Data: map[string]any{},
+				Metadata: compiler.Metadata{
+					InputFiles:      []string{"empty.csl"},
+					ProviderAliases: []string{},
+					StartTime:       now,
+					EndTime:         now,
+				},
+			},
+			includeMetadata: false,
+			wantDataWrapper: false,
+			wantMetadata:    false,
+			expectedKeys:    []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := ToYAML(tt.snapshot, tt.includeMetadata)
+			if err != nil {
+				t.Fatalf("ToYAML failed: %v", err)
+			}
+
+			// Parse the YAML output
+			var result map[string]any
+			if err := yaml.Unmarshal(output, &result); err != nil {
+				t.Fatalf("failed to parse YAML output: %v", err)
+			}
+
+			// Check for "data" wrapper
+			_, hasDataKey := result["data"]
+			if hasDataKey != tt.wantDataWrapper {
+				t.Errorf("data wrapper: got %v, want %v", hasDataKey, tt.wantDataWrapper)
+				t.Logf("Output:\n%s", output)
+			}
+
+			// Check for "metadata" section
+			_, hasMetadataKey := result["metadata"]
+			if hasMetadataKey != tt.wantMetadata {
+				t.Errorf("metadata section: got %v, want %v", hasMetadataKey, tt.wantMetadata)
+				t.Logf("Output:\n%s", output)
+			}
+
+			// When includeMetadata=false, verify expected keys are at root level
+			if !tt.includeMetadata {
+				for _, key := range tt.expectedKeys {
+					if _, exists := result[key]; !exists {
+						t.Errorf("expected key %q at root level, not found", key)
+						t.Logf("Output:\n%s", output)
+					}
+				}
+
+				// Verify NO "data" or "metadata" keys at root
+				if _, exists := result["data"]; exists {
+					t.Error("should not have 'data' key at root when includeMetadata=false")
+				}
+				if _, exists := result["metadata"]; exists {
+					t.Error("should not have 'metadata' key at root when includeMetadata=false")
+				}
+			}
+
+			// Verify output is valid YAML (already parsed above, but good to confirm)
+			outputStr := string(output)
+			if len(outputStr) == 0 && len(tt.expectedKeys) > 0 {
+				t.Error("output is empty but expected keys")
+			}
+		})
+	}
+}
+
+// TestToYAML_ExcludeMetadata_KeyOrdering tests that when includeMetadata=false,
+// keys at the root level are still sorted alphabetically for deterministic output.
+func TestToYAML_ExcludeMetadata_KeyOrdering(t *testing.T) {
+	snapshot := compiler.Snapshot{
+		Data: map[string]any{
+			"zebra":  "last",
+			"alpha":  "first",
+			"middle": "mid",
+		},
+		Metadata: compiler.Metadata{
+			InputFiles:      []string{"test.csl"},
+			ProviderAliases: []string{},
+			StartTime:       time.Time{},
+			EndTime:         time.Time{},
+		},
+	}
+
+	output, err := ToYAML(snapshot, false) // includeMetadata=false
+	if err != nil {
+		t.Fatalf("ToYAML failed: %v", err)
+	}
+
+	outputStr := string(output)
+
+	// Keys should appear in sorted order at root level
+	alphaPos := indexOf(outputStr, "alpha:")
+	middlePos := indexOf(outputStr, "middle:")
+	zebraPos := indexOf(outputStr, "zebra:")
+
+	if alphaPos == -1 || middlePos == -1 || zebraPos == -1 {
+		t.Fatalf("expected keys not found in output:\n%s", outputStr)
+	}
+
+	if alphaPos >= middlePos || middlePos >= zebraPos {
+		t.Errorf("keys not in sorted order: alpha=%d, middle=%d, zebra=%d", alphaPos, middlePos, zebraPos)
+		t.Logf("Output:\n%s", outputStr)
+	}
+
+	// Verify no "data:" or "metadata:" wrappers
+	if indexOf(outputStr, "data:") != -1 {
+		t.Error("output should not contain 'data:' wrapper when includeMetadata=false")
+		t.Logf("Output:\n%s", outputStr)
+	}
+	if indexOf(outputStr, "metadata:") != -1 {
+		t.Error("output should not contain 'metadata:' section when includeMetadata=false")
+		t.Logf("Output:\n%s", outputStr)
 	}
 }

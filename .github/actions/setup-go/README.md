@@ -8,14 +8,14 @@ A composite action that sets up the Go environment with the correct version and 
 - name: Setup Go Environment
   uses: ./.github/actions/setup-go
   with:
-    go-version: '1.25.6'  # Optional, defaults to 1.25.6
+    go-version: '1.26.0'  # Optional, defaults to 1.26.0
 ```
 
 ## Inputs
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------||
-| `go-version` | Go version to use | No | `1.25.6` |
+| `go-version` | Go version to use | No | `1.26.0` |
 | `cache-dependency-path` | Path to go.sum files for caching | No | All module go.sum files |
 | `working-directory` | Working directory for workspace verification | No | `.` |
 

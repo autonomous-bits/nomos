@@ -48,7 +48,7 @@ Edit your `go.mod` file to use versioned `require` directives:
 ```go
 module github.com/example/my-project
 
-go 1.25.6
+go 1.26.0
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.0.0-00010101000000-000000000000
@@ -63,7 +63,7 @@ replace github.com/autonomous-bits/nomos/libs/parser => ../nomos/libs/parser
 ```go
 module github.com/example/my-project
 
-go 1.25.6
+go 1.26.0
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0
@@ -155,7 +155,7 @@ If you're working within the Nomos monorepo itself, **do not use `replace` direc
 The repository root has a `go.work` file that configures all modules:
 
 ```go
-go 1.25.6+
+go 1.26.0+
 
 use (
     ./apps/command-line

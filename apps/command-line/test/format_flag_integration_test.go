@@ -137,7 +137,7 @@ vpc:
 			outFile := filepath.Join(tmpDir, "output-"+tt.format)
 
 			//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
-			cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", tt.format, "-o", outFile)
+			cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", tt.format, "-o", outFile, "--include-metadata")
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				t.Fatalf("build command failed: %v\nOutput: %s", err, output)

@@ -1,4 +1,4 @@
-package parse
+package parse //nolint:revive // internal package, no actual conflict with stdlib
 
 import (
 	"os"

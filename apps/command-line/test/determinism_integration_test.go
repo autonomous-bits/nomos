@@ -50,7 +50,7 @@ middle:
 		outFile := filepath.Join(tmpDir, "output-"+string(rune('0'+i))+".json")
 
 		//nolint:gosec,noctx // G204: Test code with controlled input; context not needed
-		cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", "json", "-o", outFile)
+		cmd := exec.Command(binPath, "build", "-p", fixturePath, "-f", "json", "-o", outFile, "--include-metadata")
 
 		if output, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("run %d: build command failed: %v\nOutput: %s", i, err, output)

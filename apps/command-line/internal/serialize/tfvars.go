@@ -16,8 +16,13 @@ import (
 var hclIdentifierRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]*$`)
 
 // ToTfvars serializes a snapshot to HCL .tfvars format with deterministic ordering.
-// Only the Data section is serialized (metadata is omitted).
+// Only the Data section is serialized (metadata is always omitted for tfvars format).
 // Maps are serialized with sorted keys using HCL variable syntax.
+//
+// Parameters:
+//   - snapshot: The compiler snapshot to serialize
+//   - includeMetadata: Accepted for API consistency but ignored (tfvars format
+//     never includes metadata by design)
 //
 // Returns error if:
 //   - Snapshot contains unsupported types (func, chan, complex)
@@ -31,7 +36,10 @@ var hclIdentifierRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_-]*$`)
 //	vpc = {
 //	  cidr = "10.0.0.0/16"
 //	}
-func ToTfvars(snapshot compiler.Snapshot) ([]byte, error) {
+func ToTfvars(snapshot compiler.Snapshot, _ bool) ([]byte, error) {
+	// Note: includeMetadata parameter is ignored. Tfvars format has no standard
+	// metadata representation, so metadata is always excluded.
+
 	// Validate all keys before serialization
 	if err := validateTfvarsKeys(snapshot.Data); err != nil {
 		return nil, err

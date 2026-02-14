@@ -1,5 +1,5 @@
 // Package scanner provides a lexical scanner for Nomos configuration files.
-package scanner
+package scanner //nolint:revive // internal package, no actual conflict with stdlib
 
 import (
 	"fmt"
