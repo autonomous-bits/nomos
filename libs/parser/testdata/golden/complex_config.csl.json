@@ -1,58 +1,52 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 28,
-    "filename": "../testdata/fixtures/complex_config.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "azure",
+      "type": "azure",
+      "version": "",
       "config": {
         "path": {
+          "value": "./providers/azure",
           "source_span": {
-            "end_col": 25,
-            "end_line": 4,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 4,
             "start_col": 9,
-            "start_line": 4
-          },
-          "value": "./providers/azure"
+            "end_line": 4,
+            "end_col": 25
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 5,
         "filename": "../testdata/fixtures/complex_config.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "azure",
-      "version": ""
+        "end_line": 5,
+        "end_col": 1
+      }
     },
     {
       "alias": "base",
       "path": "./base.csl",
       "source_span": {
-        "end_col": 1,
-        "end_line": 7,
         "filename": "../testdata/fixtures/complex_config.csl",
+        "start_line": 6,
         "start_col": 1,
-        "start_line": 6
+        "end_line": 7,
+        "end_col": 1
       }
     },
     {
       "alias": "network",
       "source_span": {
-        "end_col": 1,
-        "end_line": 8,
         "filename": "../testdata/fixtures/complex_config.csl",
+        "start_line": 7,
         "start_col": 1,
-        "start_line": 7
+        "end_line": 8,
+        "end_col": 1
       }
     },
     {
+      "name": "infrastructure",
       "entries": {
         "security-groups": {
           "entries": {
@@ -61,41 +55,41 @@
                 "ingress": {
                   "entries": {
                     "port": {
+                      "value": "5432",
                       "source_span": {
-                        "end_col": 14,
-                        "end_line": 21,
                         "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_line": 21,
                         "start_col": 11,
-                        "start_line": 21
-                      },
-                      "value": "5432"
+                        "end_line": 21,
+                        "end_col": 14
+                      }
                     },
                     "protocol": {
+                      "value": "tcp",
                       "source_span": {
-                        "end_col": 17,
-                        "end_line": 22,
                         "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_line": 22,
                         "start_col": 15,
-                        "start_line": 22
-                      },
-                      "value": "tcp"
+                        "end_line": 22,
+                        "end_col": 17
+                      }
                     }
                   },
                   "source_span": {
-                    "end_col": 1,
-                    "end_line": 23,
                     "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_line": 20,
                     "start_col": 4,
-                    "start_line": 20
+                    "end_line": 23,
+                    "end_col": 1
                   }
                 }
               },
               "source_span": {
-                "end_col": 1,
-                "end_line": 23,
                 "filename": "../testdata/fixtures/complex_config.csl",
+                "start_line": 19,
                 "start_col": 3,
-                "start_line": 19
+                "end_line": 23,
+                "end_col": 1
               }
             },
             "web": {
@@ -103,63 +97,63 @@
                 "ingress": {
                   "entries": {
                     "port": {
+                      "value": "80",
                       "source_span": {
-                        "end_col": 12,
-                        "end_line": 17,
                         "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_line": 17,
                         "start_col": 11,
-                        "start_line": 17
-                      },
-                      "value": "80"
+                        "end_line": 17,
+                        "end_col": 12
+                      }
                     },
                     "protocol": {
+                      "value": "tcp",
                       "source_span": {
-                        "end_col": 17,
-                        "end_line": 18,
                         "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_line": 18,
                         "start_col": 15,
-                        "start_line": 18
-                      },
-                      "value": "tcp"
+                        "end_line": 18,
+                        "end_col": 17
+                      }
                     }
                   },
                   "source_span": {
-                    "end_col": 1,
-                    "end_line": 19,
                     "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_line": 16,
                     "start_col": 4,
-                    "start_line": 16
+                    "end_line": 19,
+                    "end_col": 1
                   }
                 }
               },
               "source_span": {
-                "end_col": 1,
-                "end_line": 19,
                 "filename": "../testdata/fixtures/complex_config.csl",
+                "start_line": 15,
                 "start_col": 3,
-                "start_line": 15
+                "end_line": 19,
+                "end_col": 1
               }
             }
           },
           "source_span": {
-            "end_col": 1,
-            "end_line": 23,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 14,
             "start_col": 2,
-            "start_line": 14
+            "end_line": 23,
+            "end_col": 1
           }
         },
         "vpc": {
           "entries": {
             "cidr": {
+              "value": "10.0.0.0/16",
               "source_span": {
-                "end_col": 19,
-                "end_line": 11,
                 "filename": "../testdata/fixtures/complex_config.csl",
+                "start_line": 11,
                 "start_col": 9,
-                "start_line": 11
-              },
-              "value": "10.0.0.0/16"
+                "end_line": 11,
+                "end_col": 19
+              }
             },
             "region": {
               "alias": "base",
@@ -168,20 +162,20 @@
                 "region"
               ],
               "source_span": {
-                "end_col": 38,
-                "end_line": 12,
                 "filename": "../testdata/fixtures/complex_config.csl",
+                "start_line": 12,
                 "start_col": 11,
-                "start_line": 12
+                "end_line": 12,
+                "end_col": 29
               }
             }
           },
           "source_span": {
-            "end_col": 1,
-            "end_line": 13,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 10,
             "start_col": 2,
-            "start_line": 10
+            "end_line": 13,
+            "end_col": 1
           }
         },
         "vpc_cidr_ref": {
@@ -191,64 +185,70 @@
             "cidr"
           ],
           "source_span": {
-            "end_col": 41,
-            "end_line": 13,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 13,
             "start_col": 16,
-            "start_line": 13
+            "end_line": 13,
+            "end_col": 32
           }
         }
       },
-      "name": "infrastructure",
       "source_span": {
-        "end_col": 1,
-        "end_line": 23,
         "filename": "../testdata/fixtures/complex_config.csl",
+        "start_line": 9,
         "start_col": 1,
-        "start_line": 9
+        "end_line": 23,
+        "end_col": 1
       }
     },
     {
+      "name": "application",
       "entries": {
         "name": {
+          "value": "my-app",
           "source_span": {
-            "end_col": 13,
-            "end_line": 25,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 25,
             "start_col": 8,
-            "start_line": 25
-          },
-          "value": "my-app"
+            "end_line": 25,
+            "end_col": 13
+          }
         },
         "replicas": {
+          "value": "3",
           "source_span": {
-            "end_col": 12,
-            "end_line": 27,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 27,
             "start_col": 12,
-            "start_line": 27
-          },
-          "value": "3"
+            "end_line": 27,
+            "end_col": 12
+          }
         },
         "version": {
+          "value": "1.0.0",
           "source_span": {
-            "end_col": 15,
-            "end_line": 26,
             "filename": "../testdata/fixtures/complex_config.csl",
+            "start_line": 26,
             "start_col": 11,
-            "start_line": 26
-          },
-          "value": "1.0.0"
+            "end_line": 26,
+            "end_col": 15
+          }
         }
       },
-      "name": "application",
       "source_span": {
-        "end_col": 1,
-        "end_line": 28,
         "filename": "../testdata/fixtures/complex_config.csl",
+        "start_line": 24,
         "start_col": 1,
-        "start_line": 24
+        "end_line": 28,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/complex_config.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 28,
+    "end_col": 1
+  }
 }

@@ -9,12 +9,12 @@ source:
 	path: './security'
 
 infrastructure:
-	vpc_cidr: reference:network:vpc.cidr
+	vpc_cidr: @network:vpc.cidr
 	region: 'us-west-2'
-	subnet: reference:network:subnets.public.az1
-	security_group: reference:security:rules.ingress.http
+	subnet: @network:subnets.public.az1
+	security_group: @security:rules.ingress.http
 
 application:
 	name: 'my-app'
 	port: '8080'
-	database_host: reference:network:rds.endpoint
+	database_host: @network:rds.endpoint

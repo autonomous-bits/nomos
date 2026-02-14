@@ -191,7 +191,7 @@ func TestCompile_ScalarWithReference(t *testing.T) {
   alias: 'network'
   type: 'test'
 
-cidr: reference:network:vpc_cidr`
+cidr: @network:vpc_cidr`
 
 	if err := writeTestFile(mainFile, input); err != nil {
 		t.Fatalf("failed to create main file: %v", err)

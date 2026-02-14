@@ -44,7 +44,7 @@ import:baseConfig:./base.csl
 database:
   host: localhost
   port: 5432
-  connection: reference:base:config.database
+  connection: @base:config.database
 `
 
 	// Create a wait group

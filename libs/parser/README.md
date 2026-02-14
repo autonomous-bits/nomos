@@ -15,7 +15,7 @@ See `docs/architecture/` for higher-level design docs and diagrams.
 - You can create and reuse parser instances via `NewParser()` and call
   the instance methods `(*Parser).ParseFile` / `(*Parser).Parse`.
 - Inline references are first-class expressions (`ast.ReferenceExpr`) and have the
-  form `reference:alias:dotted.path` when used as a value. Top-level
+  form `@alias:dotted.path` when used as a value. Top-level
   `reference:` statements are rejected (deprecated) and the parser returns a
   `SyntaxError` with a migration hint.
 - Parse errors are represented by `*parser.ParseError` with kinds
@@ -64,7 +64,7 @@ import:network  # Import network configuration from source
 ```csl
 # Application infrastructure settings
 infrastructure:
-  vpc_cidr: reference:network:vpc.cidr  # Reference from network source
+  vpc_cidr: @network:vpc.cidr  # Reference from network source
   region: 'us-west-2'                   # AWS region
   # availability_zones: 'us-west-2a,us-west-2b'  # Disabled for now
 ```
@@ -139,7 +139,7 @@ _, _ = p.Parse(strings.NewReader(source), "p.csl")
   expressions include:
   - `*ast.StringLiteral` — plain string values (the parser strips quotes)
   - `*ast.ReferenceExpr` — inline reference values parsed from
-    `reference:alias:path.to.value` (the parser splits the dotted path into
+    `@alias:path.to.value` (the parser splits the dotted path into
     components)
 
 All AST nodes carry `ast.SourceSpan` (filename, start/end line/column) which
@@ -149,7 +149,7 @@ is used by the compiler and error reporting.
 
 The parser implements inline references as value expressions:
 
-  key: reference:someAlias:parent.child
+  key: @someAlias:parent.child
 
 This produces an `ast.ReferenceExpr{Alias: "someAlias", Path: []string{"parent","child"}, ...}`.
 
@@ -215,8 +215,8 @@ source:
   directory: ./network-config
 
 app:
-  primaryIP: reference:network:IPs[0]
-  backupIP: reference:network:IPs[1]
+  primaryIP: @network:IPs[0]
+  backupIP: @network:IPs[1]
 ```
 
 Lists can also contain references:
@@ -228,8 +228,8 @@ source:
 
 app:
   inheritedIPs:
-    - reference:baseConfig:networking.primary
-    - reference:baseConfig:networking.secondary
+    - @baseConfig:networking.primary
+    - @baseConfig:networking.secondary
     - 10.0.0.100
 ```
 
@@ -239,9 +239,9 @@ Use square brackets to select list elements in reference paths. Indexes are zero
 
 ```csl
 app:
-  firstIP: reference:network:IPs[0]
-  firstSubnetMask: reference:network:subnets[0].mask
-  matrixValue: reference:network:matrix[1][2]
+  firstIP: @network:IPs[0]
+  firstSubnetMask: @network:subnets[0].mask
+  matrixValue: @network:matrix[1][2]
 ```
 ## Error handling
 
@@ -287,7 +287,7 @@ violations. Key rules implemented in the code:
 - `import` requires an alias; an optional `:path` may follow (parsed as
   identifier-like token after a second `:`).
 - Top-level `reference:` statements are rejected (deprecated) — use inline
-  `reference:alias:dot.path` values.
+  `@alias:dot.path` values.
 - String values must be properly terminated; unterminated strings produce
   `SyntaxError` describing the missing closing quote.
 - Key identifiers must be valid (empty key or invalid start character results
@@ -415,7 +415,7 @@ The parser exports the following stable AST node types:
 - **`IdentExpr`**: Simple identifier
 - **`StringLiteral`**: String literal value
 
-- **`ReferenceExpr`**: Inline reference value (`reference:{alias}:{path}`) used anywhere a value is allowed. Section entry values are expressions (`Expr`) and can be either a `StringLiteral` or a `ReferenceExpr`. The legacy top-level `ReferenceStmt` will be removed in a future major version.
+- **`ReferenceExpr`**: Inline reference value (`@{alias}:{path}`) used anywhere a value is allowed. Section entry values are expressions (`Expr`) and can be either a `StringLiteral` or a `ReferenceExpr`. The legacy top-level `ReferenceStmt` will be removed in a future major version.
 
 All types include JSON tags for deterministic serialization, which is useful for testing and tooling.
 
@@ -425,9 +425,9 @@ Nomos supports **inline references** as first-class values. References allow you
 
 ### Syntax
 
-The inline reference syntax follows the pattern: `reference:{alias}:{path}`
+The inline reference syntax follows the pattern: `@{alias}:{path}`
 
-- **`reference`**: Keyword indicating a reference expression
+- **`@`**: Symbol indicating a reference expression
 - **`{alias}`**: The source or import alias to reference
 - **`{path}`**: A dotted path to the target property (e.g., `vpc.cidr` or `database.connection.host`)
 
@@ -437,7 +437,7 @@ The inline reference syntax follows the pattern: `reference:{alias}:{path}`
 
 ```csl
 infrastructure:
-  vpc_cidr: reference:network:vpc.cidr
+  vpc_cidr: @network:vpc.cidr
   region: 'us-west-2'
 ```
 
@@ -448,10 +448,10 @@ The `vpc_cidr` value is an inline reference to `vpc.cidr` from the `network` sou
 ```csl
 servers:
   web:
-    ip: reference:network:web.ip
+    ip: @network:web.ip
     port: '8080'
   api:
-    ip: reference:network:api.ip
+    ip: @network:api.ip
     port: '3000'
 ```
 
@@ -462,10 +462,10 @@ Multiple inline references can be used within the same section, allowing dynamic
 ```csl
 databases:
   primary:
-    host: reference:infra:db.primary.host
+    host: @infra:db.primary.host
     port: '5432'
   replica:
-    host: reference:infra:db.replica.host
+    host: @infra:db.replica.host
     port: '5433'
 ```
 
@@ -476,9 +476,9 @@ Inline references work seamlessly in deeply nested structures.
 ```csl
 application:
   name: 'my-app'
-  database_url: reference:config:database.url
+  database_url: @config:database.url
   debug: 'false'
-  api_key: reference:secrets:api.key
+  api_key: @secrets:api.key
 ```
 
 You can freely mix string literals and inline references within the same section.
@@ -505,7 +505,7 @@ When the parser encounters an inline reference, it creates a `ReferenceExpr` nod
 **Fields:**
 - **`alias`** (string): The source alias to resolve (e.g., `"network"`)
 - **`path`** ([]string): Array of path components (e.g., `["vpc", "cidr"]`)
-- **`source_span`** (SourceSpan): Precise source location covering the entire `reference:alias:path` token
+- **`source_span`** (SourceSpan): Precise source location covering the entire `@alias:path` token
 
 ### Working with ReferenceExpr in Code
 
@@ -523,7 +523,7 @@ import (
 func main() {
     source := `
 infrastructure:
-  vpc_cidr: reference:network:vpc.cidr
+  vpc_cidr: @network:vpc.cidr
   region: 'us-west-2'
 `
     
@@ -578,7 +578,7 @@ infrastructure:
 New inline syntax (required):
 ```csl
 infrastructure:
-  vpc_cidr: reference:network:vpc.cidr
+  vpc_cidr: @network:vpc.cidr
 ```
 
 For migration assistance and detailed guidance, see:
@@ -610,21 +610,21 @@ type SourceSpan struct {
 
 **Example:**
 
-For the input line `"  key: reference:net:日本"` (where 日本 is 6 bytes):
-- StartCol = 8 (first byte of "reference")
-- EndCol = 27 (last byte of "本")
-- Token length = `EndCol - StartCol + 1 = 20 bytes`
+For the input line `"  key: @net:日本"` (where 日本 is 6 bytes):
+- StartCol = 8 (first byte of "@")
+- EndCol = 18 (last byte of "本")
+- Token length = `EndCol - StartCol + 1 = 11 bytes`
 
 **ReferenceExpr span accuracy:**
 
-`ReferenceExpr` nodes capture the **entire inline reference token** including the `reference:` keyword, alias, and dotted path. For example:
+`ReferenceExpr` nodes capture the **entire inline reference token** including the `@` symbol, alias, and dotted path. For example:
 
 ```csl
 section:
-  cidr: reference:network:vpc.cidr
+  cidr: @network:vpc.cidr
 ```
 
-The `ReferenceExpr` span for this value covers columns 9-36 (assuming 2-space indent), encompassing the complete text `"reference:network:vpc.cidr"` (28 bytes).
+The `ReferenceExpr` span for this value covers columns 9-27 (assuming 2-space indent), encompassing the complete text `"@network:vpc.cidr"` (19 bytes).
 
 This precision enables:
 - Accurate error reporting with caret positioning
@@ -650,7 +650,7 @@ if err != nil {
 From the repository README, Nomos supports the following surface:
 - `source` — declare a source provider with alias and type
 - `import` — import configuration from a source, optionally at a nested path
-- `reference` — reference a specific value from a source
+- `@` — reference a specific value from a source using inline @ syntax
 
 Current high-level grammar sketch (non-normative but reflects parser behavior):
 
@@ -668,18 +668,18 @@ IndentedEntries = { Indent Key ":" Value NewLine } .
 Key             = Ident .
 Value           = String | Expr .              # A key's value can be a string literal or a reference
 Expr            = ReferenceExpr | IdentExpr | PathExpr .
-ReferenceExpr   = "reference" ":" Alias ":" Path .
+ReferenceExpr   = "@" Alias ":" Path .
 ```
 
 Legacy acceptance (to be removed in a future major version):
 
 ```
-ReferenceStmt = "reference" ":" Alias ":" Path .   // deprecated
+ReferenceStmt = "reference" ":" Alias ":" Path .   // deprecated (replaced by @ syntax)
 ```
 
 Concrete token forms (as used in scripts):
 - `import:{alias}` or `import:{alias}:{path_to_map}`
-- `reference:{alias}:{path_to_property}`
+- `@{alias}:{path_to_property}`
 
 Example configuration block:
 
@@ -701,7 +701,7 @@ Inline reference example (recommended):
 ```
 infrastructure:
   vpc:
-        cidr: reference:network:vpc.cidr   # reference value
+        cidr: @network:vpc.cidr   # reference value
         name: 'prod-vpc'                   # string value
 ```
 
@@ -729,7 +729,7 @@ Deprecation and breaking-change notice:
 
 Migration guidance:
 
-- Replace any top-level `reference:{alias}:{path}` with an inline value under the appropriate section key.
+- Replace any top-level `reference:{alias}:{path}` with an inline value `@{alias}:{path}` under the appropriate section key.
 - Update consumers that rely on `SectionDecl.Entries` to handle expression values (when the new major version lands).
 
 ## Migration Notes
@@ -763,8 +763,8 @@ source:
   path: './network'
 
 infrastructure:
-  vpc_cidr: reference:network:vpc.cidr
-  subnet_mask: reference:network:subnet.mask
+  vpc_cidr: @network:vpc.cidr
+  subnet_mask: @network:subnet.mask
 ```
 
 #### Why This Change?
@@ -787,7 +787,7 @@ Use the provided codemod script to automatically convert legacy references:
 
 The script will:
 - Identify all top-level `reference:` statements
-- Convert them to inline `reference:` expressions in appropriate value positions
+- Convert them to inline `@` expressions in appropriate value positions
 - Preserve comments and formatting where possible
 - Generate a backup file (`.csl.bak`)
 
@@ -797,7 +797,7 @@ For each top-level `reference:alias:path` statement:
 
 1. Remove the top-level `reference:` line
 2. Find the section where the value should be used
-3. Add a key-value pair with an inline reference: `key: reference:alias:path`
+3. Add a key-value pair with an inline reference: `key: @alias:path`
 
 **Before:**
 ```csl
@@ -819,8 +819,8 @@ source:
   type: 'folder'
 
 application:
-  db_host: reference:config:database.host
-  db_port: reference:config:database.port
+  db_host: @config:database.host
+  db_port: @config:database.port
 ```
 
 #### Error Messages
@@ -830,7 +830,7 @@ If the parser encounters a legacy top-level `reference:` statement, it will prod
 ```
 config.csl:5:1: top-level 'reference:' statements are no longer supported.
 Use inline references instead. Example: Instead of a top-level 'reference:alias:path',
-use 'key: reference:alias:path' in a value position.
+use 'key: @alias:path' in a value position.
 
    4 | 
    5 | reference:network:vpc.cidr

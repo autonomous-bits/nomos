@@ -33,7 +33,7 @@ func TestDocumentation_InlineReferenceContent(t *testing.T) {
 
 	t.Run("contains scalar example", func(t *testing.T) {
 		// Check for scalar value example
-		scalarExample := "vpc_cidr: reference:network:vpc.cidr"
+		scalarExample := "vpc_cidr: @network:vpc.cidr"
 		if !strings.Contains(readme, scalarExample) {
 			t.Errorf("README.md must contain scalar inline reference example: %q", scalarExample)
 		}
@@ -42,7 +42,7 @@ func TestDocumentation_InlineReferenceContent(t *testing.T) {
 	t.Run("contains map/collection example", func(t *testing.T) {
 		// Check for map context example
 		if !strings.Contains(readme, "servers:") &&
-			!strings.Contains(readme, "ip: reference:network:") {
+			!strings.Contains(readme, "ip: @network:") {
 			t.Error("README.md must contain map/collection inline reference example")
 		}
 	})
@@ -168,20 +168,20 @@ func TestDocumentation_ExamplesAreParseable(t *testing.T) {
 	exampleFiles := map[string][]string{
 		"../docs/examples/inline_reference_basic.csl": {
 			"source:",
-			"reference:network:",
+			"@network:",
 		},
 		"../docs/examples/inline_reference_map.csl": {
 			"servers:",
-			"ip: reference:",
+			"ip: @",
 		},
 		"../docs/examples/inline_reference_mixed.csl": {
 			"application:",
-			"reference:config:",
-			"reference:secrets:",
+			"@config:",
+			"@secrets:",
 		},
 		"../docs/examples/inline_reference_nested.csl": {
 			"databases:",
-			"reference:infra:",
+			"@infra:",
 		},
 	}
 

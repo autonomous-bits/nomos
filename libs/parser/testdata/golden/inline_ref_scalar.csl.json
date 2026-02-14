@@ -1,47 +1,41 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 9,
-    "filename": "../testdata/fixtures/inline_ref_scalar.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "network",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./config",
           "source_span": {
-            "end_col": 15,
-            "end_line": 4,
             "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_line": 4,
             "start_col": 8,
-            "start_line": 4
-          },
-          "value": "./config"
+            "end_line": 4,
+            "end_col": 15
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 5,
         "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 5,
+        "end_col": 1
+      }
     },
     {
+      "name": "infrastructure",
       "entries": {
         "region": {
+          "value": "us-west-2",
           "source_span": {
-            "end_col": 18,
-            "end_line": 8,
             "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_line": 8,
             "start_col": 10,
-            "start_line": 8
-          },
-          "value": "us-west-2"
+            "end_line": 8,
+            "end_col": 18
+          }
         },
         "vpc_cidr": {
           "alias": "network",
@@ -50,22 +44,28 @@
             "cidr"
           ],
           "source_span": {
-            "end_col": 37,
-            "end_line": 7,
             "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+            "start_line": 7,
             "start_col": 12,
-            "start_line": 7
+            "end_line": 7,
+            "end_col": 28
           }
         }
       },
-      "name": "infrastructure",
       "source_span": {
-        "end_col": 1,
-        "end_line": 9,
         "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+        "start_line": 6,
         "start_col": 1,
-        "start_line": 6
+        "end_line": 9,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/inline_ref_scalar.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 9,
+    "end_col": 1
+  }
 }

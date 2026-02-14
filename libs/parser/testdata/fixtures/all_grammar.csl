@@ -9,8 +9,8 @@ import:module2
 section1:
 	key1: value1
 	key2: value2
-	ref1: reference:module1:config.value
-	ref2: reference:module2:data.key.nested
+	ref1: @module1:config.value
+	ref2: @module2:data.key.nested
 
 section2:
 	nested:

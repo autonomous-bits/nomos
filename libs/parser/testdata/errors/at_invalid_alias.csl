@@ -1,0 +1,3 @@
+# Test rejection of invalid alias names
+case1: @123alias:path
+case2: @-invalid:path

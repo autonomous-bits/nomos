@@ -16,18 +16,18 @@ source:
 application:
 	name: 'my-application'
 	version: '1.0.0'
-	database_url: reference:config:database.connection_string
+	database_url: @config:database.connection_string
 	debug_mode: 'false'
 	log_level: 'info'
-	api_key: reference:secrets:third_party.api_key
+	api_key: @secrets:third_party.api_key
 	max_connections: '100'
 	timeout_seconds: '30'
-	cache_ttl: reference:config:cache.ttl_seconds
+	cache_ttl: @config:cache.ttl_seconds
 
 deployment:
 	environment: 'production'
-	region: reference:config:aws.region
+	region: @config:aws.region
 	instance_type: 't3.medium'
-	vpc_id: reference:config:aws.vpc_id
-	subnet_ids: reference:config:aws.subnet_ids
-	security_group: reference:secrets:aws.security_group_id
+	vpc_id: @config:aws.vpc_id
+	subnet_ids: @config:aws.subnet_ids
+	security_group: @secrets:aws.security_group_id

@@ -1,0 +1,95 @@
+{
+  "statements": [
+    {
+      "name": "email",
+      "value": {
+        "value": "admin@example.com",
+        "source_span": {
+          "filename": "../testdata/fixtures/at_in_strings.csl",
+          "start_line": 2,
+          "start_col": 8,
+          "end_line": 2,
+          "end_col": 24
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/at_in_strings.csl",
+        "start_line": 2,
+        "start_col": 1,
+        "end_line": 2,
+        "end_col": 27
+      }
+    },
+    {
+      "name": "message",
+      "value": {
+        "value": "Contact @support for help",
+        "source_span": {
+          "filename": "../testdata/fixtures/at_in_strings.csl",
+          "start_line": 3,
+          "start_col": 10,
+          "end_line": 3,
+          "end_col": 34
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/at_in_strings.csl",
+        "start_line": 3,
+        "start_col": 1,
+        "end_line": 3,
+        "end_col": 37
+      }
+    },
+    {
+      "name": "url",
+      "value": {
+        "value": "https://example.com/@user/profile",
+        "source_span": {
+          "filename": "../testdata/fixtures/at_in_strings.csl",
+          "start_line": 4,
+          "start_col": 6,
+          "end_line": 4,
+          "end_col": 38
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/at_in_strings.csl",
+        "start_line": 4,
+        "start_col": 1,
+        "end_line": 4,
+        "end_col": 41
+      }
+    },
+    {
+      "name": "actual_ref",
+      "value": {
+        "alias": "configs",
+        "path": [
+          "email",
+          "from"
+        ],
+        "source_span": {
+          "filename": "../testdata/fixtures/at_in_strings.csl",
+          "start_line": 7,
+          "start_col": 13,
+          "end_line": 7,
+          "end_col": 31
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/at_in_strings.csl",
+        "start_line": 7,
+        "start_col": 1,
+        "end_line": 7,
+        "end_col": 32
+      }
+    }
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/at_in_strings.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 8,
+    "end_col": 1
+  }
+}

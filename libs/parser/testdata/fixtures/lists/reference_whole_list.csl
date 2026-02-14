@@ -3,4 +3,4 @@ servers:
   - web02
 
 refs:
-  all_servers: reference:base:servers
+  all_servers: @base:servers

@@ -1,61 +1,55 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 30,
-    "filename": "../testdata/fixtures/inline_ref_mixed.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "network",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./config",
           "source_span": {
-            "end_col": 15,
-            "end_line": 4,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 4,
             "start_col": 8,
-            "start_line": 4
-          },
-          "value": "./config"
+            "end_line": 4,
+            "end_col": 15
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 5,
         "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 5,
+        "end_col": 1
+      }
     },
     {
       "alias": "app",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./app-config",
           "source_span": {
-            "end_col": 19,
-            "end_line": 9,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 9,
             "start_col": 8,
-            "start_line": 9
-          },
-          "value": "./app-config"
+            "end_line": 9,
+            "end_col": 19
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 10,
         "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_line": 6,
         "start_col": 1,
-        "start_line": 6
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 10,
+        "end_col": 1
+      }
     },
     {
+      "name": "config",
       "entries": {
         "backup_hosts": {
           "entries": {
@@ -66,11 +60,11 @@
                 "host"
               ],
               "source_span": {
-                "end_col": 41,
-                "end_line": 14,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 14,
                 "start_col": 12,
-                "start_line": 14
+                "end_line": 14,
+                "end_col": 32
               }
             },
             "backup2": {
@@ -80,30 +74,30 @@
                 "host"
               ],
               "source_span": {
-                "end_col": 41,
-                "end_line": 16,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 16,
                 "start_col": 12,
-                "start_line": 16
+                "end_line": 16,
+                "end_col": 32
               }
             },
             "static_backup": {
+              "value": "static-backup.example.com",
               "source_span": {
-                "end_col": 42,
-                "end_line": 15,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 15,
                 "start_col": 18,
-                "start_line": 15
-              },
-              "value": "static-backup.example.com"
+                "end_line": 15,
+                "end_col": 42
+              }
             }
           },
           "source_span": {
-            "end_col": 1,
-            "end_line": 17,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 13,
             "start_col": 2,
-            "start_line": 13
+            "end_line": 17,
+            "end_col": 1
           }
         },
         "primary_host": {
@@ -113,11 +107,11 @@
             "cidr"
           ],
           "source_span": {
-            "end_col": 41,
-            "end_line": 12,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 12,
             "start_col": 16,
-            "start_line": 12
+            "end_line": 12,
+            "end_col": 32
           }
         },
         "settings": {
@@ -129,11 +123,11 @@
                 "endpoint"
               ],
               "source_span": {
-                "end_col": 38,
-                "end_line": 20,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 20,
                 "start_col": 13,
-                "start_line": 20
+                "end_line": 20,
+                "end_col": 29
               }
             },
             "nested": {
@@ -146,59 +140,59 @@
                     "value"
                   ],
                   "source_span": {
-                    "end_col": 48,
-                    "end_line": 22,
                     "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                    "start_line": 22,
                     "start_col": 14,
-                    "start_line": 22
+                    "end_line": 22,
+                    "end_col": 39
                   }
                 },
                 "literal": {
+                  "value": "literal-value",
                   "source_span": {
-                    "end_col": 25,
-                    "end_line": 23,
                     "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                    "start_line": 23,
                     "start_col": 13,
-                    "start_line": 23
-                  },
-                  "value": "literal-value"
+                    "end_line": 23,
+                    "end_col": 25
+                  }
                 }
               },
               "source_span": {
-                "end_col": 1,
-                "end_line": 24,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 21,
                 "start_col": 3,
-                "start_line": 21
+                "end_line": 24,
+                "end_col": 1
               }
             },
             "retry_count": {
+              "value": "3",
               "source_span": {
-                "end_col": 16,
-                "end_line": 19,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 19,
                 "start_col": 16,
-                "start_line": 19
-              },
-              "value": "3"
+                "end_line": 19,
+                "end_col": 16
+              }
             },
             "timeout": {
+              "value": "30s",
               "source_span": {
-                "end_col": 14,
-                "end_line": 18,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 18,
                 "start_col": 12,
-                "start_line": 18
-              },
-              "value": "30s"
+                "end_line": 18,
+                "end_col": 14
+              }
             }
           },
           "source_span": {
-            "end_col": 1,
-            "end_line": 24,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 17,
             "start_col": 2,
-            "start_line": 17
+            "end_line": 24,
+            "end_col": 1
           }
         },
         "tags": {
@@ -210,51 +204,57 @@
                 "environment"
               ],
               "source_span": {
-                "end_col": 41,
-                "end_line": 26,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 26,
                 "start_col": 12,
-                "start_line": 26
+                "end_line": 26,
+                "end_col": 32
               }
             },
             "env": {
+              "value": "production",
               "source_span": {
-                "end_col": 17,
-                "end_line": 25,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 25,
                 "start_col": 8,
-                "start_line": 25
-              },
-              "value": "production"
+                "end_line": 25,
+                "end_col": 17
+              }
             },
             "region": {
+              "value": "us-west-2",
               "source_span": {
-                "end_col": 19,
-                "end_line": 27,
                 "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+                "start_line": 27,
                 "start_col": 11,
-                "start_line": 27
-              },
-              "value": "us-west-2"
+                "end_line": 27,
+                "end_col": 19
+              }
             }
           },
           "source_span": {
-            "end_col": 1,
-            "end_line": 28,
             "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+            "start_line": 24,
             "start_col": 2,
-            "start_line": 24
+            "end_line": 28,
+            "end_col": 1
           }
         }
       },
-      "name": "config",
       "source_span": {
-        "end_col": 1,
-        "end_line": 28,
         "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+        "start_line": 11,
         "start_col": 1,
-        "start_line": 11
+        "end_line": 28,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/inline_ref_mixed.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 30,
+    "end_col": 1
+  }
 }

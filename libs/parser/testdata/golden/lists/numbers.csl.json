@@ -1,0 +1,64 @@
+{
+  "statements": [
+    {
+      "name": "ports",
+      "entries": {
+        "": {
+          "elements": [
+            {
+              "value": "8080",
+              "source_span": {
+                "filename": "../testdata/fixtures/lists/numbers.csl",
+                "start_line": 2,
+                "start_col": 5,
+                "end_line": 2,
+                "end_col": 8
+              }
+            },
+            {
+              "value": "8081",
+              "source_span": {
+                "filename": "../testdata/fixtures/lists/numbers.csl",
+                "start_line": 3,
+                "start_col": 5,
+                "end_line": 3,
+                "end_col": 8
+              }
+            },
+            {
+              "value": "8082",
+              "source_span": {
+                "filename": "../testdata/fixtures/lists/numbers.csl",
+                "start_line": 4,
+                "start_col": 5,
+                "end_line": 4,
+                "end_col": 8
+              }
+            }
+          ],
+          "source_span": {
+            "filename": "../testdata/fixtures/lists/numbers.csl",
+            "start_line": 2,
+            "start_col": 3,
+            "end_line": 5,
+            "end_col": 1
+          }
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/lists/numbers.csl",
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 5,
+        "end_col": 1
+      }
+    }
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/lists/numbers.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 5,
+    "end_col": 1
+  }
+}

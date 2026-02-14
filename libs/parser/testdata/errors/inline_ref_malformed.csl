@@ -5,4 +5,4 @@ source:
 
 infrastructure:
 	# Missing path after alias
-	bad_ref: reference:network:
+	bad_ref: @network:

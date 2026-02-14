@@ -189,7 +189,7 @@ Key parser behaviours the compiler relies on:
     - `ReferenceExpr` has `Alias string`, `Path []string` and carries a `SourceSpan`.
 
 - Inline references:
-    - The parser treats inline references as first-class values: `key: reference:alias:dot.path` produces an `ast.ReferenceExpr` assigned as the entry value.
+    - The parser treats inline references as first-class values: `key: @alias:dot.path` produces an `ast.ReferenceExpr` assigned as the entry value.
     - Top-level `reference:` statements (legacy) are rejected by the parser with a `SyntaxError` and a migration hint — the compiler should not expect top-level reference statements.
 
 - Source spans and position information:
@@ -206,7 +206,7 @@ Key parser behaviours the compiler relies on:
 
 Implication for the compiler:
 
-- Treat `ReferenceExpr` nodes as value placeholders to be resolved by providers/import resolution. Do not attempt to interpret `reference:` syntax as a top-level statement — it's only valid as a value.
+- Treat `ReferenceExpr` nodes as value placeholders to be resolved by providers/import resolution. The old top-level `reference:` syntax is no longer supported — references use `@` prefix as inline values.
 - When reporting errors about user code, prefer to decorate parser errors by using the `SourceSpan` and `FormatParseError` output so messages are consistent with parser diagnostics.
 - Expect some syntax validation to already be performed by the parser; the compiler must perform semantic validation (duplicate keys, cycles, missing imports, provider errors).
 
@@ -219,9 +219,9 @@ Implication for the compiler:
 
 ### Reference Resolution
 
-The compiler resolves inline `reference:` expressions via the provider system. References are first-class values that can appear anywhere a value is expected.
+The compiler resolves inline `@` reference expressions via the provider system. References are first-class values that can appear anywhere a value is expected.
 
-**Syntax:** `reference:{alias}:{path}`
+**Syntax:** `@{alias}:{path}`
 
 Where:
 - `{alias}` is the provider alias (from a `source:` declaration)
@@ -257,10 +257,10 @@ source:
   directory: './configs'
 
 app:
-  storage_type: reference:configs:storage.config.storage.type        # Resolves to 's3'
-  region: reference:configs:storage.config.storage.region            # Resolves to 'us-west-2'
-  bucket: reference:configs:storage.config.buckets.primary           # Resolves to 'my-app-data'
-  encryption: reference:configs:storage.config.encryption.algorithm  # Resolves to 'AES256'
+  storage_type: @configs:storage.config.storage.type        # Resolves to 's3'
+  region: @configs:storage.config.storage.region            # Resolves to 'us-west-2'
+  bucket: @configs:storage.config.buckets.primary           # Resolves to 'my-app-data'
+  encryption: @configs:storage.config.encryption.algorithm  # Resolves to 'AES256'
 `
 
 // Compile with provider
@@ -304,7 +304,7 @@ FormatDiagnostic produces output like:
 
 ```
 app.csl:3:9: error: unresolved reference to provider 'config'
-   3 |   port: reference:config:port
+   3 |   port: @config:port
      |         ^
 ```
 

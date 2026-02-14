@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/at_whitespace.csl:2:8: invalid syntax: whitespace not allowed in @ reference",
+  "filename": "../testdata/errors/at_whitespace.csl"
+}

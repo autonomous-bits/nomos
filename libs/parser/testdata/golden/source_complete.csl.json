@@ -1,55 +1,55 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 7,
-    "filename": "../testdata/fixtures/source_complete.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "azure-provider",
+      "type": "azure",
+      "version": "",
       "config": {
         "enabled": {
+          "value": "true",
           "source_span": {
-            "end_col": 14,
-            "end_line": 5,
             "filename": "../testdata/fixtures/source_complete.csl",
+            "start_line": 5,
             "start_col": 11,
-            "start_line": 5
-          },
-          "value": "true"
+            "end_line": 5,
+            "end_col": 14
+          }
         },
         "path": {
+          "value": "./providers/azure",
           "source_span": {
-            "end_col": 25,
-            "end_line": 4,
             "filename": "../testdata/fixtures/source_complete.csl",
+            "start_line": 4,
             "start_col": 9,
-            "start_line": 4
-          },
-          "value": "./providers/azure"
+            "end_line": 4,
+            "end_col": 25
+          }
         },
         "region": {
+          "value": "us-east-1",
           "source_span": {
-            "end_col": 18,
-            "end_line": 6,
             "filename": "../testdata/fixtures/source_complete.csl",
+            "start_line": 6,
             "start_col": 10,
-            "start_line": 6
-          },
-          "value": "us-east-1"
+            "end_line": 6,
+            "end_col": 18
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 7,
         "filename": "../testdata/fixtures/source_complete.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "azure",
-      "version": ""
+        "end_line": 7,
+        "end_col": 1
+      }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/source_complete.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 7,
+    "end_col": 1
+  }
 }

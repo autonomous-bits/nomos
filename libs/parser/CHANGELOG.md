@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `  - web-01`
     - `  - web-02`
   - Use `[]` for empty lists: `tags: []`
-  - Reference list items with index notation: `reference:alias:config.servers[0]`
+  - Reference list items with index notation: `@alias:config.servers[0]`
 - **YAML-style comment support**: Single-line `#` comments for inline documentation
   - Comments extend from `#` to end-of-line, supporting inline and full-line comments
   - Context-aware parsing: `#` preserved within quoted strings (`"api#key"` remains literal)
@@ -31,9 +31,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ReferenceStmt` AST type removed from `pkg/ast` package
   - Parser now rejects top-level reference statements with `SyntaxError`
   - Error message includes migration guidance to inline reference syntax
-  - Migration: Convert `reference:alias:path` to `key: reference:alias:path`
+  - Migration: Convert `reference:alias:path` to `key: @alias:path` (inline @ syntax)
   - Rationale: Top-level references were never used in practice and added unnecessary complexity
   - Test coverage: `test/deprecated_reference_test.go` validates rejection and error messages
+
+### Added
+- **FEATURE: @ reference syntax** (User Story 1)
+  - New @ symbol prefix for inline references: `key: @alias:path.to.value`
+  - Replaces legacy `reference:alias:path` keyword syntax
+  - Benefits: Shorter, more intuitive syntax similar to modern languages
+  - Parser automatically recognizes @ prefix and validates reference format
+  - Full backward compatibility: All existing reference features work with @ syntax
+  - Reference list items: `@alias:config.servers[0]`
+  - Reference nested values: `@network:vpc.cidr`
+  - Validation: Whitespace not allowed, double @@ rejected, empty paths rejected
+  - See [Inline Reference Syntax documentation](README.md#inline-reference-syntax) for examples
 
 ### Changed
 - **API Documentation Improvements**: Enhanced public API documentation for production readiness

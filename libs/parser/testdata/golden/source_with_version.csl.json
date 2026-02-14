@@ -1,35 +1,35 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 6,
-    "filename": "../testdata/fixtures/source_with_version.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "terraform",
+      "type": "terraform",
+      "version": "1.2.3",
       "config": {
         "path": {
+          "value": "./providers/terraform",
           "source_span": {
-            "end_col": 28,
-            "end_line": 5,
             "filename": "../testdata/fixtures/source_with_version.csl",
+            "start_line": 5,
             "start_col": 8,
-            "start_line": 5
-          },
-          "value": "./providers/terraform"
+            "end_line": 5,
+            "end_col": 28
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 6,
         "filename": "../testdata/fixtures/source_with_version.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "terraform",
-      "version": "1.2.3"
+        "end_line": 6,
+        "end_col": 1
+      }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/source_with_version.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 6,
+    "end_col": 1
+  }
 }

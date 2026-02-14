@@ -4,5 +4,5 @@ source:
 	path: './config'
 
 infrastructure:
-	vpc_cidr: reference:network:vpc.cidr
+	vpc_cidr: @network:vpc.cidr
 	region: 'us-west-2'

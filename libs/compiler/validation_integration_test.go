@@ -65,7 +65,7 @@ func TestCompile_UnresolvedReference_WithSuggestion(t *testing.T) {
 	fixtureFile := tmpDir + "/typo.csl"
 
 	content := `config:
-  value: reference:fil:some/path
+  value: @fil:some/path
 `
 	if err := writeFile(fixtureFile, content); err != nil {
 		t.Fatalf("failed to write fixture: %v", err)

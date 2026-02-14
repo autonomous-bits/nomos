@@ -95,7 +95,7 @@ Treats warnings as errors (exit code 1). Useful for CI pipelines.
 Nomos supports cross-provider references:
 ```nomos
 app:
-  config: reference:alias:filename.path.to.value
+  config: @alias:filename.path.to.value
 ```
 Compiled by `libs/compiler` but affects CLI examples and documentation.
 

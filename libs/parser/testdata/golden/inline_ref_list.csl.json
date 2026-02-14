@@ -1,37 +1,31 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 13,
-    "filename": "../testdata/fixtures/inline_ref_list.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "network",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./config",
           "source_span": {
-            "end_col": 15,
-            "end_line": 4,
             "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_line": 4,
             "start_col": 8,
-            "start_line": 4
-          },
-          "value": "./config"
+            "end_line": 4,
+            "end_col": 15
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 5,
         "filename": "../testdata/fixtures/inline_ref_list.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 5,
+        "end_col": 1
+      }
     },
     {
+      "name": "servers",
       "entries": {
         "server1": {
           "alias": "network",
@@ -40,11 +34,11 @@
             "ip"
           ],
           "source_span": {
-            "end_col": 38,
-            "end_line": 7,
             "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_line": 7,
             "start_col": 11,
-            "start_line": 7
+            "end_line": 7,
+            "end_col": 29
           }
         },
         "server2": {
@@ -54,11 +48,11 @@
             "ip"
           ],
           "source_span": {
-            "end_col": 38,
-            "end_line": 8,
             "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_line": 8,
             "start_col": 11,
-            "start_line": 8
+            "end_line": 8,
+            "end_col": 29
           }
         },
         "server3": {
@@ -68,32 +62,38 @@
             "ip"
           ],
           "source_span": {
-            "end_col": 38,
-            "end_line": 10,
             "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_line": 10,
             "start_col": 11,
-            "start_line": 10
+            "end_line": 10,
+            "end_col": 29
           }
         },
         "static_server": {
+          "value": "static-server.example.com",
           "source_span": {
-            "end_col": 41,
-            "end_line": 9,
             "filename": "../testdata/fixtures/inline_ref_list.csl",
+            "start_line": 9,
             "start_col": 17,
-            "start_line": 9
-          },
-          "value": "static-server.example.com"
+            "end_line": 9,
+            "end_col": 41
+          }
         }
       },
-      "name": "servers",
       "source_span": {
-        "end_col": 1,
-        "end_line": 11,
         "filename": "../testdata/fixtures/inline_ref_list.csl",
+        "start_line": 6,
         "start_col": 1,
-        "start_line": 6
+        "end_line": 11,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/inline_ref_list.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 13,
+    "end_col": 1
+  }
 }

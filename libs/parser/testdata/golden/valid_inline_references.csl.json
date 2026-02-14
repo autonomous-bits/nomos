@@ -1,71 +1,65 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 21,
-    "filename": "../testdata/fixtures/valid_inline_references.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "network",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./config",
           "source_span": {
-            "end_col": 15,
-            "end_line": 4,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 4,
             "start_col": 8,
-            "start_line": 4
-          },
-          "value": "./config"
+            "end_line": 4,
+            "end_col": 15
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 5,
         "filename": "../testdata/fixtures/valid_inline_references.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 5,
+        "end_col": 1
+      }
     },
     {
       "alias": "security",
+      "type": "folder",
+      "version": "",
       "config": {
         "path": {
+          "value": "./security",
           "source_span": {
-            "end_col": 17,
-            "end_line": 9,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 9,
             "start_col": 8,
-            "start_line": 9
-          },
-          "value": "./security"
+            "end_line": 9,
+            "end_col": 17
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 10,
         "filename": "../testdata/fixtures/valid_inline_references.csl",
+        "start_line": 6,
         "start_col": 1,
-        "start_line": 6
-      },
-      "type": "folder",
-      "version": ""
+        "end_line": 10,
+        "end_col": 1
+      }
     },
     {
+      "name": "infrastructure",
       "entries": {
         "region": {
+          "value": "us-west-2",
           "source_span": {
-            "end_col": 18,
-            "end_line": 13,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 13,
             "start_col": 10,
-            "start_line": 13
-          },
-          "value": "us-west-2"
+            "end_line": 13,
+            "end_col": 18
+          }
         },
         "security_group": {
           "alias": "security",
@@ -75,11 +69,11 @@
             "http"
           ],
           "source_span": {
-            "end_col": 54,
-            "end_line": 15,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 15,
             "start_col": 18,
-            "start_line": 15
+            "end_line": 15,
+            "end_col": 45
           }
         },
         "subnet": {
@@ -90,11 +84,11 @@
             "az1"
           ],
           "source_span": {
-            "end_col": 45,
-            "end_line": 14,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 14,
             "start_col": 10,
-            "start_line": 14
+            "end_line": 14,
+            "end_col": 36
           }
         },
         "vpc_cidr": {
@@ -104,24 +98,24 @@
             "cidr"
           ],
           "source_span": {
-            "end_col": 37,
-            "end_line": 12,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 12,
             "start_col": 12,
-            "start_line": 12
+            "end_line": 12,
+            "end_col": 28
           }
         }
       },
-      "name": "infrastructure",
       "source_span": {
-        "end_col": 1,
-        "end_line": 16,
         "filename": "../testdata/fixtures/valid_inline_references.csl",
+        "start_line": 11,
         "start_col": 1,
-        "start_line": 11
+        "end_line": 16,
+        "end_col": 1
       }
     },
     {
+      "name": "application",
       "entries": {
         "database_host": {
           "alias": "network",
@@ -130,42 +124,48 @@
             "endpoint"
           ],
           "source_span": {
-            "end_col": 46,
-            "end_line": 20,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 20,
             "start_col": 17,
-            "start_line": 20
+            "end_line": 20,
+            "end_col": 37
           }
         },
         "name": {
+          "value": "my-app",
           "source_span": {
-            "end_col": 13,
-            "end_line": 18,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 18,
             "start_col": 8,
-            "start_line": 18
-          },
-          "value": "my-app"
+            "end_line": 18,
+            "end_col": 13
+          }
         },
         "port": {
+          "value": "8080",
           "source_span": {
-            "end_col": 11,
-            "end_line": 19,
             "filename": "../testdata/fixtures/valid_inline_references.csl",
+            "start_line": 19,
             "start_col": 8,
-            "start_line": 19
-          },
-          "value": "8080"
+            "end_line": 19,
+            "end_col": 11
+          }
         }
       },
-      "name": "application",
       "source_span": {
-        "end_col": 1,
-        "end_line": 21,
         "filename": "../testdata/fixtures/valid_inline_references.csl",
+        "start_line": 17,
         "start_col": 1,
-        "start_line": 17
+        "end_line": 21,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/valid_inline_references.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 21,
+    "end_col": 1
+  }
 }
