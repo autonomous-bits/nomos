@@ -37,7 +37,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.0'
 
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
@@ -113,7 +113,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.0'
 
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
@@ -163,7 +163,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.0'
 
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
@@ -213,7 +213,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.0'
 
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
@@ -236,7 +236,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.0'
 
       - name: Setup Provider Proto
         uses: ./.github/actions/setup-provider-proto
