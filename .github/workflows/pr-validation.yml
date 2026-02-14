@@ -36,7 +36,7 @@ jobs:
             SUBJECT=$(echo "$MESSAGE" | head -n 1)
 
             # Skip merge commits (they have auto-generated messages)
-            if echo "$SUBJECT" | grep -qE "^Merge .+ into .+"; then
+            if echo "$SUBJECT" | grep -qE "^Merge (.+ into .+|pull request #[0-9]+ from)"; then
               echo "Checking commit: $commit"
               echo "  Subject: $SUBJECT"
               echo "  ⊘ Skipping merge commit"
