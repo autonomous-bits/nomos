@@ -40,7 +40,7 @@ The Nomos monorepo uses a Go workspace (`go.work`) to manage multiple modules. T
 
 ```
 === Go Environment ===
-go version go1.25+ linux/amd64
+go version go1.26+ linux/amd64
 
 go.work found, syncing workspace...
 

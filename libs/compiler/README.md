@@ -429,7 +429,7 @@ go test -bench=BenchmarkMergeSmall -benchmem ./test/bench
 go test -bench=. -benchtime=10s ./test/bench
 ```
 
-**Baseline Performance (Apple M2, Go 1.25):**
+**Baseline Performance (Apple M2, Go 1.26):**
 
 | Benchmark | ns/op | B/op | allocs/op |
 |-----------|-------|------|-----------|
