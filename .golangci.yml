@@ -30,26 +30,30 @@ linters:
     - sqlclosecheck  # Check for SQL query resource leaks
     - wastedassign   # Find wasted assignment statements
     - whitespace     # Check for unnecessary whitespace
+  
+  # Linter-specific settings
+  settings:
+    revive:
+      rules:
+        # Disable package naming check that flags stdlib-like names
+        # Our internal packages (parser, ast, scanner) don't actually conflict
+        - name: var-naming
+          disabled: true
+  
+  # Exclusion rules for linter output
+  exclusions:
+    rules:
+      # Allow internal packages to use names that match stdlib packages
+      # These don't actually conflict since they're in different import paths
+      - linters:
+          - revive
+        text: "avoid package names that conflict"
 
 formatters:
   enable:
     - gofmt          # Check formatting
     - goimports      # Check imports formatting
 
-linters-settings:
-  revive:
-    rules:
-      # Disable package naming check that flags stdlib-like names
-      # Our internal packages (parser, ast, scanner) don't actually conflict
-      - name: var-naming
-        disabled: true
-
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    # Allow internal packages to use names that match stdlib packages
-    # These don't actually conflict since they're in different import paths
-    - linters:
-        - revive
-      text: "avoid package names that conflict"
