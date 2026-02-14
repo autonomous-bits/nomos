@@ -21,7 +21,7 @@ The CLI is a thin wrapper around the compiler library (`libs/compiler`) and is r
 
 ### Prerequisites
 
-- Go 1.25.6 or later
+- Go 1.26.0 or later
 - macOS, Linux, or Windows (tested primarily on macOS)
 
 ### Build from Source
@@ -1070,7 +1070,7 @@ tags = []              # empty list
 
 ### Prerequisites
 
-- Go 1.25.6 or later
+- Go 1.26.0 or later
 - Access to `libs/compiler` and `libs/parser` via workspace
 
 ### Building
