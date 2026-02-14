@@ -1,0 +1,2 @@
+# Test rejection of @ with empty path
+host: @configs:

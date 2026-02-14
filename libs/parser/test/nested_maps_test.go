@@ -95,7 +95,7 @@ databases:
 			input: `
 config:
   database:
-    host: reference:infra:db.host
+    host: @infra:db.host
     port: 5432
 `,
 			wantErr: false,

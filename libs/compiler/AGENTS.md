@@ -268,7 +268,7 @@ GOLDEN_UPDATE=1 go test ./test
 **Nomos Error Format:**
 ```
 app.csl:3:9: error: unresolved reference to provider 'config'
-   3 |   port: reference:config:port
+   3 |   port: @config:port
      |         ^
 ```
 
@@ -287,7 +287,7 @@ app.csl:3:9: error: unresolved reference to provider 'config'
 **What Compiler Expects:**
 - `parser.ParseFile(path string) (*ast.AST, error)`
 - `parser.Parse(r io.Reader, filename string) (*ast.AST, error)`
-- `ast.ReferenceExpr` for inline references: `key: reference:alias:path`
+- `ast.ReferenceExpr` for inline references: `key: @alias:path`
 - **1-indexed** line and column numbers
 - **Byte-based columns** (not rune counts)
 - `SourceSpan` on every AST node for error reporting

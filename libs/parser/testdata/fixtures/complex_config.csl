@@ -9,8 +9,8 @@ import:network
 infrastructure:
 	vpc:
 		cidr: '10.0.0.0/16'
-		region: reference:base:config.region
-	vpc_cidr_ref: reference:network:vpc.cidr
+		region: @base:config.region
+	vpc_cidr_ref: @network:vpc.cidr
 	security-groups:
 		web:
 			ingress:

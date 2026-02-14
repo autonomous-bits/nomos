@@ -55,7 +55,7 @@ func TestFormatDiagnostic_ParseError(t *testing.T) {
 // TestFormatDiagnostic_SemanticError tests formatting of semantic errors with SourceSpan.
 func TestFormatDiagnostic_SemanticError(t *testing.T) {
 	// Arrange
-	sourceText := "app:\n  name: 'myapp'\n  port: reference:config:port"
+	sourceText := "app:\n  name: 'myapp'\n  port: @config:port"
 
 	diag := &diagnostic.Diagnostic{
 		Severity: diagnostic.SeverityError,

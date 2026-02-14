@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/at_double_symbol.csl:2:7: invalid syntax: double @ in reference expression",
+  "filename": "../testdata/errors/at_double_symbol.csl"
+}

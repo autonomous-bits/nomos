@@ -391,7 +391,7 @@ nomos build -p testdata/configs --strict
 
 The CLI supports references to access specific values from provider sources using dot notation:
 
-**Syntax:** `reference:{alias}:{filename}.{path.to.value}`
+**Syntax:** `@{alias}:{filename}.{path.to.value}`
 
 **Example source file with references:**
 
@@ -405,9 +405,9 @@ source:
 app:
   name: 'my-app'
   storage:
-    type: reference:configs:storage.config.storage.type
-    bucket: reference:configs:storage.config.buckets.primary
-    encryption: reference:configs:storage.config.encryption.algorithm
+    type: @configs:storage.config.storage.type
+    bucket: @configs:storage.config.buckets.primary
+    encryption: @configs:storage.config.encryption.algorithm
 ```
 
 Given `shared-configs/storage.csl`:
@@ -1410,7 +1410,7 @@ The compiler populates `Metadata.Errors` and `Metadata.Warnings` with formatted 
 
 ```
 config.csl:10:5: error: unresolved reference to provider 'db'
-   10 |   host: reference:db:host
+   10 |   host: @db:host
       |         ^
 ```
 

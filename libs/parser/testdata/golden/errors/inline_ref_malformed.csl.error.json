@@ -1,4 +1,4 @@
 {
-  "error": "../testdata/errors/inline_ref_malformed.csl:8:11: invalid syntax: inline reference requires a non-empty path",
+  "error": "../testdata/errors/inline_ref_malformed.csl:8:11: invalid syntax: @ reference path cannot be empty (@alias:path.to.value)",
   "filename": "../testdata/errors/inline_ref_malformed.csl"
 }

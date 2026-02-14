@@ -1,137 +1,137 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 10,
-    "filename": "../testdata/fixtures/lists/list_objects.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
+      "name": "users",
       "entries": {
         "": {
           "elements": [
             {
               "entries": {
                 "name": {
+                  "value": "alice",
                   "source_span": {
-                    "end_col": 15,
-                    "end_line": 2,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 2,
                     "start_col": 11,
-                    "start_line": 2
-                  },
-                  "value": "alice"
+                    "end_line": 2,
+                    "end_col": 15
+                  }
                 },
                 "role": {
+                  "value": "admin",
                   "source_span": {
-                    "end_col": 15,
-                    "end_line": 3,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 3,
                     "start_col": 11,
-                    "start_line": 3
-                  },
-                  "value": "admin"
+                    "end_line": 3,
+                    "end_col": 15
+                  }
                 },
                 "tags": {
                   "elements": [
                     {
+                      "value": "oncall",
                       "source_span": {
-                        "end_col": 14,
-                        "end_line": 5,
                         "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_line": 5,
                         "start_col": 9,
-                        "start_line": 5
-                      },
-                      "value": "oncall"
+                        "end_line": 5,
+                        "end_col": 14
+                      }
                     },
                     {
+                      "value": "platform",
                       "source_span": {
-                        "end_col": 16,
-                        "end_line": 6,
                         "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_line": 6,
                         "start_col": 9,
-                        "start_line": 6
-                      },
-                      "value": "platform"
+                        "end_line": 6,
+                        "end_col": 16
+                      }
                     }
                   ],
                   "source_span": {
-                    "end_col": 1,
-                    "end_line": 7,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 4,
                     "start_col": 5,
-                    "start_line": 4
+                    "end_line": 7,
+                    "end_col": 1
                   }
                 }
               },
               "source_span": {
-                "end_col": 1,
-                "end_line": 7,
                 "filename": "../testdata/fixtures/lists/list_objects.csl",
+                "start_line": 2,
                 "start_col": 5,
-                "start_line": 2
+                "end_line": 7,
+                "end_col": 1
               }
             },
             {
               "entries": {
                 "active": {
+                  "value": "true",
                   "source_span": {
-                    "end_col": 16,
-                    "end_line": 9,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 9,
                     "start_col": 13,
-                    "start_line": 9
-                  },
-                  "value": "true"
+                    "end_line": 9,
+                    "end_col": 16
+                  }
                 },
                 "name": {
+                  "value": "bob",
                   "source_span": {
-                    "end_col": 13,
-                    "end_line": 7,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 7,
                     "start_col": 11,
-                    "start_line": 7
-                  },
-                  "value": "bob"
+                    "end_line": 7,
+                    "end_col": 13
+                  }
                 },
                 "role": {
+                  "value": "user",
                   "source_span": {
-                    "end_col": 14,
-                    "end_line": 8,
                     "filename": "../testdata/fixtures/lists/list_objects.csl",
+                    "start_line": 8,
                     "start_col": 11,
-                    "start_line": 8
-                  },
-                  "value": "user"
+                    "end_line": 8,
+                    "end_col": 14
+                  }
                 }
               },
               "source_span": {
-                "end_col": 1,
-                "end_line": 10,
                 "filename": "../testdata/fixtures/lists/list_objects.csl",
+                "start_line": 7,
                 "start_col": 5,
-                "start_line": 7
+                "end_line": 10,
+                "end_col": 1
               }
             }
           ],
           "source_span": {
-            "end_col": 1,
-            "end_line": 10,
             "filename": "../testdata/fixtures/lists/list_objects.csl",
+            "start_line": 2,
             "start_col": 3,
-            "start_line": 2
+            "end_line": 10,
+            "end_col": 1
           }
         }
       },
-      "name": "users",
       "source_span": {
-        "end_col": 1,
-        "end_line": 10,
         "filename": "../testdata/fixtures/lists/list_objects.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
+        "end_line": 10,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/lists/list_objects.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 10,
+    "end_col": 1
+  }
 }

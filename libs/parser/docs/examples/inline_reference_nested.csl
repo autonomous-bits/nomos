@@ -10,21 +10,21 @@ source:
 
 databases:
 	primary:
-		host: reference:infra:db.primary.host
+		host: @infra:db.primary.host
 		port: '5432'
 		database: 'production'
 		connection:
 			max_pool_size: '20'
 			timeout_ms: '5000'
 	replica:
-		host: reference:infra:db.replica.host
+		host: @infra:db.replica.host
 		port: '5433'
 		database: 'production'
 		connection:
 			max_pool_size: '10'
 			timeout_ms: '3000'
 	analytics:
-		host: reference:infra:db.analytics.host
+		host: @infra:db.analytics.host
 		port: '5434'
 		database: 'analytics'
 		connection:

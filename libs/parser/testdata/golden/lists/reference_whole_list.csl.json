@@ -1,0 +1,79 @@
+{
+  "statements": [
+    {
+      "name": "servers",
+      "entries": {
+        "": {
+          "elements": [
+            {
+              "value": "web01",
+              "source_span": {
+                "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+                "start_line": 2,
+                "start_col": 5,
+                "end_line": 2,
+                "end_col": 9
+              }
+            },
+            {
+              "value": "web02",
+              "source_span": {
+                "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+                "start_line": 3,
+                "start_col": 5,
+                "end_line": 3,
+                "end_col": 9
+              }
+            }
+          ],
+          "source_span": {
+            "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+            "start_line": 2,
+            "start_col": 3,
+            "end_line": 5,
+            "end_col": 1
+          }
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 5,
+        "end_col": 1
+      }
+    },
+    {
+      "name": "refs",
+      "entries": {
+        "all_servers": {
+          "alias": "base",
+          "path": [
+            "servers"
+          ],
+          "source_span": {
+            "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+            "start_line": 6,
+            "start_col": 16,
+            "end_line": 6,
+            "end_col": 28
+          }
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+        "start_line": 5,
+        "start_col": 1,
+        "end_line": 7,
+        "end_col": 1
+      }
+    }
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/lists/reference_whole_list.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 7,
+    "end_col": 1
+  }
+}

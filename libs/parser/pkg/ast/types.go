@@ -134,7 +134,7 @@ func (s *StringLiteral) node()            {}
 func (s *StringLiteral) expr()            {}
 
 // ReferenceExpr represents an inline reference expression.
-// Example: reference:network:vpc.cidr
+// Example: @network:vpc.cidr
 //
 // References are first-class values that can appear anywhere a value is expected.
 // They consist of an alias (identifying the source/import) and a dotted path

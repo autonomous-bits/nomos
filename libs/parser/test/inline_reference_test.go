@@ -102,7 +102,7 @@ func TestParseInlineReferences_ScalarValue(t *testing.T) {
 	path: './config'
 
 config:
-	cidr: reference:network:vpc.cidr
+	cidr: @network:vpc.cidr
 `
 	// Act
 	result, err := parser.Parse(newReader(input), "test.csl")
@@ -163,7 +163,7 @@ func TestParseInlineReferences_MixedWithLiterals(t *testing.T) {
 
 config:
 	literal_value: 'plain-string'
-	ref_value: reference:base:config.key
+	ref_value: @base:config.key
 	another_literal: 'another-plain-string'
 `
 	// Act

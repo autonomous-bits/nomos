@@ -1,35 +1,35 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 6,
-    "filename": "../testdata/fixtures/source_with_prerelease_version.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
       "alias": "beta-provider",
+      "type": "custom",
+      "version": "2.0.0-beta.1",
       "config": {
         "api_key": {
+          "value": "test-key",
           "source_span": {
-            "end_col": 18,
-            "end_line": 5,
             "filename": "../testdata/fixtures/source_with_prerelease_version.csl",
+            "start_line": 5,
             "start_col": 11,
-            "start_line": 5
-          },
-          "value": "test-key"
+            "end_line": 5,
+            "end_col": 18
+          }
         }
       },
       "source_span": {
-        "end_col": 1,
-        "end_line": 6,
         "filename": "../testdata/fixtures/source_with_prerelease_version.csl",
+        "start_line": 1,
         "start_col": 1,
-        "start_line": 1
-      },
-      "type": "custom",
-      "version": "2.0.0-beta.1"
+        "end_line": 6,
+        "end_col": 1
+      }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/source_with_prerelease_version.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 6,
+    "end_col": 1
+  }
 }

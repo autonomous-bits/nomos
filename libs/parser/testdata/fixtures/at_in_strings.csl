@@ -1,0 +1,7 @@
+# @ in quoted strings should be literal, not references
+email: "admin@example.com"
+message: "Contact @support for help"
+url: "https://example.com/@user/profile"
+
+# @ as reference (not in quotes)
+actual_ref: @configs:email.from

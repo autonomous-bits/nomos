@@ -149,8 +149,8 @@ func TestSmoke_WithProviderReferences(t *testing.T) {
   directory: '` + tmpDir + `'
 
 database:
-  host: reference:configs:db.host
-  port: reference:configs:db.port
+  host: @configs:db.host
+  port: @configs:db.port
 
 cache:
   enabled: 'true'

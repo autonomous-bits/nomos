@@ -8,4 +8,4 @@ import:folder:filename
 config-section:
 	key1: value1
 	key2: value2
-	ref_example: reference:folder:config.key
+	ref_example: @folder:config.key

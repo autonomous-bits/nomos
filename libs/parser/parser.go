@@ -180,8 +180,8 @@ func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 		return nil, nil
 	}
 
-	// Check for invalid characters
-	if ch == '!' || ch == '@' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
+	// Check for invalid characters (@ is now valid for references)
+	if ch == '!' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == '*' || ch == '(' || ch == ')' {
 		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol, fmt.Sprintf("invalid syntax: unexpected character '%c'", ch))
 		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
 		return nil, err
@@ -792,7 +792,7 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 }
 
 // parseValueExpr parses a value expression, which can be either a string literal,
-// an inline reference expression of the form reference:alias:dotted.path, or a list.
+// an inline reference expression of the form @alias:dotted.path, or a list.
 func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (ast.Expr, error) {
 	// startLine and startCol point to where the value starts (after skipping whitespace)
 
@@ -851,30 +851,57 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 	}
 
 	// Check if this is an inline reference expression
-	if strings.HasPrefix(valueText, "reference:") {
-		// Parse reference expression: reference:alias:dotted.path
-		parts := strings.SplitN(valueText, ":", 3)
-		if len(parts) < 3 {
+	if strings.HasPrefix(valueText, "@") {
+		// Validate no whitespace in reference
+		if strings.ContainsAny(valueText, " \t\n\r") {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: inline reference must be 'reference:alias:path'")
+				"invalid syntax: whitespace not allowed in @ reference")
 		}
 
-		alias := parts[1]
-		pathStr := parts[2]
-
-		// Validate alias
-		if alias == "" {
+		// Validate not just "@" alone
+		if len(valueText) == 1 {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: inline reference requires a non-empty alias")
+				"invalid syntax: incomplete @ reference expression")
 		}
 
-		// Validate path
+		// Check for double @@
+		if strings.HasPrefix(valueText, "@@") {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: double @ in reference expression")
+		}
+
+		// Parse reference expression: @alias:dotted.path
+		refText := valueText[1:] // Remove @
+		parts := strings.SplitN(refText, ":", 2)
+
+		if len(parts) != 2 {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: @ reference must include path after colon (@alias:path)")
+		}
+
+		aliasName := parts[0]
+		pathStr := parts[1]
+
+		// Validate alias name exists
+		if aliasName == "" {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: @ reference must include alias name (@alias:path)")
+		}
+
+		// Validate alias name pattern
+		if !isValidAliasName(aliasName) {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: alias name must start with letter or underscore")
+		}
+
+		// Validate path exists
 		if pathStr == "" {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: inline reference requires a non-empty path")
+				"invalid syntax: @ reference path cannot be empty (@alias:path.to.value)")
 		}
 
-		pathComponents, err := p.parseInlineReferencePath(pathStr, s.Filename(), startLine, startCol)
+		// Parse path (supports bracket notation like matrix[0][1])
+		pathParts, err := p.parseInlineReferencePath(pathStr, s.Filename(), startLine, startCol)
 		if err != nil {
 			return nil, err
 		}
@@ -885,8 +912,8 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 		refEndCol := startCol + len(valueText) - 1
 
 		return &ast.ReferenceExpr{
-			Alias: alias,
-			Path:  pathComponents,
+			Alias: aliasName,
+			Path:  pathParts,
 			SourceSpan: ast.SourceSpan{
 				Filename:  s.Filename(),
 				StartLine: startLine,
@@ -1538,6 +1565,30 @@ func (p *Parser) isInlineMapDelimiter(ch rune) bool {
 // generateSnippetFromSource is a convenience wrapper around generateSnippet from errors.go.
 func generateSnippetFromSource(sourceText string, line, col int) string {
 	return generateSnippet(sourceText, line, col)
+}
+
+// isValidAliasName checks if an alias name matches pattern [a-zA-Z_][a-zA-Z0-9_-]*
+func isValidAliasName(name string) bool {
+	if len(name) == 0 {
+		return false
+	}
+
+	// First character: letter or underscore
+	first := name[0]
+	if (first < 'a' || first > 'z') && (first < 'A' || first > 'Z') && first != '_' {
+		return false
+	}
+
+	// Remaining characters: letter, digit, underscore, or hyphen
+	for i := 1; i < len(name); i++ {
+		c := name[i]
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') &&
+			(c < '0' || c > '9') && c != '_' && c != '-' {
+			return false
+		}
+	}
+
+	return true
 }
 
 // validateSemver validates that a version string is valid semantic versioning format.

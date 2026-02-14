@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/at_missing_path.csl:2:7: invalid syntax: @ reference must include path after colon (@alias:path)",
+  "filename": "../testdata/errors/at_missing_path.csl"
+}

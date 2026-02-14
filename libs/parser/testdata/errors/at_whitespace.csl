@@ -1,0 +1,4 @@
+# Test rejection of whitespace in @ reference
+case1: @ configs:db.host
+case2: @configs :db.host
+case3: @configs: db.host

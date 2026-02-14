@@ -7,5 +7,5 @@ matrix:
     - d
 
 refs:
-  first: reference:base:matrix[0][1]
-  second: reference:base:matrix[1][0]
+  first: @base:matrix[0][1]
+  second: @base:matrix[1][0]

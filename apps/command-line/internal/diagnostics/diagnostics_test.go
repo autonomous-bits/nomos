@@ -269,7 +269,7 @@ func TestFormatter_FormatErrors_PreservesOriginalFormat(t *testing.T) {
 	// Arrange
 	formatter := diagnostics.NewFormatter(false)
 	// This format comes from compiler's diagnostic.FormatDiagnostic
-	errors := []string{"test.csl:10:5: error: unresolved reference to provider 'db'\n   10 |   host: reference:db:host\n     |         ^"}
+	errors := []string{"test.csl:10:5: error: unresolved reference to provider 'db'\n   10 |   host: @db:host\n     |         ^"}
 
 	// Act
 	result := formatter.FormatErrors(errors)
@@ -284,7 +284,7 @@ func TestFormatter_FormatErrors_PreservesOriginalFormat(t *testing.T) {
 		t.Errorf("Expected preserved location format, got: %s", result[0])
 	}
 
-	if !strings.Contains(result[0], "reference:db:host") {
+	if !strings.Contains(result[0], "@db:host") {
 		t.Errorf("Expected preserved snippet, got: %s", result[0])
 	}
 

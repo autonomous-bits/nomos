@@ -1,0 +1,31 @@
+{
+  "statements": [
+    {
+      "name": "emptyCollection",
+      "value": {
+        "elements": [],
+        "source_span": {
+          "filename": "../testdata/fixtures/lists/empty.csl",
+          "start_line": 1,
+          "start_col": 18,
+          "end_line": 1,
+          "end_col": 19
+        }
+      },
+      "source_span": {
+        "filename": "../testdata/fixtures/lists/empty.csl",
+        "start_line": 1,
+        "start_col": 1,
+        "end_line": 1,
+        "end_col": 20
+      }
+    }
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/lists/empty.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 2,
+    "end_col": 1
+  }
+}

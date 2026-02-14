@@ -1,75 +1,75 @@
 {
-  "source_span": {
-    "end_col": 1,
-    "end_line": 13,
-    "filename": "../testdata/fixtures/comments_edge_cases.csl",
-    "start_col": 1,
-    "start_line": 1
-  },
   "statements": [
     {
+      "name": "config-section",
       "entries": {
         "key": {
+          "value": "value",
           "source_span": {
-            "end_col": 11,
-            "end_line": 3,
             "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_line": 3,
             "start_col": 7,
-            "start_line": 3
-          },
-          "value": "value"
+            "end_line": 3,
+            "end_col": 11
+          }
         },
         "key2": {
+          "value": "value",
           "source_span": {
-            "end_col": 12,
-            "end_line": 4,
             "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_line": 4,
             "start_col": 8,
-            "start_line": 4
-          },
-          "value": "value"
+            "end_line": 4,
+            "end_col": 12
+          }
         },
         "key3": {
+          "value": "result",
           "source_span": {
-            "end_col": 13,
-            "end_line": 7,
             "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_line": 7,
             "start_col": 8,
-            "start_line": 7
-          },
-          "value": "result"
+            "end_line": 7,
+            "end_col": 13
+          }
         }
       },
-      "name": "config-section",
       "source_span": {
-        "end_col": 1,
-        "end_line": 8,
         "filename": "../testdata/fixtures/comments_edge_cases.csl",
+        "start_line": 2,
         "start_col": 1,
-        "start_line": 2
+        "end_line": 8,
+        "end_col": 1
       }
     },
     {
+      "name": "another-section",
       "entries": {
         "setting": {
+          "value": "enabled",
           "source_span": {
-            "end_col": 17,
-            "end_line": 12,
             "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_line": 12,
             "start_col": 11,
-            "start_line": 12
-          },
-          "value": "enabled"
+            "end_line": 12,
+            "end_col": 17
+          }
         }
       },
-      "name": "another-section",
       "source_span": {
-        "end_col": 1,
-        "end_line": 13,
         "filename": "../testdata/fixtures/comments_edge_cases.csl",
+        "start_line": 11,
         "start_col": 1,
-        "start_line": 11
+        "end_line": 13,
+        "end_col": 1
       }
     }
-  ]
+  ],
+  "source_span": {
+    "filename": "../testdata/fixtures/comments_edge_cases.csl",
+    "start_line": 1,
+    "start_col": 1,
+    "end_line": 13,
+    "end_col": 1
+  }
 }

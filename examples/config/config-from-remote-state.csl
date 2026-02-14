@@ -23,11 +23,11 @@ source:
   key: "network.tfstate"
 
 environments:
-  production: reference:configs:prod.database.name
-  staging: reference:configs:staging.database.name
+  production: @configs:prod.database.name
+  staging: @configs:staging.database.name
 
 app:
   name: 'example-app'
-  url: reference:tfstate:blob_url
+  url: @tfstate:blob_url
   network:
-    vnet_name: reference:networkstate:virtual_network_name
+    vnet_name: @networkstate:virtual_network_name

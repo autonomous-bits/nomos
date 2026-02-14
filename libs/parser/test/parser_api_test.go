@@ -150,7 +150,7 @@ func TestAST_StatementsHaveCorrectTypes(t *testing.T) {
 import:folder:filename
 
 config:
-	ref: reference:folder:config.key
+	ref: @folder:config.key
 `
 	reader := strings.NewReader(input)
 

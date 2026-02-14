@@ -22,7 +22,7 @@ import:baseConfig:./base.csl
 database:
   host: localhost
   port: 5432
-  connection: reference:base:config.database
+  connection: @base:config.database
 `
 
 	b.ResetTimer()
@@ -185,7 +185,7 @@ func BenchmarkParse_TypicalConfigWithoutComments(b *testing.B) {
 	builder.WriteString("  host: localhost\n")
 	builder.WriteString("  port: 5432\n")
 	builder.WriteString("  username: dbuser\n")
-	builder.WriteString("  password: reference:secrets:db.password\n")
+	builder.WriteString("  password: @secrets:db.password\n")
 	builder.WriteString("  maxConnections: 100\n")
 	builder.WriteString("  timeout: 30\n\n")
 
@@ -196,7 +196,7 @@ func BenchmarkParse_TypicalConfigWithoutComments(b *testing.B) {
 	builder.WriteString("  retries: 3\n")
 	builder.WriteString("  authentication:\n")
 	builder.WriteString("    type: bearer\n")
-	builder.WriteString("    token: reference:secrets:api.token\n\n")
+	builder.WriteString("    token: @secrets:api.token\n\n")
 
 	builder.WriteString("logging:\n")
 	builder.WriteString("  level: info\n")
@@ -262,7 +262,7 @@ func BenchmarkParse_TypicalConfigWith100Comments(b *testing.B) {
 	builder.WriteString("  host: localhost  # Database server hostname\n")
 	builder.WriteString("  port: 5432  # Standard PostgreSQL port\n")
 	builder.WriteString("  username: dbuser  # Application database user\n")
-	builder.WriteString("  password: reference:secrets:db.password  # Stored securely\n")
+	builder.WriteString("  password: @secrets:db.password  # Stored securely\n")
 	builder.WriteString("  maxConnections: 100  # Connection pool size\n")
 	builder.WriteString("  timeout: 30  # Connection timeout in seconds\n\n")
 
@@ -276,7 +276,7 @@ func BenchmarkParse_TypicalConfigWith100Comments(b *testing.B) {
 	builder.WriteString("  # Authentication configuration\n")
 	builder.WriteString("  authentication:\n")
 	builder.WriteString("    type: bearer  # OAuth 2.0 bearer token\n")
-	builder.WriteString("    token: reference:secrets:api.token  # Token from secrets\n\n")
+	builder.WriteString("    token: @secrets:api.token  # Token from secrets\n\n")
 
 	builder.WriteString("# Logging configuration\n")
 	builder.WriteString("# Centralized logging settings\n")
@@ -414,7 +414,7 @@ func BenchmarkParse_ConfigWith1000Comments(b *testing.B) {
 	builder.WriteString("  host: localhost\n")
 	builder.WriteString("  port: 5432\n")
 	builder.WriteString("  username: dbuser\n")
-	builder.WriteString("  password: reference:secrets:db.password\n\n")
+	builder.WriteString("  password: @secrets:db.password\n\n")
 
 	builder.WriteString("###############################################################################\n")
 	builder.WriteString("# 4. API CONFIGURATION\n")
