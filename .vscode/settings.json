@@ -21,20 +21,10 @@
         ".specify/scripts/bash/": true,
         ".specify/scripts/powershell/": true
     },
-    "yaml.schemas": {
-        "https://json.schemastore.org/golangci-lint.json": ".golangci.yml"
-    },
-    "go.goroot": "/opt/homebrew/opt/go/libexec",
-    "go.toolsEnvVars": {
-        "GOTOOLCHAIN": "auto"
-    },
     "gopls": {
         "build.buildFlags": [
             "-tags=integration"
-        ],
-        "build.env": {
-            "GOTOOLCHAIN": "auto"
-        }
+        ]
     },
     "makefile.configureOnOpen": false,
     "github.copilot.chat.customAgents.showOrganizationAndEnterpriseAgents": true
