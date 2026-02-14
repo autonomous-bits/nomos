@@ -39,7 +39,7 @@ This release represents the completion of Phases 1-5 of the Nomos Refactoring Im
 
 **Infrastructure:**
 - Added provider-downloader to Makefile test targets
-- Standardized Go version to 1.25.3 across all CI workflows
+- Standardized Go version to 1.26.0 across all CI workflows
 - Created `.golangci.yml` linting config with pinned golangci-lint version
 
 ### Phase 2: CLI Modernization (Week 3-4) ✅
