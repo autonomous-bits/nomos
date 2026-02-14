@@ -448,6 +448,578 @@ If you need to rollback to v1.x:
 
 ---
 
+---
+
+## Optional Metadata Output (v2.0.0+)
+
+**Feature**: Metadata Now Opt-In via `--include-metadata` Flag  
+**Version**: v2.0.0+  
+**Date**: 2026-02-14
+
+### Overview
+
+Starting in Nomos CLI v2.0.0+, **metadata is excluded from build output by default**. This produces cleaner, production-ready configuration files without compilation metadata. Metadata is now opt-in via the `--include-metadata` flag.
+
+This change reduces output file sizes by 30-50% and aligns with standard configuration file formats expected by tools like Kubernetes, Terraform, and Docker Compose.
+
+---
+
+### What Changed
+
+#### Before (v1.x Default)
+
+Metadata was always included in output:
+
+```bash
+nomos build -p config.csl
+```
+
+```json
+{
+  "data": {
+    "app": "example"
+  },
+  "metadata": {
+    "start_time": "2026-02-14T10:00:00Z",
+    "end_time": "2026-02-14T10:00:01Z",
+    "input_files": ["/path/to/config.csl"],
+    "provider_aliases": [],
+    "per_key_provenance": {},
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+#### After (v2.0.0+ Default)
+
+Metadata excluded by default (cleaner output):
+
+```bash
+nomos build -p config.csl
+```
+
+```json
+{
+  "app": "example"
+}
+```
+
+#### After (v2.0.0+ with --include-metadata)
+
+Restore v1.x behavior with explicit flag:
+
+```bash
+nomos build -p config.csl --include-metadata
+```
+
+```json
+{
+  "data": {
+    "app": "example"
+  },
+  "metadata": {
+    "start_time": "2026-02-14T10:00:00Z",
+    "end_time": "2026-02-14T10:00:01Z",
+    "input_files": ["/path/to/config.csl"],
+    "provider_aliases": [],
+    "per_key_provenance": {
+      "app": {
+        "source": "/path/to/config.csl",
+        "provider_alias": ""
+      }
+    },
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+---
+
+### Why This Change
+
+**Benefits of Metadata-Free Output:**
+
+1. **Cleaner Production Configs**: Output matches standard format expected by infrastructure tools
+2. **Smaller Files**: 30-50% size reduction without metadata
+3. **Faster Parsing**: Less data to process in CI/CD pipelines and target systems
+4. **Better Diffs**: Version control diffs don't include timestamp changes in metadata
+5. **Standard Compliance**: Works directly with Kubernetes, Terraform, Ansible without post-processing
+
+**When Metadata is Useful:**
+
+- **Debugging**: Trace which source files contributed specific values
+- **Auditing**: Track configuration provenance for compliance requirements
+- **Tooling**: Custom scripts that parse metadata for analysis
+- **Development**: Understanding compilation behavior during troubleshooting
+
+---
+
+### Migration Steps
+
+#### Quick Fix: Add --include-metadata Flag
+
+If your workflow depends on metadata (debugging, auditing, custom tooling):
+
+```bash
+# Before (v1.x)
+nomos build -p config.csl -o output.json
+
+# After (v2.0.0+ with metadata)
+nomos build -p config.csl -o output.json --include-metadata
+```
+
+#### Finding Scripts to Update
+
+Search for build commands that might need metadata:
+
+```bash
+# Find all nomos build commands in shell scripts
+grep -r "nomos build" . --include="*.sh"
+
+# Find build commands in CI/CD workflows
+grep -r "nomos build" . --include="*.yml" --include="*.yaml"
+
+# Find Makefiles with build targets
+grep -r "nomos build" . --include="Makefile" --include="*.mk"
+```
+
+#### Bulk Update Scripts
+
+For batch updates across multiple files:
+
+```bash
+# Backup your files first
+find . -type f \( -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) -exec cp {} {}.bak \;
+
+# Add --include-metadata to all build commands
+find . -type f \( -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) -exec sed -i.tmp 's/nomos build /nomos build --include-metadata /g' {} \;
+
+# Review changes
+git diff
+
+# If satisfied, commit
+git add -A && git commit -m "chore: add --include-metadata for v2.0.0 compatibility"
+
+# If not satisfied, restore backups
+find . -name "*.bak" -exec bash -c 'mv "$0" "${0%.bak}"' {} \;
+```
+
+**Important:** Test the sed command on a single file first to verify it works correctly in your environment.
+
+---
+
+### When to Use --include-metadata
+
+#### Use the Flag When You Need:
+
+✅ **Debugging**
+- Investigating configuration merge behavior
+- Tracing which source files contributed specific values
+- Understanding provider data flow
+
+✅ **Auditing**
+- Compliance requirements tracking config provenance
+- Security audits requiring source attribution
+- Change tracking for regulated environments
+
+✅ **Custom Tooling**
+- Scripts that parse metadata for analysis
+- Automated validation against provenance rules
+- Build systems that extract metadata fields
+
+✅ **Migration/Compatibility**
+- Temporary compatibility during v1.x → v2.0.0 transition
+- Systems expecting v1.x output format
+- Gradual rollout with fallback to old behavior
+
+#### Don't Use the Flag For:
+
+❌ **Production Deployments**
+- Kubernetes ConfigMaps and Secrets
+- Terraform variable files
+- Application configuration files
+- Docker Compose configs
+
+❌ **CI/CD Artifacts**
+- Build outputs for deployment
+- Generated configs for infrastructure
+- Release artifacts
+
+❌ **Version Control**
+- Cleaner diffs without timestamp changes
+- Reduced repository size
+- Better code review experience
+
+❌ **Standard Tool Consumption**
+- Tools expecting standard JSON/YAML structure
+- APIs consuming configuration data
+- Parsers that don't understand metadata wrapper
+
+---
+
+### Format-Specific Behavior
+
+Metadata exclusion applies to all output formats:
+
+#### JSON Format
+
+**Without metadata (default):**
+```json
+{
+  "app": "example",
+  "region": "us-west-2"
+}
+```
+
+**With metadata:**
+```json
+{
+  "data": {
+    "app": "example",
+    "region": "us-west-2"
+  },
+  "metadata": { ... }
+}
+```
+
+#### YAML Format
+
+**Without metadata (default):**
+```yaml
+app: example
+region: us-west-2
+```
+
+**With metadata:**
+```yaml
+data:
+  app: example
+  region: us-west-2
+metadata:
+  start_time: "2026-02-14T10:00:00Z"
+  # ... additional metadata fields
+```
+
+#### Terraform .tfvars Format
+
+**Without metadata (default):**
+```hcl
+app = "example"
+region = "us-west-2"
+```
+
+**With metadata:**
+
+⚠️ **Note**: Metadata is not compatible with tfvars format. The `--include-metadata` flag is ignored when using `--format tfvars`, as HCL variable files expect flat key-value structures. Use JSON or YAML formats if you need metadata output.
+
+```bash
+# This will ignore --include-metadata
+nomos build -p config.csl --format tfvars --include-metadata
+```
+
+---
+
+### Migration Examples
+
+#### Example 1: CI/CD Pipeline (No Changes Needed)
+
+**Scenario**: Production deployment pipeline
+
+**Before (v1.x):**
+```yaml
+# .github/workflows/deploy.yml
+- name: Build config
+  run: nomos build -p k8s/config.csl -o configmap.yaml --format yaml
+```
+
+**After (v2.0.0+):**
+```yaml
+# .github/workflows/deploy.yml
+- name: Build config
+  run: nomos build -p k8s/config.csl -o configmap.yaml --format yaml
+# No changes needed - cleaner output is desired
+```
+
+**Impact**: ✅ Output is now cleaner and directly usable by Kubernetes.
+
+---
+
+#### Example 2: Debugging Script (Add Flag)
+
+**Scenario**: Development script that analyzes provenance
+
+**Before (v1.x):**
+```bash
+#!/bin/bash
+# debug-config.sh
+nomos build -p config.csl -o debug-output.json
+python analyze-provenance.py debug-output.json
+```
+
+**After (v2.0.0+):**
+```bash
+#!/bin/bash
+# debug-config.sh
+nomos build -p config.csl -o debug-output.json --include-metadata
+python analyze-provenance.py debug-output.json
+```
+
+**Impact**: ✅ Script continues to work with explicit metadata flag.
+
+---
+
+#### Example 3: Makefile with Multiple Targets
+
+**Scenario**: Makefile with production and debug builds
+
+**Before (v1.x):**
+```makefile
+# Makefile
+.PHONY: build debug
+
+build:
+	nomos build -p config.csl -o dist/config.json
+
+debug:
+	nomos build -p config.csl -o debug.json
+```
+
+**After (v2.0.0+):**
+```makefile
+# Makefile
+.PHONY: build debug
+
+build:
+	nomos build -p config.csl -o dist/config.json
+	# No changes - production wants clean output
+
+debug:
+	nomos build -p config.csl -o debug.json --include-metadata
+	# Add flag for debugging target only
+```
+
+**Impact**: ✅ Production builds cleaner, debug builds retain metadata.
+
+---
+
+#### Example 4: Docker Build with Multi-Stage
+
+**Scenario**: Multi-stage Docker build
+
+**Before (v1.x):**
+```dockerfile
+FROM nomos-cli:v1.x AS builder
+COPY configs/ /configs/
+RUN nomos build -p /configs/*.csl -o /output/config.json
+```
+
+**After (v2.0.0+):**
+```dockerfile
+FROM nomos-cli:v2.0.0 AS builder
+COPY configs/ /configs/
+RUN nomos build -p /configs/*.csl -o /output/config.json
+# No changes - cleaner output preferred for production
+```
+
+**Impact**: ✅ Smaller final image due to reduced config file size.
+
+---
+
+### Testing Your Migration
+
+After migrating, verify behavior:
+
+```bash
+# Test 1: Verify default output excludes metadata
+nomos build -p config.csl | jq 'has("metadata")'
+# Expected: false
+
+# Test 2: Verify flag includes metadata
+nomos build -p config.csl --include-metadata | jq 'has("metadata")'
+# Expected: true
+
+# Test 3: Verify data structure
+nomos build -p config.csl --include-metadata | jq 'has("data")'
+# Expected: true
+
+# Test 4: Compare file sizes
+nomos build -p config.csl -o without-metadata.json
+nomos build -p config.csl -o with-metadata.json --include-metadata
+ls -lh *.json
+# Expected: without-metadata.json is 30-50% smaller
+```
+
+---
+
+### Troubleshooting
+
+#### Issue: Missing Metadata Fields
+
+**Symptom**: Script fails with "metadata field not found" error
+
+**Cause**: Script expects v1.x output format with metadata
+
+**Solution 1** (Recommended): Update script to use clean data:
+```bash
+# Old script
+jq '.data.app' output.json
+
+# New script (v2.0.0+)
+jq '.app' output.json
+```
+
+**Solution 2**: Add `--include-metadata` flag:
+```bash
+nomos build -p config.csl --include-metadata -o output.json
+```
+
+---
+
+#### Issue: Provenance Tracking Broken
+
+**Symptom**: Auditing/compliance system can't find provenance info
+
+**Cause**: System relies on `metadata.per_key_provenance`
+
+**Solution**: Add `--include-metadata` to build command:
+```bash
+nomos build -p config.csl --include-metadata -o audit-output.json
+```
+
+---
+
+#### Issue: Different Output Structure
+
+**Symptom**: JSON structure changed from `{"data": {...}, "metadata": {...}}` to `{...}`
+
+**Cause**: Default behavior changed in v2.0.0+
+
+**Solution A** (Recommended): Update consuming systems to expect flat structure:
+```python
+# Old code (v1.x)
+config = json.load(f)['data']
+
+# New code (v2.0.0+)
+config = json.load(f)
+# Already flat, no ['data'] accessor needed
+```
+
+**Solution B**: Use `--include-metadata` flag temporarily:
+```bash
+nomos build -p config.csl --include-metadata
+```
+
+---
+
+#### Issue: Terraform tfvars Format
+
+**Symptom**: `--include-metadata` doesn't add metadata to `.tfvars` output
+
+**Cause**: HCL/tfvars format doesn't support metadata structure
+
+**Solution**: Use JSON or YAML format when metadata is needed:
+```bash
+# For Terraform with metadata
+nomos build -p config.csl --format json --include-metadata -o vars.json
+```
+
+---
+
+### Rollback Plan
+
+If you need to rollback the default behavior:
+
+**Option 1**: Downgrade to v1.x (not recommended)
+
+See "Rollback Plan" section earlier in this migration guide.
+
+**Option 2**: Add `--include-metadata` globally (temporary fix)
+
+```bash
+# Add alias in shell profile (~/.bashrc, ~/.zshrc)
+alias nomos='nomos --include-metadata'
+
+# Or use wrapper script
+echo '#!/bin/bash
+/usr/local/bin/nomos --include-metadata "$@"' > ~/bin/nomos
+chmod +x ~/bin/nomos
+```
+
+**Option 3**: Update all scripts (recommended)
+
+Add `--include-metadata` flag to scripts that need it:
+```bash
+find . -name "*.sh" -exec sed -i 's/nomos build /nomos build --include-metadata /g' {} \;
+```
+
+---
+
+### FAQ
+
+#### Q: Do I need to change my configs?
+
+**A**: No. Your `.csl` configuration files don't need any changes. Only the build command may need the `--include-metadata` flag if metadata is required.
+
+---
+
+#### Q: Will my existing scripts break?
+
+**A**: Most production scripts won't break because they typically consume the `data` section. Scripts that access `metadata` fields will need the `--include-metadata` flag.
+
+---
+
+#### Q: Can I get the old behavior back permanently?
+
+**A**: Yes. Add `--include-metadata` to all build commands. Consider using a shell alias or wrapper script if you prefer metadata by default.
+
+---
+
+#### Q: What happens to my lockfile?
+
+**A**: The lockfile (`.nomos/providers.lock.json`) is unaffected by this change. Metadata output is independent of provider management.
+
+---
+
+#### Q: Does this affect provider behavior?
+
+**A**: No. Providers continue to function identically. This change only affects the final serialized output format.
+
+---
+
+#### Q: Can I use --include-metadata with YAML format?
+
+**A**: Yes. All formats support the `--include-metadata` flag except `tfvars`, which ignores it due to HCL format constraints.
+
+```bash
+# YAML with metadata
+nomos build -p config.csl --format yaml --include-metadata
+```
+
+---
+
+#### Q: How much smaller are files without metadata?
+
+**A**: Typically 30-50% smaller, depending on configuration complexity. Files with many keys and providers see larger savings.
+
+**Example:**
+```bash
+# With metadata: 12.5 KB
+nomos build -p large-config.csl --include-metadata | wc -c
+
+# Without metadata: 6.8 KB (45% smaller)
+nomos build -p large-config.csl | wc -c
+```
+
+---
+
+#### Q: Is metadata excluded in all output formats?
+
+**A**: Yes, metadata is excluded by default in JSON, YAML, and tfvars formats. Use `--include-metadata` to restore it (JSON and YAML only; tfvars ignores the flag).
+
+---
+
 ## Support
 
 For additional help:

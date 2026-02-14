@@ -29,6 +29,7 @@ var buildFlags struct {
 	verbose                bool
 	forceProviders         bool
 	dryRun                 bool
+	includeMetadata        bool
 }
 
 // buildCmd represents the build command
@@ -57,6 +58,20 @@ Output Formats:
   json   - Canonical JSON with sorted keys (default)
   yaml   - YAML 1.2 format for Kubernetes, Ansible, Docker Compose
   tfvars - Terraform .tfvars format (HCL syntax)
+
+Metadata Control:
+  By default, output contains only configuration data (clean, minimal).
+  Use --include-metadata to add compilation metadata for debugging:
+    - Compiler version and timestamps
+    - Source file list
+    - Per-key provenance (which file defined each key)
+    - Provider aliases used
+
+  Default (no metadata):
+    {"app": "example", "env": "prod"}
+
+  With --include-metadata:
+    {"data": {"app": "example", "env": "prod"}, "metadata": {...}}
 
 Examples:
   # Compile to JSON (default)
@@ -109,6 +124,9 @@ func init() {
 	buildCmd.Flags().IntVar(&buildFlags.maxConcurrentProviders, "max-concurrent-providers", 4, "Max concurrent provider operations")
 	buildCmd.Flags().BoolVar(&buildFlags.forceProviders, "force-providers", false, "Force re-download of all providers")
 	buildCmd.Flags().BoolVar(&buildFlags.dryRun, "dry-run", false, "Preview provider operations without executing")
+
+	// Output flags
+	buildCmd.Flags().BoolVar(&buildFlags.includeMetadata, "include-metadata", false, "Include compilation metadata in output (timestamps, source files, provenance)")
 
 	// Debug flags
 	buildCmd.Flags().BoolVarP(&buildFlags.verbose, "verbose", "v", false, "Enable verbose output")
@@ -228,7 +246,7 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 	}
 
 	// Serialize output based on format
-	output, err := serializeSnapshot(snapshot, buildFlags.format)
+	output, err := serializeSnapshot(snapshot, buildFlags.format, buildFlags.includeMetadata)
 	if err != nil {
 		return fmt.Errorf("failed to serialize output: %w", err)
 	}
@@ -267,17 +285,17 @@ func buildCommand(_ *cobra.Command, _ []string) error {
 
 // serializeSnapshot serializes a snapshot to the requested format.
 // Supported formats: json, yaml, tfvars
-func serializeSnapshot(snapshot compiler.Snapshot, format string) ([]byte, error) {
+func serializeSnapshot(snapshot compiler.Snapshot, format string, includeMetadata bool) ([]byte, error) {
 	// Normalize format to lowercase for case-insensitive matching
 	normalizedFormat := strings.ToLower(format)
 
 	switch serialize.OutputFormat(normalizedFormat) {
 	case serialize.FormatJSON:
-		return serialize.ToJSON(snapshot)
+		return serialize.ToJSON(snapshot, includeMetadata)
 	case serialize.FormatYAML:
-		return serialize.ToYAML(snapshot)
+		return serialize.ToYAML(snapshot, includeMetadata)
 	case serialize.FormatTfvars:
-		return serialize.ToTfvars(snapshot)
+		return serialize.ToTfvars(snapshot, includeMetadata)
 	default:
 		return nil, fmt.Errorf("unsupported format: %s (supported: json, yaml, tfvars)", format)
 	}

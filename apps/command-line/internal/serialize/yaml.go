@@ -16,6 +16,11 @@ import (
 //   - Preserving array order (arrays are not sorted)
 //   - Using consistent YAML formatting
 //
+// Parameters:
+//   - snapshot: The compiler snapshot to serialize
+//   - includeMetadata: When false, serializes only snapshot.Data at root level.
+//     When true, serializes full snapshot with "data" and "metadata" sections.
+//
 // YAML-specific validation:
 //   - Keys cannot contain null bytes (\x00) as YAML spec prohibits them
 //
@@ -29,7 +34,7 @@ import (
 //   - Docker Compose files
 //   - Ansible playbooks
 //   - GitHub Actions workflows
-func ToYAML(snapshot compiler.Snapshot) ([]byte, error) {
+func ToYAML(snapshot compiler.Snapshot, includeMetadata bool) ([]byte, error) {
 	// Validate top-level keys for YAML compatibility
 	if err := validateAllKeys(snapshot.Data, FormatYAML); err != nil {
 		return nil, err
@@ -41,7 +46,14 @@ func ToYAML(snapshot compiler.Snapshot) ([]byte, error) {
 	}
 
 	// Canonicalize the snapshot structure (sorts maps, preserves arrays)
-	canonical := canonicalizeForYAML(snapshot)
+	var canonical *yaml.Node
+	if includeMetadata {
+		// Include full snapshot with "data" and "metadata" sections
+		canonical = canonicalizeForYAML(snapshot)
+	} else {
+		// Serialize only the data section at root level
+		canonical = canonicalizeForYAML(snapshot.Data)
+	}
 
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)

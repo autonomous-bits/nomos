@@ -14,8 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [CLI] Format-specific key validation (HCL identifiers for tfvars, null byte check for YAML)
 - [CLI] Format-specific type handling documentation in README explaining type preservation differences across JSON, YAML, and tfvars formats
 - [CLI] Validation for negative `--max-concurrent-providers` flag values (rejects with clear error message)
+- [CLI] `--include-metadata` flag to restore metadata in build output (opt-in for debugging and auditing) (#005)
 
 ### Changed
+- [CLI] **BREAKING**: Default build output now excludes metadata for cleaner, production-ready configs. Metadata is now opt-in via `--include-metadata` flag. Previous behavior (metadata included by default) can be restored with this flag (#005)
 - [CLI] Exit code for I/O errors (non-writable output paths) is now 1 (runtime error) instead of 2
 
 ### Fixed
