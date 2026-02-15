@@ -57,11 +57,21 @@ func (f *FakeFileProvider) Fetch(_ context.Context, path []string) (any, error) 
 	// First element is the filename
 	filename := path[0]
 	filePath := filepath.Join(f.BaseDirectory, filename)
+	fileLabel := filename
+
+	// Fallback: allow references without extension to resolve .csl files.
+	if _, err := os.Stat(filePath); err != nil && os.IsNotExist(err) && filepath.Ext(filename) == "" {
+		altPath := filepath.Join(f.BaseDirectory, filename+".csl")
+		if _, altErr := os.Stat(altPath); altErr == nil {
+			filePath = altPath
+			fileLabel = filepath.Base(altPath)
+		}
+	}
 
 	// Read and parse the file
 	tree, _, err := parse.ParseFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %w", filename, err)
+		return nil, fmt.Errorf("failed to parse %s: %w", fileLabel, err)
 	}
 
 	// Convert AST to data (excluding source and import declarations)

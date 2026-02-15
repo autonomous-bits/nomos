@@ -46,7 +46,7 @@ func providersListCommand(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			if !globalFlags.quiet {
-				fmt.Println("No providers installed. Run 'nomos init' to install providers.")
+				fmt.Println("No providers installed. Run 'nomos build' to install providers.")
 			}
 			return nil
 		}

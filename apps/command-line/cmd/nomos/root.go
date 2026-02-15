@@ -118,18 +118,7 @@ PowerShell:
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() error {
-	err := rootCmd.Execute()
-
-	// Check for 'init' command attempt
-	if err != nil && isInitCommandAttempt(err) {
-		// Print migration message to stderr
-		// Since we're about to exit with error, we gracefully handle print errors
-		// but don't let them prevent the migration message from being displayed
-		_ = printMigrationMessage()
-		os.Exit(1)
-	}
-
-	return err
+	return rootCmd.Execute()
 }
 
 // versionCmd represents the version command
@@ -182,43 +171,6 @@ func setupColorOutput() {
 	default:
 		// Invalid value, default to auto
 	}
-}
-
-// isInitCommandAttempt checks if the error is due to attempting to run the 'init' command
-func isInitCommandAttempt(err error) bool {
-	if err == nil {
-		return false
-	}
-	// Check if error message contains 'init' as unknown command
-	errMsg := err.Error()
-	return len(errMsg) > 0 &&
-		(errMsg == "unknown command \"init\" for \"nomos\"" ||
-			errMsg == `unknown command "init" for "nomos"`)
-}
-
-// printMigrationMessage prints the init command removal migration message to stderr.
-// Returns error if any print operation fails, but attempts to print all lines.
-func printMigrationMessage() error {
-	lines := []string{
-		"Error: The 'init' command has been removed in v2.0.0.",
-		"",
-		"Providers are now automatically downloaded during 'nomos build'.",
-		"",
-		"Migration:",
-		"  Old: nomos init && nomos build",
-		"  New: nomos build",
-		"",
-		"For more information, see the migration guide at:",
-		"https://github.com/autonomous-bits/nomos/blob/main/docs/guides/migration-v2.md",
-	}
-
-	var firstErr error
-	for _, line := range lines {
-		if _, err := fmt.Fprintln(os.Stderr, line); err != nil && firstErr == nil {
-			firstErr = err
-		}
-	}
-	return firstErr
 }
 
 // flagErrorFunc is called when there's an error parsing flags or an unknown command

@@ -11,7 +11,14 @@ import (
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler"
+	"github.com/autonomous-bits/nomos/libs/compiler/testutil"
 )
+
+func newFileProviderRegistry(baseDir string) compiler.ProviderRegistry {
+	registry := testutil.NewFakeProviderRegistry()
+	registry.AddProvider("base", testutil.NewFakeFileProvider(baseDir))
+	return registry
+}
 
 // TestIntegration_CircularReference_DirectCycle tests A→A direct self-reference
 // (T075: end-to-end circular reference detection).
@@ -33,19 +40,11 @@ config: @base:app:.`
 	}
 
 	ctx := context.Background()
-	// Note: This test expects ProviderRegistry to fail validation since we don't provide one
-	// In a real scenario, the file provider would be auto-configured from source blocks
-	result := compiler.Compile(ctx, compiler.Options{Path: appPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: appPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
-		t.Skip("Test requires provider registry setup - skipping for now")
-		return
-	}
-
-	// If we get ProviderRegistry error, that's expected - skip the test
-	if strings.Contains(result.Error().Error(), "ProviderRegistry must not be nil") {
-		t.Skip("Test requires provider registry auto-configuration from source blocks")
-		return
+		t.Fatal("expected circular reference error, got nil")
 	}
 
 	if !strings.Contains(result.Error().Error(), "circular reference") {
@@ -91,7 +90,8 @@ shared: @base:app:.
 	}
 
 	ctx := context.Background()
-	result := compiler.Compile(ctx, compiler.Options{Path: appPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: appPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -152,7 +152,8 @@ base: @base:app:.
 
 	ctx := context.Background()
 	mainPath := filepath.Join(tmpDir, "app.csl")
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -206,7 +207,8 @@ config:
 
 	ctx := context.Background()
 	mainPath := filepath.Join(tmpDir, "app.csl")
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -250,7 +252,8 @@ infrastructure:
 
 	ctx := context.Background()
 	mainPath := filepath.Join(tmpDir, "app.csl")
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -301,7 +304,8 @@ config: @base:alpha:.
 
 	ctx := context.Background()
 	mainPath := filepath.Join(tmpDir, "alpha.csl")
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -369,7 +373,8 @@ config: @base:app:.
 
 	// If cycle detection caused an infinite loop, the test would hang.
 	// The test framework timeout ensures we fail within a reasonable time.
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	if !result.HasErrors() {
 		t.Fatal("expected circular reference error, got nil")
@@ -421,8 +426,8 @@ local:
 
 	ctx := context.Background()
 	mainPath := filepath.Join(tmpDir, "app.csl")
-
-	result := compiler.Compile(ctx, compiler.Options{Path: mainPath})
+	registry := newFileProviderRegistry(tmpDir)
+	result := compiler.Compile(ctx, compiler.Options{Path: mainPath, ProviderRegistry: registry})
 
 	// This should succeed (no cycle)
 	if result.HasErrors() {

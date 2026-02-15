@@ -64,12 +64,12 @@ func (r *LockfileProviderResolver) ResolveBinaryPath(_ context.Context, provider
 
 			// Verify the binary exists
 			if _, err := os.Stat(binaryPath); err != nil {
-				return "", fmt.Errorf("provider binary not found at %s: %w (run 'nomos init' to install providers)", binaryPath, err)
+				return "", fmt.Errorf("provider binary not found at %s: %w (run 'nomos build' to install providers)", binaryPath, err)
 			}
 
 			// Validate checksum (CRITICAL for security - MANDATORY)
 			if p.Checksum == "" {
-				return "", fmt.Errorf("provider binary for %s has no checksum in lockfile - refusing to execute (security risk); run 'nomos init' to regenerate lockfile with checksums", providerType)
+				return "", fmt.Errorf("provider binary for %s has no checksum in lockfile - refusing to execute (security risk); run 'nomos build' to regenerate lockfile with checksums", providerType)
 			}
 			if err := ValidateChecksum(binaryPath, p.Checksum); err != nil {
 				return "", fmt.Errorf("provider binary checksum validation failed for %s: %w", providerType, err)
@@ -79,5 +79,5 @@ func (r *LockfileProviderResolver) ResolveBinaryPath(_ context.Context, provider
 		}
 	}
 
-	return "", fmt.Errorf("provider type %q not found in lockfile; run 'nomos init' to install providers", providerType)
+	return "", fmt.Errorf("provider type %q not found in lockfile; run 'nomos build' to install providers", providerType)
 }

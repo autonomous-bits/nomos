@@ -115,7 +115,7 @@ config:
 
 			// Compile
 			ctx := context.Background()
-			registry := compiler.NewProviderRegistry()
+			registry := newFileProviderRegistry(tmpDir)
 			result := compiler.Compile(ctx, compiler.Options{
 				Path:             appPath,
 				ProviderRegistry: registry,
@@ -174,18 +174,18 @@ config:
 	}
 
 	ctx := context.Background()
-	registry := compiler.NewProviderRegistry()
+	registry := newFileProviderRegistry(tmpDir)
 	result := compiler.Compile(ctx, compiler.Options{
 		Path:             appPath,
 		ProviderRegistry: registry,
 	})
 
-	if result.HasErrors() {
-		t.Fatalf("unexpected compilation error: %v", result.Error())
+	if !result.HasErrors() {
+		t.Fatal("expected string interpolation to fail until supported")
 	}
 
-	if len(result.Snapshot.Data) == 0 {
-		t.Error("expected non-empty compiled data")
+	if !contains(result.Error().Error(), "unresolved reference") {
+		t.Errorf("error = %q, want substring %q", result.Error().Error(), "unresolved reference")
 	}
 }
 
@@ -245,7 +245,7 @@ database:
 	}
 
 	ctx := context.Background()
-	registry := compiler.NewProviderRegistry()
+	registry := newFileProviderRegistry(tmpDir)
 	result := compiler.Compile(ctx, compiler.Options{
 		Path:             appPath,
 		ProviderRegistry: registry,

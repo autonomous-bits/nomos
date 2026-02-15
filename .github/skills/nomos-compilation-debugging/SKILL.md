@@ -39,8 +39,8 @@ Compilation errors fall into these categories:
 # Check for providers lockfile
 ls -la .nomos/providers.lock.json
 
-# If missing, run init:
-nomos init config.csl
+# If missing, run build to install providers:
+nomos build -p config.csl
 ```
 
 **Expected lockfile structure:**
@@ -90,7 +90,7 @@ chmod +x .nomos/providers/file/0.2.0/darwin-arm64/provider
 # Expected output: PORT=<number>
 
 # If it crashes or prints errors, provider is broken
-# Solution: Re-download with nomos init --force
+# Solution: Re-download with nomos build --force-providers
 ```
 
 ### Step 3: Debug Provider Connection Failures
@@ -102,7 +102,7 @@ chmod +x .nomos/providers/file/0.2.0/darwin-arm64/provider
 ```bash
 # Enable verbose logging if available
 # Run build with provider debugging
-nomos build config.csl 2>&1 | tee build.log
+nomos build -p config.csl 2>&1 | tee build.log
 
 # Look for:
 # - "Starting provider: <alias>"
@@ -182,9 +182,6 @@ nomos build --allow-missing-provider config.csl
 ### Step 5: Debug Legacy Import Errors
 
 **Symptom:** `import statement no longer supported; use @alias:path syntax instead`
-
-#### Find and Remove Import Statements
-
 Imports are no longer supported. Replace them with inline references:
 
 ```nomos
@@ -273,8 +270,8 @@ config.csl:15:3: SyntaxError: expected ':' after key
 
 ```bash
 # Build twice and compare
-nomos build config.csl -o output1.json
-nomos build config.csl -o output2.json
+nomos build -p config.csl -o output1.json
+nomos build -p config.csl -o output2.json
 diff output1.json output2.json
 
 # Should be identical (exit code 0)
@@ -313,10 +310,6 @@ find . -name "*.csl" -type f | sort
 
 Nomos deep-merge rules:
 - **Maps:** Recursive merge, combining keys
-- **Scalars:** Last-wins (newer value replaces older)
-- **Arrays:** Last-wins (entire array replaced)
-
-```nomos
 # base.csl
 database:
   host: localhost
@@ -359,14 +352,8 @@ cat .nomos/providers.lock.json | grep -A 5 '"os"'
 
 #### Cross-Platform Installation
 
-Install providers for different platforms:
-
-```bash
-# Install for Linux on macOS development machine
-nomos init --os linux --arch amd64 config.csl
-
-# Then push .nomos/ directory to Linux CI
-```
+Cross-platform installation is not supported by the CLI today.
+Install providers on the target platform and commit only the lockfile.
 
 ## Common Error Messages and Solutions
 
@@ -376,7 +363,7 @@ nomos init --os linux --arch amd64 config.csl
 
 **Solution:**
 ```bash
-nomos init --force config.csl  # Re-download
+nomos build -p config.csl --force-providers  # Re-download
 ```
 
 ### "connection refused"
@@ -414,7 +401,7 @@ nomos init --force config.csl  # Re-download
 **Solution:**
 ```bash
 # Re-download provider
-nomos init --force config.csl
+nomos build -p config.csl --force-providers
 
 # Or manually verify checksum
 shasum -a 256 .nomos/providers/.../provider
@@ -428,8 +415,7 @@ shasum -a 256 .nomos/providers/.../provider
 If Nomos supports verbose mode:
 
 ```bash
-nomos build -v config.csl       # Verbose output
-nomos build -vv config.csl      # Very verbose (debug level)
+nomos build -p config.csl -v    # Verbose output
 ```
 
 ### Inspect Provider gRPC Communication
@@ -448,7 +434,7 @@ grpcurl -plaintext localhost:<port> nomos.provider.v1.ProviderService/Info
 ### Test Components Individually
 
 1. **Parse only:** Verify .csl syntax
-2. **Init only:** Test provider installation
+2. **Provider management:** Use `nomos build -p <path> --dry-run` to preview installs
 3. **Build without providers:** Use `--allow-missing-provider`
 4. **Build single file:** Isolate problematic config
 
@@ -464,7 +450,7 @@ grpcurl -plaintext localhost:<port> nomos.provider.v1.ProviderService/Info
 ## Reference Documentation
 
 For more details, see:
-- [Nomos CLI Documentation](../../apps/command-line/README.md)
-- [Compiler Library Documentation](../../libs/compiler/README.md)
-- [Provider Authoring Guide](../../docs/guides/provider-authoring-guide.md)
-- [External Providers Architecture](../../docs/architecture/nomos-external-providers-feature-breakdown.md)
+- [Nomos CLI Documentation](../../../apps/command-line/README.md)
+- [Compiler Library Documentation](../../../libs/compiler/README.md)
+- [Provider Development Standards](../../../docs/guides/provider-development-standards.md)
+- [External Providers Architecture](../../../docs/architecture/nomos-external-providers-feature-breakdown.md)

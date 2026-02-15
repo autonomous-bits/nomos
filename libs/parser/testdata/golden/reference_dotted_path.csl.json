@@ -6,6 +6,7 @@
         "security": {
           "alias": "security",
           "path": [
+            "config",
             "rules",
             "ingress",
             "http"
@@ -15,12 +16,13 @@
             "start_line": 4,
             "start_col": 12,
             "end_line": 4,
-            "end_col": 39
+            "end_col": 46
           }
         },
         "subnet": {
           "alias": "network",
           "path": [
+            "config",
             "subnet",
             "public",
             "az1"
@@ -30,12 +32,13 @@
             "start_line": 3,
             "start_col": 10,
             "end_line": 3,
-            "end_col": 35
+            "end_col": 42
           }
         },
         "value": {
           "alias": "simple",
           "path": [
+            "config",
             "value"
           ],
           "source_span": {
@@ -43,12 +46,13 @@
             "start_line": 5,
             "start_col": 9,
             "end_line": 5,
-            "end_col": 21
+            "end_col": 28
           }
         },
         "vpc_cidr": {
           "alias": "base",
           "path": [
+            "config",
             "config",
             "vpc",
             "cidr"
@@ -58,7 +62,7 @@
             "start_line": 2,
             "start_col": 12,
             "end_line": 2,
-            "end_col": 32
+            "end_col": 39
           }
         }
       },

@@ -6,7 +6,7 @@
 
 ## Overview
 
-Starting with Nomos v0.3.0, **in-process providers have been removed**. All providers must now be external executables managed via the `nomos init` command. This change improves security, isolation, and enables a broader ecosystem of provider implementations.
+Starting with Nomos v0.3.0, **in-process providers have been removed**. All providers must now be external executables managed via `nomos build`, which installs providers automatically. This change improves security, isolation, and enables a broader ecosystem of provider implementations.
 
 ## What Changed
 
@@ -24,9 +24,9 @@ Projects could use providers without any setup - the `file` provider was built d
 ### After (v0.3.0+)
 
 ```bash
-# External providers must be installed via nomos init. By default Nomos will download providers
+# External providers are installed during nomos build. By default Nomos will download providers
 # from GitHub Releases using the owner/repo `type` and `version` from your `.csl` files.
-nomos init config.csl
+nomos build -p config.csl
 ```
 
 Providers are now separate executables started as subprocesses and managed by the Nomos compiler.
@@ -52,18 +52,18 @@ source:
   directory: './shared-configs'
 ```
 
-### 2. Run `nomos init`
+### 2. Run `nomos build`
 
-Install provider binaries for your project. By default `nomos init` will attempt to download provider binaries
+Install provider binaries for your project. By default `nomos build` will attempt to download provider binaries
 from GitHub Releases using the `type` (owner/repo) and `version` specified in your `.csl` files. You can preview
 the actions with `--dry-run`.
 
 ```bash
 # Install providers (auto-download from GitHub Releases)
-nomos init config.csl
+nomos build -p config.csl
 
 # Preview what would be installed (dry-run)
-nomos init --dry-run config.csl
+nomos build -p config.csl --dry-run
 ```
 
 This creates:
@@ -97,11 +97,11 @@ nomos build -p config.csl
 If you see errors like:
 
 ```
-provider type "file" not found: external providers are required (in-process providers removed in v0.3.0). 
-Run 'nomos init' to install provider binaries.
+provider type "file" not found: external providers are required (in-process providers removed in v0.3.0).
+Run 'nomos build' to install provider binaries.
 ```
 
-This means you need to run `nomos init` (step 2) first.
+This means you need to run `nomos build` (step 2) first.
 
 ## For Provider Authors
 
@@ -125,10 +125,10 @@ Users install it with:
 
 ```bash
 # Preferred: let nomos download from GitHub Releases automatically
-nomos init config.csl
+nomos build -p config.csl
 
 # Or, for local/testing scenarios, copy the binary into the `.nomos/providers` layout and then run
-# `nomos init` to record it in the lockfile (see docs/examples/local-provider for details).
+# `nomos build` to record it in the lockfile (see docs/examples/local-provider for details).
 ```
 
 ## Removed Packages
@@ -152,7 +152,7 @@ registry := compiler.NewProviderTypeRegistry()
 registry.RegisterType("file", file.NewFileProviderFromConfig)
 ```
 
-**Solution:** Remove the import and registration. Use `nomos init` to install the external provider binary instead.
+**Solution:** Remove the import and registration. Use `nomos build` to install the external provider binary instead.
 
 ## CI/CD Integration
 
@@ -177,19 +177,16 @@ jobs:
       - name: (optional) Download file provider
         run: |
           # Optional: download provider binary into the workspace. If you don't download it,
-          # `nomos init` will attempt to auto-download from GitHub Releases based on your
+          # `nomos build` will attempt to auto-download from GitHub Releases based on your
           # .csl provider type/version.
           curl -L -o nomos-provider-file \
             https://github.com/autonomous-bits/nomos-provider-file/releases/download/v0.2.0/nomos-provider-file-0.2.0-linux-amd64 || true
           chmod +x nomos-provider-file || true
 
-      - name: Install providers
-        run: |
-          # Run init to resolve providers (will use local copy if present, otherwise download from GitHub Releases)
-          nomos init config.csl
-      
       - name: Build configuration
-        run: nomos build -p config.csl -o snapshot.json
+        run: |
+          # Build will resolve providers (uses local copy if present, otherwise downloads from GitHub Releases)
+          nomos build -p config.csl -o snapshot.json
 ```
 
 ### Docker Example
@@ -208,11 +205,10 @@ RUN wget -O /usr/local/bin/nomos-provider-file \
 WORKDIR /workspace
 COPY . .
 
-# Install providers and build
-# If you pre-installed the provider binary into the image, nomos init will pick it up; otherwise
-# nomos init will attempt to download from GitHub Releases.
-RUN nomos init config.csl && \
-  nomos build -p config.csl -o snapshot.json
+# Build configuration
+# If you pre-installed the provider binary into the image, nomos build will pick it up; otherwise
+# nomos build will attempt to download from GitHub Releases.
+RUN nomos build -p config.csl -o snapshot.json
 ```
 
 ## Troubleshooting
@@ -225,7 +221,7 @@ RUN nomos init config.csl && \
 
 ```bash
 # Install providers (auto-download from GitHub Releases)
-nomos init config.csl
+nomos build -p config.csl
 
 # If you have a local binary, copy it into the .nomos/providers layout first (see examples/local-provider)
 ```
@@ -238,18 +234,18 @@ nomos init config.csl
 
 ```bash
 rm .nomos/providers.lock.json
-nomos init config.csl
+nomos build -p config.csl
 ```
 
-### Error: Binary not found after init
+### Error: Binary not found after build
 
 **Cause:** The provider binary path in the lockfile is incorrect or the binary was deleted.
 
 **Solution:**
 
 ```bash
-# Re-run init to refresh lockfile (nomos will attempt to resolve/download the provider)
-nomos init --force config.csl
+# Re-run build to refresh lockfile (nomos will attempt to resolve/download the provider)
+nomos build -p config.csl --force-providers
 ```
 
 ### Provider crashes during build
@@ -260,11 +256,11 @@ nomos init --force config.csl
 
 1. Re-download the provider binary
 2. Verify checksum (if provided)
-3. Run init again:
+3. Run build again:
 
 ```bash
-# Re-run init to refresh lockfile after replacing a binary
-nomos init --force config.csl
+# Re-run build to refresh lockfile after replacing a binary
+nomos build -p config.csl --force-providers
 ```
 
 ## Benefits of External Providers

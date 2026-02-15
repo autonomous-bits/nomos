@@ -294,7 +294,7 @@ The resolver and load functions return errors in these cases:
 
 Example error messages:
 ```
-neither lockfile nor manifest found; run 'nomos init'
+neither lockfile nor manifest found; run 'nomos build'
 provider "unknown" not found in lockfile or manifest
 invalid lockfile: provider "configs": version is required
 ```
@@ -306,9 +306,9 @@ invalid lockfile: provider "configs": version is required
 3. **Permissions**: Provider binaries should have `0755` permissions
 4. **Source provenance**: Record source in lockfile for audit trail
 
-## Integration with `nomos init`
+## Integration with provider management in `nomos build`
 
-The `nomos init` command:
+`nomos build` performs provider management before compilation:
 
 1. Scans `.csl` files for source declarations
 2. Merges with manifest (if present) for source hints

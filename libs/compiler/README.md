@@ -156,7 +156,7 @@ if err != nil {
 - Resolve `source`, `import` and inline `reference` constructs via pluggable provider APIs.
 - Compose configuration deterministically with last-wins override semantics and deep-merge for maps.
 - Detect and report cycles, missing references and provider errors with context-rich diagnostics.
-- Produce a serializable snapshot (data + metadata) suitable for JSON/YAML/HCL rendering.
+- Produce a serializable snapshot (data + metadata) suitable for JSON/YAML/tfvars rendering.
 
 ## Relationship to other projects
 
@@ -168,7 +168,7 @@ CLI -> Compiler -> Parser
 ```
 
 Notes:
-- `Snapshot` is format-agnostic; the caller chooses JSON/YAML/HCL rendering.
+- `Snapshot` is format-agnostic; the caller chooses JSON/YAML/tfvars rendering.
 - Providers are pluggable and are addressed by alias in scripts.
 
 ## Parser contract (what compiler relies on)
@@ -559,14 +559,14 @@ data, err := provider.Fetch(ctx, []string{"database", "prod"})
 
 ### Provider Discovery and Installation
 
-Users install providers with the `nomos init` CLI command:
+Users install providers with the `nomos build` CLI command:
 
 ```bash
 # From GitHub Releases (default)
-nomos init config.csl
+nomos build -p config.csl
 
 # For local/testing scenarios: copy the provider binary into the `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider`
-# layout and then run `nomos init` to record it in the lockfile (see docs/examples/local-provider for details).
+# layout and then run `nomos build` to record it in the lockfile (see docs/examples/local-provider for details).
 ```
 
 This creates:
@@ -584,7 +584,7 @@ The compiler enforces mandatory checksum verification for all provider binaries:
 2. **Validation Timing**: Checksums are verified when resolving provider binaries, before any process execution
 
 3. **Failure Modes**:
-   - **Missing Checksum**: Compilation fails with error directing user to run `nomos init`
+	- **Missing Checksum**: Compilation fails with error directing user to run `nomos build`
    - **Checksum Mismatch**: Compilation fails with error indicating potential tampering
    - **Binary Missing**: Compilation fails with clear error message
 
@@ -592,7 +592,7 @@ The compiler enforces mandatory checksum verification for all provider binaries:
    - Uses cryptographically secure SHA256 hash function
    - Fails closed - any validation failure prevents execution
    - Detects binary tampering, corruption, or substitution attacks
-   - Computed at provider installation time by `nomos init`
+	- Computed at provider installation time by `nomos build`
 
 Example lockfile entry with checksum:
 ```json
@@ -613,7 +613,7 @@ Example lockfile entry with checksum:
 
 **Error Example**:
 ```
-Error: provider binary for file has no checksum in lockfile - refusing to execute (security risk); run 'nomos init' to regenerate lockfile with checksums
+Error: provider binary for file has no checksum in lockfile - refusing to execute (security risk); run 'nomos build' to regenerate lockfile with checksums
 ```
 
 ### Documentation

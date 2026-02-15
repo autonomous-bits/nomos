@@ -394,7 +394,7 @@ func TestParseFile_InlineReferenceScalar(t *testing.T) {
 	// Once FEATURE-10-2 (grammar update) is implemented, we expect:
 	//   - infraSection to contain an entry "vpc_cidr" with a ReferenceExpr value
 	//   - ReferenceExpr.Alias == "network"
-	//   - ReferenceExpr.Path == []string{"vpc", "cidr"}
+	//   - ReferenceExpr.Path == []string{"config", "vpc", "cidr"}
 	//   - ReferenceExpr.Span is non-empty
 
 	// TODO: Update this assertion once parser grammar supports inline references

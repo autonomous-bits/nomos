@@ -197,10 +197,16 @@ func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr)
 		}
 	}
 
-	// Cache result
-	r.cache.set(cacheKey, val)
+	// Resolve any nested references returned by the provider.
+	resolved, err := r.ResolveValue(ctx, val)
+	if err != nil {
+		return nil, err
+	}
 
-	return val, nil
+	// Cache result
+	r.cache.set(cacheKey, resolved)
+
+	return resolved, nil
 }
 
 // resolveMap resolves all values in a map.

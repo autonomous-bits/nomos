@@ -38,14 +38,13 @@ type BuildParams struct {
 }
 
 // NewProviderRegistries creates default provider and provider type registries.
-// BREAKING CHANGE: As of v0.3.0, only external providers are supported.
-// In-process providers have been removed. Users must run 'nomos init' to install
-// provider binaries before running 'nomos build'.
+// External providers are supported via lockfile-based resolution.
 //
-// This function requires a lockfile (.nomos/providers.lock.json) to be present.
-// If the lockfile is missing or malformed, an empty registry is returned and
-// compilation will fail with a clear error message instructing users to run
-// 'nomos init'.
+// The lockfile (.nomos/providers.lock.json) is created/updated by `nomos build`
+// during provider management. If the lockfile is missing or malformed, an
+// empty registry is returned and compilation will fail when providers are
+// required. In that case, rerun `nomos build` to install providers and
+// regenerate the lockfile.
 //
 // Migration guide: https://github.com/autonomous-bits/nomos/blob/main/docs/guides/external-providers-migration.md
 //

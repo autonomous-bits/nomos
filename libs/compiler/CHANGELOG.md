@@ -116,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2025-12-26
 
 ### Security
-- **CRITICAL: Mandatory checksum validation for provider binaries** - Provider binaries are now required to have checksums in the lockfile and are verified before execution. This prevents execution of tampered or corrupted binaries. Lockfiles without checksums will fail with a clear error message directing users to run `nomos init`.
+- **CRITICAL: Mandatory checksum validation for provider binaries** - Provider binaries are now required to have checksums in the lockfile and are verified before execution. This prevents execution of tampered or corrupted binaries. Lockfiles without checksums will fail with a clear error message directing users to run `nomos build`.
 
 ## [0.1.0] - 2025-11-02
 
@@ -125,7 +125,7 @@ Initial release of the Nomos compiler library.
 ### BREAKING CHANGES
 - **In-process providers removed** (#51): All providers must now be external executables via gRPC
   - Removed `libs/compiler/providers/file` package
-  - Users must run `nomos init` to install provider binaries
+  - Users must run `nomos build` to install provider binaries
   - File provider distributed separately at `github.com/autonomous-bits/nomos-provider-file`
   - See migration guide: `docs/guides/external-providers-migration.md`
 

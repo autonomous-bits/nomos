@@ -59,8 +59,8 @@ Nomos-specific version resolution handles both prefixed and non-prefixed version
 - Falls back to substring matching if exact pattern fails
 - Respects GitHub rate limits (authenticated: 5000/hr, anonymous: 60/hr)
 
-### Integration with Nomos Init
-The `nomos init` command orchestrates provider lifecycle:
+### Integration with Nomos Build
+The `nomos build` command orchestrates provider lifecycle:
 
 1. **Parse provider declarations** from config files
 2. **Resolve provider versions** using this library
@@ -70,7 +70,7 @@ The `nomos init` command orchestrates provider lifecycle:
 
 **Example integration:**
 ```go
-// From nomos init command
+// From nomos build command
 client := downloader.NewClient(ctx, &downloader.ClientOptions{
     RetryAttempts: 3,
     GitHubToken:   os.Getenv("GITHUB_TOKEN"),

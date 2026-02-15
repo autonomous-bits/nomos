@@ -156,31 +156,12 @@ fi
 
 The CLI provides the following commands (all implemented using the Cobra framework):
 
-- **`build`** — Compile Nomos scripts into configuration snapshots (JSON/YAML/HCL)
+- **`build`** — Compile Nomos scripts into configuration snapshots (JSON/YAML/tfvars)
 - **`validate`** — Validate .csl files without building (syntax and semantic checks only)
 - **`providers list`** — List installed providers from lockfile with details
 - **`version`** — Display version information with build metadata
 - **`completion`** — Generate shell completion scripts (bash/zsh/fish/powershell)
 - **`help`** — Help about any command
-
-### Migration from v1.x
-
-**Breaking Change:** The `nomos init` command has been removed in v2.0.0.
-
-Providers now download automatically during `nomos build` when needed. You no longer need a separate initialization step.
-
-**Before (v1.x):**
-```bash
-nomos init config.csl
-nomos build config.csl
-```
-
-**After (v2.0.0):**
-```bash
-nomos build config.csl  # Providers download automatically
-```
-
-The lockfile (`.nomos/providers.lock.json`) is still created and used for version pinning and reproducibility.
 
 ### Global Flags
 
@@ -210,7 +191,7 @@ Compile Nomos scripts into configuration snapshots.
 Relevant flags:
 
 - `--path, -p` (required): Path to a `.csl` file or folder containing `.csl` files
-- `--format, -f`: Output format (only `json` currently supported)
+- `--format, -f`: Output format (`json`, `yaml`, or `tfvars`)
 - `--out, -o`: Write output to file (default: stdout)
 - `--var`: Set variable: key=value (repeatable)
 - `--strict`: Treat warnings as errors
@@ -358,7 +339,7 @@ nomos build [flags]
 **Options:**
 
 - `-p, --path <path>` — Path to .csl file or directory (required)
-- `-f, --format <format>` — Output format (only json currently supported)
+- `-f, --format <format>` — Output format (`json`, `yaml`, or `tfvars`)
 - `-o, --out <file>` — Write output to file (default: stdout)
 - `--var <key=value>` — Variable substitution (repeatable)
 - `--strict` — Treat warnings as errors
@@ -673,8 +654,6 @@ metadata:
   errors: []
   warnings: []
 ```
-
-**Migration Note:** In v1.x, metadata was included by default. Starting in v2.0.0, metadata is opt-in via `--include-metadata`. See the [migration guide](../../docs/guides/migration-v2.md#optional-metadata-output-v200) for details.
 
 ### Output Formats and Serialization
 
@@ -1135,7 +1114,7 @@ func Compile(ctx context.Context, opts Options) (Snapshot, error)
 
 Planned for future releases:
 
-- **YAML and HCL output formats** — May be added if user demand justifies the implementation (currently JSON-only)
+- **Additional output formats** — Raw HCL (beyond tfvars) or other targets if user demand justifies it
 - ~~Provider credential handling~~ (basic support exists)
 - ~~Remote provider support with explicit opt-in~~ (GitHub Releases supported)
 - ~~Additional commands (`validate`, `fmt`)~~ ✓ **Completed in Phase 2** (validate); **Note:** `init` was added in Phase 2 and removed in v2.0.0 (auto-download)
@@ -1196,7 +1175,7 @@ The test suite is organized as follows:
   - `flags_test.go` — Flag parsing validation (93.3% coverage)
   - `options_test.go` — Compiler options builder (100% coverage)
   - `diagnostics_test.go` — Error/warning formatting (94.6% coverage)
-  - `serialize_test.go` — JSON/YAML/HCL serialization and determinism (75% coverage)
+  - `serialize_test.go` — JSON/YAML/tfvars serialization and determinism (75% coverage)
   - `traverse_test.go` — File discovery and ordering (82.9% coverage)
 
 - `test/` — Integration tests that build and invoke the CLI binary
@@ -1460,7 +1439,6 @@ nomos build config.csl
 - Subsequent builds reuse the locked versions (reproducible builds)
 - Commit the lockfile to version control for team consistency
 
-**Migration from v1.x:** If you were using `nomos init`, simply remove it from your workflow. The `build` command now handles everything.
 
 ### Building with Providers
 
@@ -1526,12 +1504,11 @@ nomos build config.csl
 # → Creates new lockfile
 ```
 
-**Note:** In v1.x, you used `nomos init --upgrade`. In v2.0.0+, delete the lockfile and rebuild.
 
 ### Documentation and Examples
 
 - **Usage examples**: See [docs/examples](../../docs/examples/) for step-by-step guides
-- **Provider authoring**: See [docs/guides/provider-authoring-guide.md](../../docs/guides/provider-authoring-guide.md)
+- **Provider authoring**: See [docs/guides/provider-development-standards.md](../../docs/guides/provider-development-standards.md)
 - **Migration guide**: See [docs/guides/external-providers-migration.md](../../docs/guides/external-providers-migration.md)
 - **Architecture**: See [docs/architecture/nomos-external-providers-feature-breakdown.md](../../docs/architecture/nomos-external-providers-feature-breakdown.md)
 

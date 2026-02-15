@@ -111,17 +111,9 @@ func TestEmptyListEndToEnd(t *testing.T) {
 		t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
 	}
 
-	// Find the empty list expression
-	var listExpr *ast.ListExpr
-	for _, expr := range section.Entries {
-		if list, ok := expr.(*ast.ListExpr); ok {
-			listExpr = list
-			break
-		}
-	}
-
-	if listExpr == nil {
-		t.Fatal("expected to find *ast.ListExpr in section entries")
+	listExpr, ok := section.Value.(*ast.ListExpr)
+	if !ok || listExpr == nil {
+		t.Fatalf("expected *ast.ListExpr in section value, got %T", section.Value)
 	}
 
 	// Assert: Verify list is empty
@@ -153,8 +145,6 @@ func TestListImportScenariosEndToEnd(t *testing.T) {
 			fixtureFile:    "override_config.csl",
 			sectionName:    "servers",
 			expectedValues: []string{"override-01", "override-02", "override-03"},
-			importAlias:    "base",
-			importPath:     "./base_config.csl",
 		},
 	}
 
@@ -169,11 +159,6 @@ func TestListImportScenariosEndToEnd(t *testing.T) {
 			result, err := parser.ParseFile(fixturePath)
 			if err != nil {
 				t.Fatalf("unexpected parse error: %v", err)
-			}
-
-			if tt.importAlias != "" || tt.importPath != "" {
-				// ImportStmt is deprecated and removed from AST - skip import validation
-				_ = findImportStmt(result)
 			}
 
 			section := findSectionByName(result, tt.sectionName)

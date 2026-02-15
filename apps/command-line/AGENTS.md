@@ -56,8 +56,9 @@ Command structure reflects **offline-first philosophy**: network operations (pro
 
 #### Output Formats
 - JSON (via `internal/serialize`)
+- YAML and tfvars output formats are supported
 - **Deterministic serialization**: sorted keys, canonical formatting
-- Note: YAML/HCL may be added in future if user demand justifies it
+- Note: raw HCL output may be added in future if user demand justifies it
 - Used for Terraform/IaC tool integration
 
 ### Provider Commands
@@ -201,7 +202,7 @@ golangci-lint run
 ```bash
 # Test actual command execution
 ./nomos build testdata/simple.csl
-./nomos init testdata/simple.csl
+./nomos providers list
 ./nomos --version
 ```
 - Commands execute successfully

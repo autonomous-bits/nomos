@@ -16,7 +16,7 @@ type BuildFlags struct {
 	// Path specifies the input file or directory (required).
 	Path string
 
-	// Format specifies the output format (json, yaml, or hcl).
+	// Format specifies the output format (json, yaml, or tfvars).
 	Format string
 
 	// Out specifies the output file path (if empty, writes to stdout).
@@ -61,7 +61,7 @@ func Parse(args []string) (BuildFlags, error) {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	fs.StringVar(&flags.Path, "path", "", "path to .csl file or directory (required)")
 	fs.StringVar(&flags.Path, "p", "", "path to .csl file or directory (shorthand)")
-	fs.StringVar(&flags.Format, "format", "json", "output format: json, yaml, or hcl")
+	fs.StringVar(&flags.Format, "format", "json", "output format: json, yaml, or tfvars")
 	fs.StringVar(&flags.Format, "f", "json", "output format (shorthand)")
 	fs.StringVar(&flags.Out, "out", "", "output file path (writes to stdout if empty)")
 	fs.StringVar(&flags.Out, "o", "", "output file path (shorthand)")
@@ -87,9 +87,9 @@ func Parse(args []string) (BuildFlags, error) {
 	flags.Format = strings.ToLower(flags.Format)
 
 	// Validate format
-	validFormats := map[string]bool{"json": true, "yaml": true, "hcl": true}
+	validFormats := map[string]bool{"json": true, "yaml": true, "tfvars": true}
 	if !validFormats[flags.Format] {
-		return BuildFlags{}, fmt.Errorf("format must be one of: json, yaml, hcl (got %q)", flags.Format)
+		return BuildFlags{}, fmt.Errorf("format must be one of: json, yaml, tfvars (got %q)", flags.Format)
 	}
 
 	// Validate max-concurrent-providers

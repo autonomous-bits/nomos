@@ -88,7 +88,7 @@ Nomos implements a similar external provider model inspired by Terraform's archi
 
 - **Subprocess model**: Nomos compiler starts provider executables as separate processes
 - **gRPC communication**: Providers communicate via gRPC (like modern Terraform providers)
-- **Discovery and installation**: `nomos init` discovers and installs provider binaries (similar to `terraform init`)
+- **Discovery and installation**: `nomos build` discovers and installs provider binaries (similar to `terraform init`)
 - **Lock file**: `.nomos/providers.lock.json` ensures reproducible builds (similar to `.terraform.lock.hcl`)
 - **Version constraints**: Providers are versioned and constraints are enforced
 
@@ -115,13 +115,13 @@ If you're using Nomos providers:
    config = import configs["database"]["prod"]
    ```
 
-2. **Install providers with `nomos init`**:
+2. **Build to install providers**:
    ```bash
    # From GitHub Releases (default)
-   nomos init config.csl
+   nomos build -p config.csl
 
    # For local/testing scenarios, copy the provider binary into the .nomos/providers layout and
-   # then run `nomos init` to record it in the lockfile (see docs/examples/local-provider for details).
+   # then run `nomos build` to record it in the lockfile (see docs/examples/local-provider for details).
    ```
 
 3. **Build configurations**:
@@ -140,7 +140,7 @@ If you're building a Nomos provider:
 3. **Publish to GitHub Releases** with checksums
 4. **Document configuration** requirements and usage
 
-**Learn more**: See [Provider Authoring Guide](./provider-authoring-guide.md) for complete implementation instructions.
+**Learn more**: See [Provider Development Standards](./provider-development-standards.md) for complete implementation instructions.
 
 ### Comparison Table
 
@@ -151,14 +151,14 @@ If you're building a Nomos provider:
 | **Process model** | Subprocess per provider | Subprocess per provider alias |
 | **Operations** | CRUD + Read | Init + Fetch |
 | **Distribution** | Terraform Registry | GitHub Releases + local |
-| **Discovery** | `terraform init` | `nomos init` |
+| **Discovery** | `terraform init` | `nomos build` |
 | **Lock file** | `.terraform.lock.hcl` | `.nomos/providers.lock.json` |
 | **Version constraints** | HCL syntax | Semver in source declarations |
 
 ### Additional Resources
 
 - [External Providers Architecture](../architecture/nomos-external-providers-feature-breakdown.md) - Technical specification
-- [Provider Authoring Guide](./provider-authoring-guide.md) - Complete guide for building providers
+- [Provider Development Standards](./provider-development-standards.md) - Complete guide for building providers
 - [External Providers Migration Guide](./external-providers-migration.md) - Migration from in-process providers
 - [Provider Proto Documentation](../../libs/provider-proto/README.md) - gRPC contract reference
 

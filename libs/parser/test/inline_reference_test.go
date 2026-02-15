@@ -62,7 +62,7 @@ func TestParseInlineReferences_ValidFixture(t *testing.T) {
 		t.Errorf("expected vpc_cidr alias to be 'network', got %q", vpcCIDRRef.Alias)
 	}
 
-	expectedPath := []string{"vpc", "cidr"}
+	expectedPath := []string{"config", "vpc", "cidr"}
 	if len(vpcCIDRRef.Path) != len(expectedPath) {
 		t.Fatalf("expected vpc_cidr path length %d, got %d", len(expectedPath), len(vpcCIDRRef.Path))
 	}
@@ -141,7 +141,7 @@ config:
 		t.Errorf("expected cidr alias to be 'network', got %q", cidrRef.Alias)
 	}
 
-	expectedPath := []string{"vpc", "cidr"}
+	expectedPath := []string{"config", "vpc", "cidr"}
 	if len(cidrRef.Path) != len(expectedPath) {
 		t.Fatalf("expected cidr path length %d, got %d", len(expectedPath), len(cidrRef.Path))
 	}
