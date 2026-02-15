@@ -58,8 +58,7 @@ func ExtractImports(tree *ast.AST) (ExtractedData, error) {
 	}
 
 	for _, stmt := range tree.Statements {
-		switch s := stmt.(type) {
-		case *ast.SourceDecl:
+		if s, ok := stmt.(*ast.SourceDecl); ok {
 			// Extract source declaration
 			config := make(map[string]any)
 			for k, expr := range s.Config {
