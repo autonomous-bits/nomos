@@ -2,7 +2,7 @@
 
 Last updated: 2025-12-26
 
-**Status:** 🟡 In Progress - Foundation modules complete (provider-proto, provider-downloader), awaiting CLI and compiler integration
+**Status:** ✅ Implemented - Provider management is integrated into `nomos build`
 
 This document breaks down the work to migrate Nomos providers from in-process libraries to out-of-process executables started as subprocesses and communicating with the compiler via gRPC, inspired by Terraform's provider model. Distribution is decentralized: providers are obtained from GitHub Releases or a local file system path; there's no central registry.
 
@@ -12,19 +12,12 @@ This document breaks down the work to migrate Nomos providers from in-process li
 - **libs/provider-proto**: gRPC protocol definitions complete with comprehensive integration tests
 - **libs/provider-downloader**: Provider binary download, caching, and archive extraction (81.8% test coverage)
 - **libs/compiler**: Context propagation fixed, provider lifecycle management improved, test infrastructure consolidated
-- **apps/command-line**: Modernized with Cobra framework, ready for `nomos init` command
+- **apps/command-line**: Modernized with Cobra framework and build-driven provider management
 - **Testing**: Comprehensive test suites, integration test standards established
 - **CI/CD**: All modules have automated testing workflows
 
-### 🟡 Phase 6 In Progress
+### ✅ Phase 6 Complete
 - Documentation updates and final polish
-
-### ⏳ Remaining Work
-- Implement `nomos init` command using provider-downloader library
-- Integrate gRPC client communication in compiler using provider-proto
-- Create reference provider implementation (file provider as external binary)
-- End-to-end testing with external providers
-- Migration guide for existing projects
 
 References:
 - docs/guides/terraform-providers-overview.md (summary of Terraform’s model)
@@ -33,7 +26,7 @@ References:
 ## Goals
 
 - Treat providers as separate executables managed by the Nomos compiler at build time.
-- Add `nomos init` to discover, install, and lock provider binaries into a well-known local location: `.nomos/providers/{provider-name}/{version}/{os-arch}/provider`.
+- Discover, install, and lock provider binaries during `nomos build` into `.nomos/providers/{provider-name}/{version}/{os-arch}/provider`.
 - On `nomos build`, have the compiler start provider subprocesses on-demand and communicate via gRPC, preserving the existing `Provider` interface contract (Init, Fetch, optional Info) at the compiler boundary.
 - Support offline/local installation (copy/move) and GitHub Releases download with checksums. No central registry.
 
@@ -53,13 +46,13 @@ References:
 
 ## User-facing changes
 
-- New command: `nomos init`
+- Provider management during `nomos build`:
   - Scans project sources to identify required providers and versions.
   - Resolves and installs providers from GitHub Releases into `.nomos/providers/...` (or records pre-installed local binaries).
   - Writes a lock file `.nomos/providers.lock.json` with resolved versions, sources, OS/arch, and checksums.
-  - Flags: `--upgrade`, `--os`, `--arch`, `--dry-run`, `--force`.
+  - Flags: `--dry-run`, `--force-providers`, `--timeout-per-provider`, `--max-concurrent-providers`, `--allow-missing-provider`.
 
-- Build remains `nomos build`, with behavior changes:
+- Build behavior:
   - Compiler starts provider subprocesses on first use and communicates over gRPC.
   - Uses the lock file to locate exact provider binaries.
 
@@ -96,7 +89,7 @@ providers:
       directory: "./apps/command-line/testdata/configs"
 ```
 
-`nomos init` merges sources from `.csl` files and the manifest. The version MUST be declared in `.csl` source declarations and is authoritative. The manifest may provide source hints (e.g., GitHub owner/repo) but MUST NOT override versions. The lock file records the final resolved values.
+`nomos build` merges sources from `.csl` files and the manifest. The version MUST be declared in `.csl` source declarations and is authoritative. The manifest may provide source hints (e.g., GitHub owner/repo) but MUST NOT override versions. The lock file records the final resolved values.
 
 ## High-level architecture
 
@@ -111,7 +104,7 @@ providers:
   - Process model decision: one subprocess per provider alias (per-alias), started lazily and cached for the build run.
 
 - CLI changes
-  - `nomos init` executes discovery and installation/locking flow (see UX flows below).
+  - `nomos build` executes discovery and installation/locking flow before compilation.
 
 - Provider packaging and distribution
   - Binaries are versioned artifacts published on GitHub Releases (or provided locally).
@@ -171,7 +164,7 @@ Resolution precedence during `build`:
 2) Inline `.csl` source declaration (authoritative for version)
 3) `.nomos/providers.yaml` (manifest) for source hints only
 
-If none found: fail with actionable error and suggest running `nomos init`.
+If none found: fail with actionable error and suggest running `nomos build`.
 
 ## Lock file format (example)
 
@@ -211,116 +204,6 @@ If none found: fail with actionable error and suggest running `nomos init`.
 - Clear error categorization via gRPC status and messages.
 - Compiler surfaces provider stderr when `--verbose` is enabled.
 - Health RPC allows preflight checks before first Fetch.
-
-## Migration plan
-
-- Phase 1: Protocol and scaffolding
-  - Define protobuf schema and generate stubs for Go.
-  - Implement `providerproc` package in the compiler: process manager + gRPC client.
-  - Migrate the in-repo `file` provider to an external repo and binary (`autonomous-bits/nomos-provider-file`). Remove the in-process provider from this monorepo.
-
-- Phase 2: CLI `init`
-  - Implement scanning (parse `.csl` via existing AST to collect `SourceDecl` alias/type/config).
-  - Merge with optional `.nomos/providers.yaml` (versions from `.csl` only; manifest provides source hints).
-  - Resolve sources, download from GitHub Releases (with `Accept: application/octet-stream`), validate checksum, install layout, write lock file.
-  - Support manual pre-install of local provider binaries into the `.nomos/providers` layout (copy/symlink), which `nomos init` will record in the lockfile.
-
-- Phase 3: Build integration
-  - Wire compiler `ProviderRegistry` to construct a gRPC-backed provider client when an alias is requested.
-  - Ensure compatibility with import resolution and `Fetch` shape (maps via Struct).
-  - Add graceful shutdown at end of compile.
-
-- Phase 4: Stabilization
-  - Back-compat: not supported. Remove legacy in-process constructors. Provide clear migration errors instructing to run `nomos init` and use external providers.
-  - Docs, examples, and a provider author guide.
-
-## Detailed work breakdown
-
-### A. Protocol and adapters
-- Define `proto/nomos/provider/v1/provider.proto` with messages and service above.
-- Generate Go code and add module to workspace (e.g., `libs/provider-proto`).
-- Implement `compiler/internal/providerproc`:
-  - `Manager` (resolve, start, connect, shutdown)
-  - `Client` (gRPC wrapper implementing `compiler.Provider`)
-  - Context/timeouts, retries (bounded), stderr capture
-- Replace/extend `ProviderTypeRegistry` to support external providers:
-  - New type constructor that returns a `Client` bound to a binary path derived from the alias/type via lock file.
-
-Acceptance:
-- Unit tests for Manager (start/stop, missing binary, bad checksum)
-- Contract tests against a fake provider server
-
-### B. CLI: `nomos init`
-- Add new subcommand scaffold under `apps/command-line/cmd/nomos/init.go`.
-- Discovery:
-  - Parse all project `.csl` files and collect `SourceDecls` (reuse `imports.ExtractImports`).
-  - Merge with `.nomos/providers.yaml` if present (only for source hints, not version).
-- Resolution:
-  - For each provider: choose version/source, compute asset name, download or copy from local path.
-  - Verify checksum (if available), set execute perms, write to `.nomos/providers/...`.
-  - Update `.nomos/providers.lock.json` (create if missing). Lock file reflects versions from `.csl`.
-  - Flags: `--upgrade`, `--dry-run`, `--force`.
-
-Acceptance:
-- Integration test: given a manifest and a local path, `init` installs to expected location and writes lock file.
-
-### C. Build integration
-  - Modify compiler options to accept a lock-file reader/resolver.
-  - In `ProviderRegistry.GetProvider`, resolve alias to type and binary path using the lock file (version from `.csl`), then use `providerproc.Manager` to start/connect and return a `Client` implementing `Provider`.
-- Ensure `imports.ResolveImports` flow remains unchanged at call sites.
-
-Acceptance:
-- Integration test: compile a project that imports via `file` provider served by an out-of-process provider.
-
-### D. Provider reference implementation
-- Create external repo `autonomous-bits/nomos-provider-file`:
-  - Implements the gRPC service
-  - Supports `Init` with `directory` and `Fetch` as today’s semantics
-  - Releases with assets for darwin/arm64, darwin/amd64, linux/amd64
-
-Acceptance:
-- E2E test: `nomos init` + `nomos build` using the released binary.
-
-### E. Documentation
-- Update `docs/guides/terraform-providers-overview.md` cross-links.
-- Add provider authoring guide with protobuf contract and packaging instructions.
-
-## UX flows
-
-### `nomos init`
-1. Parse sources, collect providers {alias, type, optional version/source}.
-2. Merge with `.nomos/providers.yaml` (manifest may add source hints only; versions must come from `.csl`).
-3. For each provider:
-   - If lock entry exists and `--upgrade` not set: skip
-   - Else: resolve source
-  - GitHub: compute asset name default `nomos-provider-{type}-{version}-{os}-{arch}`; download; verify checksum
-     - Local: copy or symlink `provider` into target layout
-   - Write/update lock entry
-4. Output summary and next steps.
-
-### `nomos build`
-1. Load lock file; error if missing required providers and suggest `nomos init`.
-2. On first use of provider alias:
-   - Start subprocess for the corresponding binary
-   - Call `Init` with alias, config, and source file path
-   - Optionally call `Health`
-3. On import resolution, call `Fetch` as needed; merge results as today.
-4. On completion, cleanly shut down all provider subprocesses.
-
-## Edge cases
-
-- Missing version in `.csl`: fail at `init`. Versions MUST be specified in `.csl` source declarations. Optionally, support “latest” GitHub release with `--allow-latest` in a future iteration.
-- Provider binary not executable: fix perms and retry; else error with remediation.
-- OS/arch mismatch: allow overriding `--os`/`--arch` or error clearly.
-- Provider returns non-map from `Fetch`: preserve current compiler error.
-- Crash loops: backoff and give up after N attempts with surfaced logs.
-
-## Success criteria
-
-- Builds complete using external provider executables with no regressions to import semantics.
-- `nomos init` reliably installs and locks provider binaries.
-- Clear, actionable errors for missing/invalid providers.
-- Reference provider demonstrates authoring flow and compatibility.
 
 ## Decisions
 

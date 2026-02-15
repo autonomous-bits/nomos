@@ -27,21 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2026-01-11
 
-### BREAKING CHANGES
-- [CLI] **Removed `nomos init` command** (feature 002-remove-init-command)
-  - Providers are now automatically downloaded during `nomos build`
-  - No separate initialization step required
-  - Migration: Replace `nomos init && nomos build` with just `nomos build`
-  - The `.nomos/providers.lock.json` file is now managed automatically during build
-  - First build will download required providers; subsequent builds use cached versions
-  - See migration guide: `docs/guides/external-providers-migration.md`
-
 ### Added
 - [CLI] Automatic provider download during build
   - Providers are discovered from `.csl` source declarations and downloaded on first build
   - Downloaded providers are cached in `.nomos/providers/` for reuse
   - Lockfile `.nomos/providers.lock.json` is created/updated automatically
-  - Eliminates need for separate `nomos init` step
+  - Eliminates separate provider-installation step
 - [CLI] `--force-providers` flag for `nomos build` command
   - Forces re-download of all providers even if cached versions exist
   - Useful for debugging provider issues or forcing provider updates
@@ -73,27 +64,13 @@ First production release of the Nomos CLI with complete Cobra framework integrat
   - Error messages now use Cobra's standard format ("Error: required flag(s) not set" instead of custom messages)
   - Command invocation unchanged, but internal structure refactored
   - Migration: CI/CD scripts checking for exit code `2` should check for exit code `1` instead
-- **`nomos init` now returns structured results**: Breaking change for programmatic usage
-  - `internal/initcmd.Run()` now returns `(*InitResult, error)` instead of `error`
-  - Direct function calls (not via CLI) must handle the new return type
-  - CLI users unaffected - human-readable output preserved
-- **`--from` flag removed from `nomos init`** (#72): Providers now installed from GitHub Releases
-  - The `--from alias=path` flag has been removed in favor of automatic downloads from GitHub Releases
-  - Provider `type` field in `.csl` source declarations must now use `owner/repo` format (e.g., `autonomous-bits/nomos-provider-file`)
-  - Providers are automatically downloaded from GitHub Releases based on `owner/repo` and `version`
-  - Installation path changed to `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider`
-  - Lockfile entries now include GitHub metadata (owner, repo, release_tag, asset) and SHA256 checksum
-  - For local development, use GitHub Releases or manually install providers to the expected path
-  - Migration: Update `.csl` files to use `type: 'owner/repo'` format instead of simple names like `type: 'file'`
-  - Set `GITHUB_TOKEN` environment variable for higher rate limits and private repository access
 - **In-process providers removed** (#51): External providers now required
   - `NewProviderRegistries()` no longer registers in-process `file` provider as fallback
   - Missing or malformed lockfile (`.nomos/providers.lock.json`) returns empty registry
-  - Build fails with clear error message directing users to run `nomos init`
-  - Example error: "provider type 'file' not found: external providers are required (in-process providers removed in v0.3.0). Run 'nomos init' to install provider binaries."
+  - Build fails with clear error message directing users to run `nomos build`
+  - Example error: "provider type 'file' not found: external providers are required (in-process providers removed in v0.3.0). Run 'nomos build' to install provider binaries."
   - Removed import of `github.com/autonomous-bits/nomos/libs/compiler/providers/file`
   - Migration guide: `docs/guides/external-providers-migration.md`
-  - CI/CD pipelines must add `nomos init` step before `nomos build`
 
 ### Added
 - [CLI] Shell completion support for Bash, Zsh, Fish, and PowerShell via `nomos completion` command
@@ -107,12 +84,6 @@ First production release of the Nomos CLI with complete Cobra framework integrat
 - [CLI] `nomos providers list` command to display installed providers
   - Shows table with alias, type, version, OS, arch, and path
   - Supports `--json` flag for machine-readable output
-- [CLI] Enhanced `nomos init` output with table formatting and progress indicators
-  - Uses `tablewriter` for clean table output of installation results
-  - Shows provider alias, type, version, status (installed/skipped/failed), and size
-  - Displays spinner during installation (hidden with `--quiet` or `--json`)
-  - Supports `--json` flag for machine-readable output
-  - Shows installation summary: "Successfully installed N provider(s), skipped M already installed"
 - [CLI] Colored diagnostics output with `fatih/color` integration
   - Errors displayed in red, warnings in yellow (when color enabled)
   - Headers added: "Errors:" and "Warnings:" sections for clarity
@@ -121,24 +92,6 @@ First production release of the Nomos CLI with complete Cobra framework integrat
   - Shows "Compilation failed: N error(s), M warning(s)" after diagnostics
   - Provides clear feedback on build status
 - [CLI] Success message when output file written: "Output written to <path>"
-- [CLI] `nomos init` command for discovering and installing provider dependencies (#46, #72)
-  - Scans `.csl` files to discover provider requirements (alias, type, version)
-  - Validates that all providers have required `version` field in source declarations
-  - Downloads and installs provider binaries from GitHub Releases based on `owner/repo` type format
-  - Creates `.nomos/providers/{owner}/{repo}/{version}/{os-arch}/provider` directory structure
-  - Writes `.nomos/providers.lock.json` with resolved versions, GitHub metadata, SHA256 checksums, and paths
-  - Supports `--dry-run` flag to preview actions without installing
-  - Supports `--force` flag to overwrite existing providers/lockfile
-  - Supports `--os` and `--arch` flags to override target platform (auto-detected from runtime by default)
-  - Supports `--upgrade` flag for future version upgrade functionality
-  - Sets executable permissions (0755) on installed provider binaries
-  - Automatic asset resolution based on OS/architecture from GitHub Releases
-  - Streaming downloads with retry logic and SHA256 verification
-  - Clear error messages for missing version, network failures, asset not found, and checksum mismatches
-  - Comprehensive unit and integration test coverage (including hermetic httptest mocks)
-  - Hermetic httptest-based tests for init flow that mock GitHub API and asset servers (init_hermetic_test.go)
-  - Enhanced gated network integration test with complete GitHub metadata validation (release_tag, asset fields)
-  - Lockfile entries now include complete GitHub metadata (owner, repo, release_tag, asset) and binary size (#73)
   - Lockfile includes RFC3339 timestamp recording when providers were installed
   - Atomic lockfile writes using temp file + rename pattern for crash safety
   - Skip-download optimization: providers matching lockfile entries by version/checksum are not re-downloaded unless `--force` is used

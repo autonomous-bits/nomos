@@ -111,17 +111,9 @@ func TestEmptyListEndToEnd(t *testing.T) {
 		t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
 	}
 
-	// Find the empty list expression
-	var listExpr *ast.ListExpr
-	for _, expr := range section.Entries {
-		if list, ok := expr.(*ast.ListExpr); ok {
-			listExpr = list
-			break
-		}
-	}
-
-	if listExpr == nil {
-		t.Fatal("expected to find *ast.ListExpr in section entries")
+	listExpr, ok := section.Value.(*ast.ListExpr)
+	if !ok || listExpr == nil {
+		t.Fatalf("expected *ast.ListExpr in section value, got %T", section.Value)
 	}
 
 	// Assert: Verify list is empty
@@ -153,8 +145,6 @@ func TestListImportScenariosEndToEnd(t *testing.T) {
 			fixtureFile:    "override_config.csl",
 			sectionName:    "servers",
 			expectedValues: []string{"override-01", "override-02", "override-03"},
-			importAlias:    "base",
-			importPath:     "./base_config.csl",
 		},
 	}
 
@@ -169,21 +159,6 @@ func TestListImportScenariosEndToEnd(t *testing.T) {
 			result, err := parser.ParseFile(fixturePath)
 			if err != nil {
 				t.Fatalf("unexpected parse error: %v", err)
-			}
-
-			if tt.importAlias != "" || tt.importPath != "" {
-				importStmt := findImportStmt(result)
-				if importStmt == nil {
-					t.Fatalf("expected import statement, got none")
-				}
-				if importStmt.Alias != tt.importAlias {
-					t.Errorf("expected import alias %q, got %q", tt.importAlias, importStmt.Alias)
-				}
-				if importStmt.Path != tt.importPath {
-					t.Errorf("expected import path %q, got %q", tt.importPath, importStmt.Path)
-				}
-			} else if findImportStmt(result) != nil {
-				t.Errorf("did not expect import statement, but found one")
 			}
 
 			section := findSectionByName(result, tt.sectionName)
@@ -316,12 +291,9 @@ func equalsIgnoreCase(a, b string) bool {
 	return true
 }
 
-func findImportStmt(tree *ast.AST) *ast.ImportStmt {
-	for _, stmt := range tree.Statements {
-		if importStmt, ok := stmt.(*ast.ImportStmt); ok {
-			return importStmt
-		}
-	}
+func findImportStmt(tree *ast.AST) any {
+	// ImportStmt is deprecated and removed from AST
+	_ = tree
 	return nil
 }
 

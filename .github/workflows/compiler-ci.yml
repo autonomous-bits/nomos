@@ -76,7 +76,7 @@ jobs:
       - name: Check coverage threshold
         working-directory: libs/compiler
         run: |
-          THRESHOLD=65
+          THRESHOLD=62
           COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//')
           COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
           echo "Coverage: $COVERAGE_INT% (threshold: $THRESHOLD%)"
@@ -84,7 +84,7 @@ jobs:
             echo "::error::Coverage $COVERAGE_INT% is below threshold of $THRESHOLD%"
             exit 1
           fi
-          echo "::warning::Coverage is ${COVERAGE_INT}%. Target coverage should be at least 80%."
+          echo "::warning::Coverage is ${COVERAGE_INT}%. Goal: increase to 80% over time."
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

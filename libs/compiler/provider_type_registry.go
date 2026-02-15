@@ -108,7 +108,7 @@ func (r *providerTypeRegistry) CreateProvider(ctx context.Context, typeName stri
 	// BREAKING CHANGE (v0.3.0): In-process providers have been removed.
 	// Provide clear migration guidance to users.
 	return nil, fmt.Errorf("provider type %q not found: external providers are required (in-process providers removed in v0.3.0). "+
-		"Run 'nomos init' to install provider binaries. "+
+		"Run 'nomos build' to install provider binaries. "+
 		"See migration guide: https://github.com/autonomous-bits/nomos/blob/main/docs/guides/external-providers-migration.md", typeName)
 }
 

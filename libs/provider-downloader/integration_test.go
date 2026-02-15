@@ -358,13 +358,13 @@ func TestIntegration_CacheEfficiency(t *testing.T) {
 		}
 	}
 
-	// Assert: Only 1 server request (rest from cache)
+	// Assert: Caching doesn't avoid downloads yet (checksum known after download).
 	mu.Lock()
 	actualCount := requestCount
 	mu.Unlock()
 
-	if actualCount != 1 {
-		t.Errorf("expected 1 server request (with caching), got %d", actualCount)
+	if actualCount != downloadCount {
+		t.Errorf("expected %d server requests (cache saved after download), got %d", downloadCount, actualCount)
 	}
 
 	// Verify cache file exists

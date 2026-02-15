@@ -62,7 +62,7 @@ func TestParseInlineReferences_ValidFixture(t *testing.T) {
 		t.Errorf("expected vpc_cidr alias to be 'network', got %q", vpcCIDRRef.Alias)
 	}
 
-	expectedPath := []string{"vpc", "cidr"}
+	expectedPath := []string{"config", "vpc", "cidr"}
 	if len(vpcCIDRRef.Path) != len(expectedPath) {
 		t.Fatalf("expected vpc_cidr path length %d, got %d", len(expectedPath), len(vpcCIDRRef.Path))
 	}
@@ -102,7 +102,7 @@ func TestParseInlineReferences_ScalarValue(t *testing.T) {
 	path: './config'
 
 config:
-	cidr: @network:vpc.cidr
+	cidr: @network:config.vpc.cidr
 `
 	// Act
 	result, err := parser.Parse(newReader(input), "test.csl")
@@ -141,7 +141,7 @@ config:
 		t.Errorf("expected cidr alias to be 'network', got %q", cidrRef.Alias)
 	}
 
-	expectedPath := []string{"vpc", "cidr"}
+	expectedPath := []string{"config", "vpc", "cidr"}
 	if len(cidrRef.Path) != len(expectedPath) {
 		t.Fatalf("expected cidr path length %d, got %d", len(expectedPath), len(cidrRef.Path))
 	}
@@ -163,7 +163,7 @@ func TestParseInlineReferences_MixedWithLiterals(t *testing.T) {
 
 config:
 	literal_value: 'plain-string'
-	ref_value: @base:config.key
+	ref_value: @base:config.config.key
 	another_literal: 'another-plain-string'
 `
 	// Act

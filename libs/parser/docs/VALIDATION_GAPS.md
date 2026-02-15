@@ -36,20 +36,18 @@ section:
 
 ---
 
-### 2. `incomplete_import.csl` - Import Without Path
+### 2. `incomplete_import.csl` - Import No Longer Supported
 
 **File Content:**
 ```
 import:folder
 ```
 
-**Why Valid:**
-- Import syntax: `import:alias` OR `import:alias:path`
-- The path component is **optional** in the grammar
-- Valid use case: Import from default locations or resolved paths
-- Path resolution happens in the **compiler** during import resolution phase
+**Why Invalid Now:**
+- Import statements are no longer supported by the parser
+- The parser rejects `import:` with migration guidance to `@alias:path`
 
-**Validation Level:** Semantic (path resolution is compiler responsibility)
+**Validation Level:** Syntax (parser now rejects imports)
 
 ---
 
@@ -118,14 +116,14 @@ unknown-statement:
 ### ✅ Enforced by Parser:
 
 1. **Keywords followed by colon:**
-   - `source:`, `import:` must have `:`
+   - `source:` must have `:`
    
 2. **Source declaration structure:**
    - Must have non-empty `alias` field
    - Structured as key-value pairs
 
 3. **Import structure:**
-   - Must have alias: `import:alias` or `import:alias:path`
+   - Import statements are rejected (`import:` no longer supported)
 
 4. **String termination:**
    - String literals must be properly closed
@@ -134,7 +132,7 @@ unknown-statement:
    - Keys must be valid identifiers (non-empty, valid start character)
 
 6. **Reference syntax:**
-   - Inline references: `reference:alias:path.components`
+   - Inline references: `@alias:path` (dot/bracket path only, no additional `:`)
    - Top-level `reference:` statements are **rejected** with migration hint
 
 ### ❌ NOT Enforced by Parser (Deferred to Compiler):

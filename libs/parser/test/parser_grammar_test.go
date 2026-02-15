@@ -81,52 +81,40 @@ func TestParseSourceDecl_PreservesSourceSpan(t *testing.T) {
 	}
 }
 
-// TestParseImportStmt_WithPath tests import with alias and path.
+// TestParseImportStmt_WithPath tests that import statement is no longer supported.
 func TestParseImportStmt_WithPath(t *testing.T) {
 	input := "import:folder:filename\n"
 	reader := strings.NewReader(input)
-	result, err := parser.Parse(reader, "test.csl")
+	_, err := parser.Parse(reader, "test.csl")
 
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if len(result.Statements) != 1 {
-		t.Fatalf("expected 1 statement, got %d", len(result.Statements))
+	if err == nil {
+		t.Fatal("expected error for import statement, got nil")
 	}
 
-	stmt, ok := result.Statements[0].(*ast.ImportStmt)
-	if !ok {
-		t.Fatalf("expected *ast.ImportStmt, got %T", result.Statements[0])
+	// Verify error message indicates import is no longer supported
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "import statement no longer supported") {
+		t.Errorf("expected error about import not supported, got: %s", errMsg)
 	}
-
-	if stmt.Alias != "folder" {
-		t.Errorf("expected alias 'folder', got '%s'", stmt.Alias)
-	}
-	if stmt.Path != "filename" {
-		t.Errorf("expected path 'filename', got '%s'", stmt.Path)
+	if !strings.Contains(errMsg, "@alias:path") {
+		t.Errorf("expected migration hint about @alias:path syntax, got: %s", errMsg)
 	}
 }
 
-// TestParseImportStmt_WithoutPath tests import with only alias.
+// TestParseImportStmt_WithoutPath tests that import statement is no longer supported.
 func TestParseImportStmt_WithoutPath(t *testing.T) {
 	input := "import:folder\n"
 	reader := strings.NewReader(input)
-	result, err := parser.Parse(reader, "test.csl")
+	_, err := parser.Parse(reader, "test.csl")
 
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if err == nil {
+		t.Fatal("expected error for import statement, got nil")
 	}
 
-	stmt, ok := result.Statements[0].(*ast.ImportStmt)
-	if !ok {
-		t.Fatalf("expected *ast.ImportStmt, got %T", result.Statements[0])
-	}
-
-	if stmt.Alias != "folder" {
-		t.Errorf("expected alias 'folder', got '%s'", stmt.Alias)
-	}
-	if stmt.Path != "" {
-		t.Errorf("expected empty path, got '%s'", stmt.Path)
+	// Verify error message indicates import is no longer supported
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "import statement no longer supported") {
+		t.Errorf("expected error about import not supported, got: %s", errMsg)
 	}
 }
 
@@ -225,30 +213,28 @@ func TestParse_PathTokenization_ComplexPaths(t *testing.T) {
 }
 
 // TestParse_Aliasing_VariousAliasFormats tests various alias formats.
+// Note: import statements are no longer supported, so this tests error handling
 func TestParse_Aliasing_VariousAliasFormats(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		expectedAlias string
+		name  string
+		input string
 	}{
-		{"simple", "import:simple:file\n", "simple"},
-		{"with dash", "import:my-source:file\n", "my-source"},
-		{"with underscore", "import:my_source:file\n", "my_source"},
-		{"with numbers", "import:source123:file\n", "source123"},
-		{"complex", "import:my-source_v2:file\n", "my-source_v2"},
+		{"simple", "import:simple:file\n"},
+		{"with dash", "import:my-source:file\n"},
+		{"with underscore", "import:my_source:file\n"},
+		{"with numbers", "import:source123:file\n"},
+		{"complex", "import:my-source_v2:file\n"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.input)
-			result, err := parser.Parse(reader, "test.csl")
-			if err != nil {
-				t.Fatalf("expected no error, got %v", err)
+			_, err := parser.Parse(reader, "test.csl")
+			if err == nil {
+				t.Fatal("expected error for import statement, got nil")
 			}
-
-			stmt := result.Statements[0].(*ast.ImportStmt)
-			if stmt.Alias != tt.expectedAlias {
-				t.Errorf("expected alias '%s', got '%s'", tt.expectedAlias, stmt.Alias)
+			if !strings.Contains(err.Error(), "import statement no longer supported") {
+				t.Errorf("expected error about import not supported, got: %v", err)
 			}
 		})
 	}
@@ -283,19 +269,23 @@ config-section:
 			name: "comment at start of file",
 			input: `# Header comment
 # Another comment
-import:folder:file
+config-section:
+	key: value
 `,
 			expectedStmts: 1,
 			validateResult: func(t *testing.T, result *ast.AST) {
-				importStmt := result.Statements[0].(*ast.ImportStmt)
-				if importStmt.Alias != "folder" {
-					t.Errorf("expected alias 'folder', got '%s'", importStmt.Alias)
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
 				}
 			},
 		},
 		{
 			name: "comment between statements",
-			input: `import:folder:file
+			input: `source:
+	alias: 'folder'
+	type:  'folder'
+	path:  './config'
 # Comment between statements
 config-section:
 	key: value
@@ -744,13 +734,14 @@ config-section:
 			input: `# Comment line 1
 # Comment line 2
 # Comment line 3
-import:source:file
+config-section:
+	key: value
 `,
 			expectedStmts: 1,
 			validateAST: func(t *testing.T, result *ast.AST) {
-				importStmt := result.Statements[0].(*ast.ImportStmt)
-				if importStmt.Alias != "source" {
-					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
+				section := result.Statements[0].(*ast.SectionDecl)
+				if section.Name != "config-section" {
+					t.Errorf("expected section name 'config-section', got '%s'", section.Name)
 				}
 			},
 		},
@@ -959,8 +950,6 @@ func TestParse_MultiLineComments_InterleavedCommentsAndConfig(t *testing.T) {
 		{
 			name: "alternating comments and config lines",
 			input: `# Header comment
-import:source:file
-# Comment after import
 config-section:
 	# Comment before first entry
 	setting1: enabled
@@ -972,21 +961,16 @@ another-section:
 	value: data
 `,
 			validateAST: func(t *testing.T, result *ast.AST) {
-				if len(result.Statements) != 3 {
-					t.Errorf("expected 3 statements, got %d", len(result.Statements))
-				}
-				// Verify import statement
-				importStmt := result.Statements[0].(*ast.ImportStmt)
-				if importStmt.Alias != "source" {
-					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
+				if len(result.Statements) != 2 {
+					t.Errorf("expected 2 statements, got %d", len(result.Statements))
 				}
 				// Verify first section
-				section1 := result.Statements[1].(*ast.SectionDecl)
+				section1 := result.Statements[0].(*ast.SectionDecl)
 				if section1.Name != "config-section" {
 					t.Errorf("expected section name 'config-section', got '%s'", section1.Name)
 				}
 				// Verify second section
-				section2 := result.Statements[2].(*ast.SectionDecl)
+				section2 := result.Statements[1].(*ast.SectionDecl)
 				if section2.Name != "another-section" {
 					t.Errorf("expected section name 'another-section', got '%s'", section2.Name)
 				}
@@ -1105,14 +1089,12 @@ config-section:
 			input: `#first comment
 #second comment
 #third comment
-import:source:file
+config-section:
+	key: value
 `,
 			expectedStmts: 1,
 			validateAST: func(t *testing.T, result *ast.AST) {
-				importStmt := result.Statements[0].(*ast.ImportStmt)
-				if importStmt.Alias != "source" {
-					t.Errorf("expected alias 'source', got '%s'", importStmt.Alias)
-				}
+				// Section validation is handled by statement count assertion
 			},
 		},
 		{
@@ -1504,7 +1486,7 @@ func TestParse_EdgeCase_CommentAtEOFWithoutNewline(t *testing.T) {
 		},
 		{
 			name:  "config then comment at EOF",
-			input: "import:source:file\n# trailing comment",
+			input: "config-section:\n\tkey: value\n# trailing comment",
 			validateAST: func(t *testing.T, result *ast.AST) {
 				if len(result.Statements) != 1 {
 					t.Errorf("expected 1 statement, got %d", len(result.Statements))
@@ -1987,7 +1969,7 @@ func TestParseListReferenceWithIndex(t *testing.T) {
 	section := requireSection(t, result, "network")
 	ref := requireReferenceEntry(t, section, "primary_ip")
 
-	assertReferencePath(t, ref, []string{"IPs[0]"})
+	assertReferencePath(t, ref, []string{"config", "IPs[0]"})
 }
 
 // TestParseListReferenceMultiIndex tests parsing list references with multiple indexes.
@@ -2009,12 +1991,12 @@ func TestParseListReferenceMultiIndex(t *testing.T) {
 		{
 			name:     "first element uses two indexes",
 			key:      "first",
-			wantPath: []string{"matrix[0][1]"},
+			wantPath: []string{"config", "matrix[0][1]"},
 		},
 		{
 			name:     "second element uses two indexes",
 			key:      "second",
-			wantPath: []string{"matrix[1][0]"},
+			wantPath: []string{"config", "matrix[1][0]"},
 		},
 	}
 
@@ -2038,7 +2020,7 @@ func TestParseWholeListReference(t *testing.T) {
 	section := requireSection(t, result, "refs")
 	ref := requireReferenceEntry(t, section, "all_servers")
 
-	assertReferencePath(t, ref, []string{"servers"})
+	assertReferencePath(t, ref, []string{"config", "servers"})
 }
 
 func requireSection(t *testing.T, tree *ast.AST, name string) *ast.SectionDecl {

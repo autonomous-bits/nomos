@@ -1,0 +1,2 @@
+# Test rejection of extra ':' in reference paths
+host: @configs:prod:database.name

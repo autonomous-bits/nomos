@@ -1,181 +1,162 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 18,
+    "filename": "../testdata/fixtures/all_grammar.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
       "alias": "complete-test",
-      "type": "test",
-      "version": "",
       "config": {
         "path": {
-          "value": "./test",
           "source_span": {
-            "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 4,
-            "start_col": 9,
+            "end_col": 14,
             "end_line": 4,
-            "end_col": 14
-          }
+            "filename": "../testdata/fixtures/all_grammar.csl",
+            "start_col": 9,
+            "start_line": 4
+          },
+          "value": "./test"
         }
       },
       "source_span": {
-        "filename": "../testdata/fixtures/all_grammar.csl",
-        "start_line": 1,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 5,
-        "end_col": 1
-      }
-    },
-    {
-      "alias": "module1",
-      "path": "./module1.csl",
-      "source_span": {
         "filename": "../testdata/fixtures/all_grammar.csl",
-        "start_line": 6,
         "start_col": 1,
-        "end_line": 7,
-        "end_col": 1
-      }
+        "start_line": 1
+      },
+      "type": "test",
+      "version": ""
     },
     {
-      "alias": "module2",
-      "source_span": {
-        "filename": "../testdata/fixtures/all_grammar.csl",
-        "start_line": 7,
-        "start_col": 1,
-        "end_line": 8,
-        "end_col": 1
-      }
-    },
-    {
-      "name": "section1",
       "entries": {
         "key1": {
-          "value": "value1",
           "source_span": {
+            "end_col": 13,
+            "end_line": 7,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 10,
             "start_col": 8,
-            "end_line": 10,
-            "end_col": 13
-          }
+            "start_line": 7
+          },
+          "value": "value1"
         },
         "key2": {
-          "value": "value2",
           "source_span": {
+            "end_col": 13,
+            "end_line": 8,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 11,
             "start_col": 8,
-            "end_line": 11,
-            "end_col": 13
-          }
+            "start_line": 8
+          },
+          "value": "value2"
         },
         "ref1": {
           "alias": "module1",
           "path": [
             "config",
+            "config",
             "value"
           ],
           "source_span": {
+            "end_col": 35,
+            "end_line": 9,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 12,
             "start_col": 8,
-            "end_line": 12,
-            "end_col": 28
+            "start_line": 9
           }
         },
         "ref2": {
           "alias": "module2",
           "path": [
+            "config",
             "data",
             "key",
             "nested"
           ],
           "source_span": {
+            "end_col": 38,
+            "end_line": 10,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 13,
             "start_col": 8,
-            "end_line": 13,
-            "end_col": 31
+            "start_line": 10
           }
         }
       },
+      "name": "section1",
       "source_span": {
+        "end_col": 1,
+        "end_line": 11,
         "filename": "../testdata/fixtures/all_grammar.csl",
-        "start_line": 9,
         "start_col": 1,
-        "end_line": 14,
-        "end_col": 1
+        "start_line": 6
       }
     },
     {
-      "name": "section2",
       "entries": {
         "nested": {
           "entries": {
             "another": {
-              "value": "value",
               "source_span": {
+                "end_col": 16,
+                "end_line": 16,
                 "filename": "../testdata/fixtures/all_grammar.csl",
-                "start_line": 19,
                 "start_col": 12,
-                "end_line": 19,
-                "end_col": 16
-              }
+                "start_line": 16
+              },
+              "value": "value"
             },
             "level1": {
               "entries": {
                 "level2": {
-                  "value": "deep-value",
                   "source_span": {
+                    "end_col": 21,
+                    "end_line": 15,
                     "filename": "../testdata/fixtures/all_grammar.csl",
-                    "start_line": 18,
                     "start_col": 12,
-                    "end_line": 18,
-                    "end_col": 21
-                  }
+                    "start_line": 15
+                  },
+                  "value": "deep-value"
                 }
               },
               "source_span": {
+                "end_col": 1,
+                "end_line": 16,
                 "filename": "../testdata/fixtures/all_grammar.csl",
-                "start_line": 17,
                 "start_col": 3,
-                "end_line": 19,
-                "end_col": 1
+                "start_line": 14
               }
             }
           },
           "source_span": {
+            "end_col": 1,
+            "end_line": 17,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 16,
             "start_col": 2,
-            "end_line": 20,
-            "end_col": 1
+            "start_line": 13
           }
         },
         "simple": {
-          "value": "text",
           "source_span": {
+            "end_col": 13,
+            "end_line": 17,
             "filename": "../testdata/fixtures/all_grammar.csl",
-            "start_line": 20,
             "start_col": 10,
-            "end_line": 20,
-            "end_col": 13
-          }
+            "start_line": 17
+          },
+          "value": "text"
         }
       },
+      "name": "section2",
       "source_span": {
+        "end_col": 1,
+        "end_line": 18,
         "filename": "../testdata/fixtures/all_grammar.csl",
-        "start_line": 15,
         "start_col": 1,
-        "end_line": 21,
-        "end_col": 1
+        "start_line": 12
       }
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/all_grammar.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 21,
-    "end_col": 1
-  }
+  ]
 }

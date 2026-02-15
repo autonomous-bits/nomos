@@ -64,6 +64,7 @@
         "security_group": {
           "alias": "security",
           "path": [
+            "config",
             "rules",
             "ingress",
             "http"
@@ -73,12 +74,13 @@
             "start_line": 15,
             "start_col": 18,
             "end_line": 15,
-            "end_col": 45
+            "end_col": 52
           }
         },
         "subnet": {
           "alias": "network",
           "path": [
+            "config",
             "subnets",
             "public",
             "az1"
@@ -88,12 +90,13 @@
             "start_line": 14,
             "start_col": 10,
             "end_line": 14,
-            "end_col": 36
+            "end_col": 43
           }
         },
         "vpc_cidr": {
           "alias": "network",
           "path": [
+            "config",
             "vpc",
             "cidr"
           ],
@@ -102,7 +105,7 @@
             "start_line": 12,
             "start_col": 12,
             "end_line": 12,
-            "end_col": 28
+            "end_col": 35
           }
         }
       },
@@ -120,6 +123,7 @@
         "database_host": {
           "alias": "network",
           "path": [
+            "config",
             "rds",
             "endpoint"
           ],
@@ -128,7 +132,7 @@
             "start_line": 20,
             "start_col": 17,
             "end_line": 20,
-            "end_col": 37
+            "end_col": 44
           }
         },
         "name": {

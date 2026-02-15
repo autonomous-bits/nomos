@@ -25,26 +25,15 @@
       }
     },
     {
-      "alias": "folder",
-      "path": "filename",
-      "source_span": {
-        "filename": "../testdata/fixtures/comments_basic.csl",
-        "start_line": 11,
-        "start_col": 1,
-        "end_line": 12,
-        "end_col": 1
-      }
-    },
-    {
       "name": "config-section",
       "entries": {
         "key1": {
           "value": "value1",
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
-            "start_line": 15,
+            "start_line": 12,
             "start_col": 8,
-            "end_line": 15,
+            "end_line": 12,
             "end_col": 13
           }
         },
@@ -52,18 +41,18 @@
           "value": "value2",
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
-            "start_line": 16,
+            "start_line": 13,
             "start_col": 8,
-            "end_line": 16,
+            "end_line": 13,
             "end_col": 13
           }
         }
       },
       "source_span": {
         "filename": "../testdata/fixtures/comments_basic.csl",
-        "start_line": 14,
+        "start_line": 11,
         "start_col": 1,
-        "end_line": 17,
+        "end_line": 14,
         "end_col": 1
       }
     },
@@ -74,18 +63,18 @@
           "value": "enabled",
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
-            "start_line": 20,
+            "start_line": 17,
             "start_col": 11,
-            "end_line": 20,
+            "end_line": 17,
             "end_col": 17
           }
         }
       },
       "source_span": {
         "filename": "../testdata/fixtures/comments_basic.csl",
-        "start_line": 19,
+        "start_line": 16,
         "start_col": 1,
-        "end_line": 21,
+        "end_line": 18,
         "end_col": 1
       }
     }
@@ -94,7 +83,7 @@
     "filename": "../testdata/fixtures/comments_basic.csl",
     "start_line": 1,
     "start_col": 1,
-    "end_line": 21,
+    "end_line": 18,
     "end_col": 1
   }
 }

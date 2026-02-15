@@ -1,0 +1,494 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build CLI",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"build-cli"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Test Integration",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Integration",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Integration",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Integration",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Integration Module",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration-module",
+				"MODULE=apps/command-line"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Go Test Integration Quiet",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./..."
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Go Test CLI Integration Quiet",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./apps/command-line/test"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Go Test CLI Integration",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./apps/command-line/test"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Go Test CLI Integration",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./apps/command-line/test"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Go Test CLI Integration",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./apps/command-line/test"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Integration",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Build Test Binaries",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"build-test"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden complex_config",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/complex_config.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden complex_config",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/complex_config.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden comments_multiline",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/comments_multiline.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Regenerate comments_multiline golden",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/comments_multiline.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden at_in_strings",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/at_in_strings.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden at_in_strings",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/at_in_strings.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Regenerate all_grammar golden",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/all_grammar.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Golden all_grammar",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test",
+				"-run",
+				"TestGolden_AllFixtures/all_grammar.csl"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Parser Tests (Integration Tag)",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"test",
+				"-tags=integration",
+				"./libs/parser/test"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Integration Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-integration"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Lint",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"lint"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Race Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-race"
+			],
+			"isBackground": false,
+			"group": "test"
+		}
+	]
+}

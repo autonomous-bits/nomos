@@ -10,7 +10,7 @@ The Nomos provider downloader library enables consistent, testable downloads of 
 - **Download Management**: Streaming downloads with retries and SHA256 verification
 - **Installation**: Atomic install into destination with proper permissions
 
-This library is consumed by `nomos init` and other tools that manage provider lifecycles.
+This library is consumed by `nomos build` and other tools that manage provider lifecycles.
 
 ## Installation
 

@@ -25,26 +25,15 @@
       }
     },
     {
-      "alias": "folder",
-      "path": "filename",
-      "source_span": {
-        "filename": "../testdata/fixtures/simple.csl",
-        "start_line": 6,
-        "start_col": 1,
-        "end_line": 7,
-        "end_col": 1
-      }
-    },
-    {
       "name": "config-section",
       "entries": {
         "key1": {
           "value": "value1",
           "source_span": {
             "filename": "../testdata/fixtures/simple.csl",
-            "start_line": 9,
+            "start_line": 7,
             "start_col": 8,
-            "end_line": 9,
+            "end_line": 7,
             "end_col": 13
           }
         },
@@ -52,9 +41,9 @@
           "value": "value2",
           "source_span": {
             "filename": "../testdata/fixtures/simple.csl",
-            "start_line": 10,
+            "start_line": 8,
             "start_col": 8,
-            "end_line": 10,
+            "end_line": 8,
             "end_col": 13
           }
         },
@@ -62,22 +51,23 @@
           "alias": "folder",
           "path": [
             "config",
+            "config",
             "key"
           ],
           "source_span": {
             "filename": "../testdata/fixtures/simple.csl",
-            "start_line": 11,
+            "start_line": 9,
             "start_col": 15,
-            "end_line": 11,
-            "end_col": 32
+            "end_line": 9,
+            "end_col": 39
           }
         }
       },
       "source_span": {
         "filename": "../testdata/fixtures/simple.csl",
-        "start_line": 8,
+        "start_line": 6,
         "start_col": 1,
-        "end_line": 12,
+        "end_line": 10,
         "end_col": 1
       }
     }
@@ -86,7 +76,7 @@
     "filename": "../testdata/fixtures/simple.csl",
     "start_line": 1,
     "start_col": 1,
-    "end_line": 12,
+    "end_line": 10,
     "end_col": 1
   }
 }

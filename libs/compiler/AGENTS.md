@@ -138,13 +138,12 @@ registry.Register("file", ProviderTypeInfo{
 
 ### Reference Resolution
 
-**Nomos Reference Syntax:** `reference:{alias}:{path}`
+**Nomos Reference Syntax:** `@alias:path`
 
 **Path Navigation:**
 ```
-reference:configs:storage.config.storage.type
-→ Fetch from 'configs' provider: ["storage"]
-→ Navigate: ["config", "storage", "type"]
+@configs:storage.config.storage.type
+→ Provider path segments: ["storage", "config", "storage", "type"]
 ```
 
 **Caching Behavior:**

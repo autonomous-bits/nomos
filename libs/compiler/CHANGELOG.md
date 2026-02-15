@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING CHANGE: Path-based reference syntax** (Feature 006-expand-at-references)
+  - References now treat everything after the first `:` as a dot-only path (no additional `:`): `@alias:path`
+  - Root references use `@alias:.` to include all properties at the provider root
+  - Map references: `@alias:path.to.map` includes specific nested map
+  - Property references: `@alias:path.to.property` resolves single value
+  - Deep merge semantics: Properties after reference override using deep merge (preserve siblings)
+  - Circular reference detection: Tracks resolution chain and fails with full cycle path
+  - File provider: Filename path segment does not require `.csl` extension (auto-appended)
+  - Migration: Update all references to use `@alias:path`; see migration guide
+  - See [Migration Guide](../../docs/guides/expand-at-references-migration.md)
+
+### Added
+- **Reference resolution modes** (Feature 006-expand-at-references)
+  - `ReferenceMode` enum: PropertyMode, MapMode, RootMode
+  - `ResolvedReference` struct with mode-specific Value or Entries
+  - `ResolutionContext` for circular reference detection with Push/Pop/formatCycle
+  - `DetermineReferenceMode` function to classify references by path structure
+  - `ResolveReference` function with context-aware resolution and error wrapping
+- **Deep merge implementation** (Feature 006-expand-at-references)
+  - `DeepMerge` function with recursive map merging
+  - Array replacement (no deep array merge)
+  - Scalar last-wins override
+  - Sibling property preservation during nested overrides
+- **Comprehensive error types** (Feature 006-expand-at-references)
+  - `ErrAliasNotFound`: Source alias not configured
+  - `ErrPathNotFound`: Provider cannot resolve path
+  - `ErrPropertyPathInvalid`: Property path doesn't exist (includes available keys)
+  - `ErrCircularReference`: Cycle detected in resolution chain
+  - All errors include source span for precise error reporting
+
 ### Fixed
 - [Compiler] Converter properly handles `SectionDecl.Value` field for inline scalars, producing flat output structure compatible with tfvars format
 
@@ -85,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2025-12-26
 
 ### Security
-- **CRITICAL: Mandatory checksum validation for provider binaries** - Provider binaries are now required to have checksums in the lockfile and are verified before execution. This prevents execution of tampered or corrupted binaries. Lockfiles without checksums will fail with a clear error message directing users to run `nomos init`.
+- **CRITICAL: Mandatory checksum validation for provider binaries** - Provider binaries are now required to have checksums in the lockfile and are verified before execution. This prevents execution of tampered or corrupted binaries. Lockfiles without checksums will fail with a clear error message directing users to run `nomos build`.
 
 ## [0.1.0] - 2025-11-02
 
@@ -94,7 +125,7 @@ Initial release of the Nomos compiler library.
 ### BREAKING CHANGES
 - **In-process providers removed** (#51): All providers must now be external executables via gRPC
   - Removed `libs/compiler/providers/file` package
-  - Users must run `nomos init` to install provider binaries
+  - Users must run `nomos build` to install provider binaries
   - File provider distributed separately at `github.com/autonomous-bits/nomos-provider-file`
   - See migration guide: `docs/guides/external-providers-migration.md`
 

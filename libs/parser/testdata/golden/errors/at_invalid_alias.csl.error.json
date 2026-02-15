@@ -1,4 +1,4 @@
 {
-  "error": "../testdata/errors/at_invalid_alias.csl:2:8: invalid syntax: alias name must start with letter or underscore",
+  "error": "../testdata/errors/at_invalid_alias.csl:2:8: invalid syntax: alias name must start with letter or underscore and contain only letters, numbers, underscores, or hyphens",
   "filename": "../testdata/errors/at_invalid_alias.csl"
 }

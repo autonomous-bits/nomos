@@ -14,25 +14,6 @@ Jump to: [Language](#scripting-language) · [Providers](#source-provider-types) 
 
 ---
 
-## 🚀 What's New in v2.0.0
-
-**Breaking Change**: The `nomos init` command has been removed. Provider installation now happens automatically during `nomos build`, simplifying the workflow from two commands to one.
-
-**Before (v1.x)**:
-```bash
-nomos init config.csl        # Step 1: Install providers
-nomos build config.csl       # Step 2: Build configuration
-```
-
-**After (v2.0.0)**:
-```bash
-nomos build config.csl       # Providers installed automatically
-```
-
-**📖 See the [Migration Guide](docs/guides/migration-v2.md)** for detailed migration instructions, CI/CD updates, and troubleshooting.
-
----
-
 ## Scripting Language
 
 The scripting language supports the following keywords:
@@ -40,8 +21,7 @@ The scripting language supports the following keywords:
 | Keyword | Description |
 | :-| :- |
 | `source` | A configurable source provider, at a minimum you should be able to provide an alias and the type of provider. |
-| `import` | Using a source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
-| `@` | Using a source, load a specific value from the configuration. Syntax is `@{alias}:{path.to.property}` where the path uses dot notation to navigate into nested structures. For file providers, the format is `@{alias}:{filename}.{nested.path}` |
+| `@` | Using a source, load a specific value from the configuration. Syntax is `@alias:path` where the path uses dot notation only (no additional `:`). For file providers, the first segment is the filename without `.csl`. |
 
 **Comment Support**: Document your configurations with YAML-style `#` comments:
 ```
@@ -55,11 +35,11 @@ Comments are single-line, context-aware, and preserved within quoted strings. Se
 
 ### Reference Syntax Details
 
-References allow you to access specific values from imported sources using dot-separated paths:
+References allow you to access specific values from providers using dot-only paths:
 
 **For file providers:**
 ```
-@{alias}:{filename}.{path.to.value}
+@alias:filename.path.to.value
 ```
 
 **Example:**
@@ -103,7 +83,8 @@ source:
   version: '0.1.1'
   directory: './shared-configs'
 
-import:configs:base
+config:
+  @configs:base
 
 app:
   name: 'my-app'
@@ -128,7 +109,7 @@ The Nomos CLI compiles scripts into a snapshot artifact.
 - Command: `build`
 - Flags:
   - `--path, -p` Path to a `.csl` file or folder
-  - `--format, -f` Output format: `json`, `yaml`, or `hcl`
+  - `--format, -f` Output format: `json`, `yaml`, or `tfvars`
 
 Quick start (local):
 

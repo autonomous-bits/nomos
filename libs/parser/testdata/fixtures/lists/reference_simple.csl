@@ -3,4 +3,4 @@ IPs:
   - 10.0.0.2
 
 network:
-  primary_ip: @base:IPs[0]
+  primary_ip: @base:config.IPs[0]

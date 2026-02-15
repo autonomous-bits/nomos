@@ -56,6 +56,7 @@
             "backup1": {
               "alias": "network",
               "path": [
+                "config",
                 "backup1",
                 "host"
               ],
@@ -64,12 +65,13 @@
                 "start_line": 14,
                 "start_col": 12,
                 "end_line": 14,
-                "end_col": 32
+                "end_col": 39
               }
             },
             "backup2": {
               "alias": "network",
               "path": [
+                "config",
                 "backup2",
                 "host"
               ],
@@ -78,7 +80,7 @@
                 "start_line": 16,
                 "start_col": 12,
                 "end_line": 16,
-                "end_col": 32
+                "end_col": 39
               }
             },
             "static_backup": {
@@ -103,6 +105,7 @@
         "primary_host": {
           "alias": "network",
           "path": [
+            "config",
             "vpc",
             "cidr"
           ],
@@ -111,7 +114,7 @@
             "start_line": 12,
             "start_col": 16,
             "end_line": 12,
-            "end_col": 32
+            "end_col": 39
           }
         },
         "settings": {
@@ -119,6 +122,7 @@
             "endpoint": {
               "alias": "app",
               "path": [
+                "config",
                 "api",
                 "endpoint"
               ],
@@ -127,7 +131,7 @@
                 "start_line": 20,
                 "start_col": 13,
                 "end_line": 20,
-                "end_col": 29
+                "end_col": 36
               }
             },
             "nested": {
@@ -135,6 +139,7 @@
                 "deep_ref": {
                   "alias": "network",
                   "path": [
+                    "config",
                     "deep",
                     "nested",
                     "value"
@@ -144,7 +149,7 @@
                     "start_line": 22,
                     "start_col": 14,
                     "end_line": 22,
-                    "end_col": 39
+                    "end_col": 46
                   }
                 },
                 "literal": {
@@ -200,6 +205,7 @@
             "app_tag": {
               "alias": "app",
               "path": [
+                "config",
                 "tags",
                 "environment"
               ],
@@ -208,7 +214,7 @@
                 "start_line": 26,
                 "start_col": 12,
                 "end_line": 26,
-                "end_col": 32
+                "end_col": 39
               }
             },
             "env": {

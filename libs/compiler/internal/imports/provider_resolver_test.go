@@ -7,19 +7,16 @@ import (
 )
 
 func TestExtractImports_FromAST(t *testing.T) {
-	// Create a simple AST with source, import, and section
+	// Create a simple AST with source and section
+	// Note: Import statements have been removed from the language
 	tree := &ast.AST{
 		Statements: []ast.Stmt{
 			&ast.SourceDecl{
 				Alias: "files",
 				Type:  "file",
 				Config: map[string]ast.Expr{
-					"file": &ast.StringLiteral{Value: "base.csl"},
+					"directory": &ast.StringLiteral{Value: "./configs"},
 				},
-			},
-			&ast.ImportStmt{
-				Alias: "files",
-				Path:  "",
 			},
 			&ast.SectionDecl{
 				Name: "database",
@@ -47,20 +44,6 @@ func TestExtractImports_FromAST(t *testing.T) {
 		}
 		if src.Type != "file" {
 			t.Errorf("expected type 'file', got %q", src.Type)
-		}
-	}
-
-	// Verify imports
-	if len(extracted.Imports) != 1 {
-		t.Errorf("expected 1 import, got %d", len(extracted.Imports))
-	}
-	if len(extracted.Imports) > 0 {
-		imp := extracted.Imports[0]
-		if imp.Alias != "files" {
-			t.Errorf("expected import alias 'files', got %q", imp.Alias)
-		}
-		if len(imp.Path) != 0 {
-			t.Errorf("expected empty path (entire file), got %v", imp.Path)
 		}
 	}
 

@@ -39,8 +39,8 @@ Compilation errors fall into these categories:
 # Check for providers lockfile
 ls -la .nomos/providers.lock.json
 
-# If missing, run init:
-nomos init config.csl
+# If missing, run build to install providers:
+nomos build -p config.csl
 ```
 
 **Expected lockfile structure:**
@@ -90,7 +90,7 @@ chmod +x .nomos/providers/file/0.2.0/darwin-arm64/provider
 # Expected output: PORT=<number>
 
 # If it crashes or prints errors, provider is broken
-# Solution: Re-download with nomos init --force
+# Solution: Re-download with nomos build --force-providers
 ```
 
 ### Step 3: Debug Provider Connection Failures
@@ -102,7 +102,7 @@ chmod +x .nomos/providers/file/0.2.0/darwin-arm64/provider
 ```bash
 # Enable verbose logging if available
 # Run build with provider debugging
-nomos build config.csl 2>&1 | tee build.log
+nomos build -p config.csl 2>&1 | tee build.log
 
 # Look for:
 # - "Starting provider: <alias>"
@@ -128,7 +128,7 @@ source:
 
 ### Step 4: Debug Reference Resolution Errors
 
-**Symptom:** `unresolved reference: reference:alias:path`
+**Symptom:** `unresolved reference: @alias:path`
 
 #### Verify Source Declaration
 
@@ -141,7 +141,7 @@ source:
   version: '0.2.0'
 
 app:
-  name: reference:configs:app.name  # Alias must match
+  name: @configs:app.name  # Alias must match
 ```
 
 #### Verify Reference Path Exists
@@ -150,7 +150,7 @@ Test provider Fetch manually if possible:
 
 ```bash
 # For file provider, verify file exists
-ls -la ./data/app.name  # or whatever the file path should be
+ls -la ./data/app.csl  # or whatever the file path should be
 ```
 
 #### Check Provider Init Configuration
@@ -179,24 +179,26 @@ For debugging, continue compilation without provider:
 nomos build --allow-missing-provider config.csl
 ```
 
-### Step 5: Debug Import Errors
+### Step 5: Debug Legacy Import Errors
 
-**Symptom:** `cycle detected` or `failed to resolve import`
-
-#### Check Import Statements
-
-Verify import syntax:
+**Symptom:** `import statement no longer supported; use @alias:path syntax instead`
+Imports are no longer supported. Replace them with inline references:
 
 ```nomos
-import:base:./base.csl  # Correct format: import:<alias>:<path>
+# Old (remove)
+import:base:./base.csl
+
+# New (include base config via map reference)
+config:
+  @base:base
 ```
 
-#### Detect Import Cycles
+#### Detect Reference Cycles
 
 ```
-A imports B
-B imports C
-C imports A  ← Cycle!
+A references B
+B references C
+C references A  ← Cycle!
 ```
 
 **Solution:** Refactor to break cycle
@@ -204,14 +206,14 @@ C imports A  ← Cycle!
 - Remove circular dependencies
 - Use references instead of imports where possible
 
-#### Verify Import Paths
+#### Verify Provider Paths
 
 ```bash
-# Check that imported files exist
+# Check that referenced files exist (file provider)
 ls -la ./base.csl
 ls -la ./shared/common.csl
 
-# Verify paths are relative to importing file or absolute
+# Verify paths are relative to provider directory or absolute
 ```
 
 ### Step 6: Debug Syntax Errors
@@ -242,11 +244,11 @@ config.csl:15:3: SyntaxError: expected ':' after key
 
 2. **Invalid reference syntax:**
    ```nomos
-   # ❌ Wrong
-   app: reference:configs.app.name
+  # ❌ Wrong
+  app: @configs.app.name
    
-   # ✅ Correct
-   app: reference:configs:app.name
+  # ✅ Correct
+  app: @configs:app.name
    ```
 
 3. **Empty source alias:**
@@ -268,8 +270,8 @@ config.csl:15:3: SyntaxError: expected ':' after key
 
 ```bash
 # Build twice and compare
-nomos build config.csl -o output1.json
-nomos build config.csl -o output2.json
+nomos build -p config.csl -o output1.json
+nomos build -p config.csl -o output2.json
 diff output1.json output2.json
 
 # Should be identical (exit code 0)
@@ -308,20 +310,22 @@ find . -name "*.csl" -type f | sort
 
 Nomos deep-merge rules:
 - **Maps:** Recursive merge, combining keys
-- **Scalars:** Last-wins (newer value replaces older)
-- **Arrays:** Last-wins (entire array replaced)
-
-```nomos
 # base.csl
 database:
   host: localhost
   port: 5432
 
 # override.csl
-import:base:./base.csl
-database:
-  host: prod-server  # Overrides localhost
-  # port: 5432 preserved from base
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  directory: '.'
+
+config:
+  @base:base
+  database:
+    host: prod-server  # Overrides localhost
+    # port: 5432 preserved from base
 ```
 
 #### Trace Value Provenance
@@ -348,14 +352,8 @@ cat .nomos/providers.lock.json | grep -A 5 '"os"'
 
 #### Cross-Platform Installation
 
-Install providers for different platforms:
-
-```bash
-# Install for Linux on macOS development machine
-nomos init --os linux --arch amd64 config.csl
-
-# Then push .nomos/ directory to Linux CI
-```
+Cross-platform installation is not supported by the CLI today.
+Install providers on the target platform and commit only the lockfile.
 
 ## Common Error Messages and Solutions
 
@@ -365,7 +363,7 @@ nomos init --os linux --arch amd64 config.csl
 
 **Solution:**
 ```bash
-nomos init --force config.csl  # Re-download
+nomos build -p config.csl --force-providers  # Re-download
 ```
 
 ### "connection refused"
@@ -403,7 +401,7 @@ nomos init --force config.csl  # Re-download
 **Solution:**
 ```bash
 # Re-download provider
-nomos init --force config.csl
+nomos build -p config.csl --force-providers
 
 # Or manually verify checksum
 shasum -a 256 .nomos/providers/.../provider
@@ -417,8 +415,7 @@ shasum -a 256 .nomos/providers/.../provider
 If Nomos supports verbose mode:
 
 ```bash
-nomos build -v config.csl       # Verbose output
-nomos build -vv config.csl      # Very verbose (debug level)
+nomos build -p config.csl -v    # Verbose output
 ```
 
 ### Inspect Provider gRPC Communication
@@ -437,7 +434,7 @@ grpcurl -plaintext localhost:<port> nomos.provider.v1.ProviderService/Info
 ### Test Components Individually
 
 1. **Parse only:** Verify .csl syntax
-2. **Init only:** Test provider installation
+2. **Provider management:** Use `nomos build -p <path> --dry-run` to preview installs
 3. **Build without providers:** Use `--allow-missing-provider`
 4. **Build single file:** Isolate problematic config
 
@@ -453,7 +450,7 @@ grpcurl -plaintext localhost:<port> nomos.provider.v1.ProviderService/Info
 ## Reference Documentation
 
 For more details, see:
-- [Nomos CLI Documentation](../../apps/command-line/README.md)
-- [Compiler Library Documentation](../../libs/compiler/README.md)
-- [Provider Authoring Guide](../../docs/guides/provider-authoring-guide.md)
-- [External Providers Architecture](../../docs/architecture/nomos-external-providers-feature-breakdown.md)
+- [Nomos CLI Documentation](../../../apps/command-line/README.md)
+- [Compiler Library Documentation](../../../libs/compiler/README.md)
+- [Provider Development Standards](../../../docs/guides/provider-development-standards.md)
+- [External Providers Architecture](../../../docs/architecture/nomos-external-providers-feature-breakdown.md)

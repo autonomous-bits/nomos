@@ -128,8 +128,6 @@ func TestParseError_Integration_RealScenario(t *testing.T) {
 	type: 'folder'
 	path: './configs'
 
-import:config:base
-
 bad-section
 	key: 'value'
 `

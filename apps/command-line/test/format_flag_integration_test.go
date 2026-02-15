@@ -399,11 +399,11 @@ func TestFormatFlag_DefaultFormat(t *testing.T) {
 		t.Error("default output should be JSON format (start with '{')")
 	}
 
-	// Verify expected structure
-	if parsed["data"] == nil {
-		t.Error("JSON output missing 'data' section")
+	// Verify expected structure (metadata is opt-in)
+	if parsed["config"] == nil {
+		t.Error("JSON output missing expected top-level data")
 	}
-	if parsed["metadata"] == nil {
-		t.Error("JSON output missing 'metadata' section")
+	if parsed["metadata"] != nil {
+		t.Error("JSON output should not include 'metadata' by default")
 	}
 }

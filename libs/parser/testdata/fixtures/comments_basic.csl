@@ -7,9 +7,6 @@ source:
 	type:  'folder'
 	path:  '../config'
 
-# Import configuration from folder
-import:folder:filename
-
 # Configuration section with key-value pairs
 config-section:
 	key1: value1

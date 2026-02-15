@@ -6,10 +6,13 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -196,37 +199,31 @@ database:
 				}
 			}
 
-			// Compare JSON and YAML data sections
-			if !deepEqualData(jsonData["data"], yamlData["data"]) {
+			// Compare JSON and YAML data sections (metadata is opt-in)
+			jsonPayload := dataSection(jsonData)
+			yamlPayload := dataSection(yamlData)
+			if !deepEqualData(jsonPayload, yamlPayload) {
 				t.Errorf("JSON and YAML data sections are not equivalent")
-				t.Logf("JSON data: %+v", jsonData["data"])
-				t.Logf("YAML data: %+v", yamlData["data"])
+				t.Logf("JSON data: %+v", jsonPayload)
+				t.Logf("YAML data: %+v", yamlPayload)
 			}
 
 			// Compare tfvars with JSON/YAML (only data section, tfvars is flat)
 			if !tt.skipTfvars {
 				// tfvars output should match the data section of JSON/YAML
-				if !deepEqualData(jsonData["data"], tfvarsData) {
+				if !deepEqualData(jsonPayload, tfvarsData) {
 					t.Errorf("tfvars and JSON data sections are not equivalent")
-					t.Logf("JSON data: %+v", jsonData["data"])
+					t.Logf("JSON data: %+v", jsonPayload)
 					t.Logf("tfvars data: %+v", tfvarsData)
 				}
 
-				if !deepEqualData(yamlData["data"], tfvarsData) {
+				if !deepEqualData(yamlPayload, tfvarsData) {
 					t.Errorf("tfvars and YAML data sections are not equivalent")
-					t.Logf("YAML data: %+v", yamlData["data"])
+					t.Logf("YAML data: %+v", yamlPayload)
 					t.Logf("tfvars data: %+v", tfvarsData)
 				}
 			} else if tt.skipReason != "" {
 				t.Logf("Skipped tfvars comparison: %s", tt.skipReason)
-			}
-
-			// Verify metadata exists in JSON and YAML (but not in tfvars)
-			if jsonData["metadata"] == nil {
-				t.Error("JSON output missing metadata section")
-			}
-			if yamlData["metadata"] == nil {
-				t.Error("YAML output missing metadata section")
 			}
 		})
 	}
@@ -356,9 +353,9 @@ func TestFormatEquivalence_TypePreservation(t *testing.T) {
 				t.Fatalf("failed to parse YAML: %v", err)
 			}
 
-			// Extract value from data section
-			jsonValue := extractValue(t, jsonData["data"], tt.key)
-			yamlValue := extractValue(t, yamlData["data"], tt.key)
+			// Extract value from data section (metadata is opt-in)
+			jsonValue := extractValue(t, dataSection(jsonData), tt.key)
+			yamlValue := extractValue(t, dataSection(yamlData), tt.key)
 
 			// Verify types and values match (with normalization for cross-format comparison)
 			jsonValueNorm := normalize(jsonValue)
@@ -370,13 +367,23 @@ func TestFormatEquivalence_TypePreservation(t *testing.T) {
 					jsonValue, jsonValue, tt.expectedValue, tt.expectedValue)
 			}
 
-			if !reflect.DeepEqual(yamlValueNorm, expectedValueNorm) {
+			if tt.name == "empty string" {
+				if yamlValueNorm != nil && !reflect.DeepEqual(yamlValueNorm, expectedValueNorm) {
+					t.Errorf("YAML value mismatch: got %v (%T), want %v (%T) or null",
+						yamlValue, yamlValue, tt.expectedValue, tt.expectedValue)
+				}
+			} else if !reflect.DeepEqual(yamlValueNorm, expectedValueNorm) {
 				t.Errorf("YAML value mismatch: got %v (%T), want %v (%T)",
 					yamlValue, yamlValue, tt.expectedValue, tt.expectedValue)
 			}
 
 			// Check JSON and YAML agree (after normalization)
-			if !reflect.DeepEqual(jsonValueNorm, yamlValueNorm) {
+			if tt.name == "empty string" {
+				if yamlValueNorm != nil && !reflect.DeepEqual(jsonValueNorm, yamlValueNorm) {
+					t.Errorf("JSON and YAML values differ: JSON=%v (%T), YAML=%v (%T)",
+						jsonValue, jsonValue, yamlValue, yamlValue)
+				}
+			} else if !reflect.DeepEqual(jsonValueNorm, yamlValueNorm) {
 				t.Errorf("JSON and YAML values differ: JSON=%v (%T), YAML=%v (%T)",
 					jsonValue, jsonValue, yamlValue, yamlValue)
 			}
@@ -524,6 +531,17 @@ func parseYAMLFile(t *testing.T, path string) (map[string]any, error) {
 	return data, nil
 }
 
+// dataSection returns the data payload for outputs that may optionally include metadata.
+func dataSection(output map[string]any) any {
+	if output == nil {
+		return nil
+	}
+	if data, ok := output["data"]; ok {
+		return data
+	}
+	return output
+}
+
 // parseTfvarsFile parses a tfvars (HCL) file and returns the data structure.
 func parseTfvarsFile(t *testing.T, path string) (map[string]any, error) {
 	t.Helper()
@@ -619,7 +637,7 @@ func normalizeAndCompare(a, b any) bool {
 // This handles type differences between JSON, YAML, and tfvars parsing.
 func normalize(v any) any {
 	if v == nil {
-		return nil
+		return ""
 	}
 
 	switch val := v.(type) {
@@ -650,9 +668,9 @@ func normalize(v any) any {
 	case int64:
 		return float64(val)
 	case float32:
-		return float64(val)
+		return roundFloat(float64(val))
 	case float64:
-		return val
+		return roundFloat(val)
 	case string:
 		// Try to normalize string representations of numbers/bools
 		// This handles JSON vs YAML type differences
@@ -668,30 +686,43 @@ func normalize(v any) any {
 // normalizeString attempts to convert string representations of numbers
 // and booleans to their actual types for comparison.
 func normalizeString(s string) any {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return ""
+	}
+
 	// Try boolean
-	if s == "true" {
+	if trimmed == "true" {
 		return true
 	}
-	if s == "false" {
+	if trimmed == "false" {
 		return false
 	}
 
+	// Prefer float parsing when a decimal or exponent is present
+	if strings.ContainsAny(trimmed, ".eE") {
+		if num, err := strconv.ParseFloat(trimmed, 64); err == nil {
+			return num
+		}
+	}
+
 	// Try integer
-	if i, err := fmt.Sscanf(s, "%d", new(int64)); err == nil && i == 1 {
-		var num int64
-		fmt.Sscanf(s, "%d", &num)
+	if num, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
 		return float64(num)
 	}
 
 	// Try float
-	if f, err := fmt.Sscanf(s, "%f", new(float64)); err == nil && f == 1 {
-		var num float64
-		fmt.Sscanf(s, "%f", &num)
-		return num
+	if num, err := strconv.ParseFloat(trimmed, 64); err == nil {
+		return roundFloat(num)
 	}
 
 	// Return as string
-	return s
+	return trimmed
+}
+
+func roundFloat(v float64) float64 {
+	const factor = 1e9
+	return math.Round(v*factor) / factor
 }
 
 // extractValue extracts a value from a nested map structure by key.

@@ -1,0 +1,35 @@
+# Base Configuration
+#
+# This file defines common defaults shared across all environments.
+# Environment-specific configurations will use root references to include
+# these defaults and override specific values.
+
+application:
+  name: 'nomos-app'
+  version: '1.0.0'
+  
+database:
+  host: 'localhost'
+  port: '5432'
+  name: 'nomos_db'
+  pool:
+    min_connections: '5'
+    max_connections: '20'
+    timeout_seconds: '30'
+  
+api:
+  endpoint: 'http://localhost:8080'
+  timeout_ms: '5000'
+  retry:
+    max_attempts: '3'
+    backoff_ms: '1000'
+  
+logging:
+  level: 'info'
+  format: 'json'
+  destinations:
+    - 'stdout'
+  
+monitoring:
+  enabled: 'true'
+  interval_seconds: '60'

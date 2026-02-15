@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING CHANGE: ImportStmt removed from AST** (Feature 006-expand-at-references Phase 2)
+  - `ImportStmt` AST type completely removed from `pkg/ast` package
+  - Parser now rejects `import:` keyword with clear error message
+  - Error includes migration guidance: "import statement no longer supported; use @alias:path syntax instead"
+  - Rationale: Preparing for expanded at-reference syntax that replaces import mechanism
+  - Migration: Use source declarations with @-references instead of import statements
+- **BREAKING CHANGE: ReferenceExpr structure updated** (Feature 006-expand-at-references Phase 2)
+  - Removed `Resource` field from `ReferenceExpr`; provider path segments now live in `Path`
+  - Example: `@network:vpc.cidr` where path segments are `["vpc", "cidr"]`
+  - Rationale: Support path-based reference syntax `@alias:path`
+
 ### Added
 - [Parser] Add list and nested list syntax support in CSL files
   - Use dash notation for block lists:

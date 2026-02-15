@@ -75,7 +75,7 @@ func NewResolver(lockfilePath, manifestPath string) (*Resolver, error) {
 
 	// At least one must exist
 	if lockfile == nil && manifest == nil {
-		return nil, errors.New("neither lockfile nor manifest found; run 'nomos init'")
+		return nil, errors.New("neither lockfile nor manifest found; run 'nomos build'")
 	}
 
 	return &Resolver{

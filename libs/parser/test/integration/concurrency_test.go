@@ -34,17 +34,14 @@ func testConcurrentParses(t *testing.T, numGoroutines int, testName string) {
 	t.Helper()
 
 	// Sample Nomos source to parse
-	// Note: Updated to use inline references instead of deprecated top-level reference statements
 	source := `source:
   alias: myConfig
   type: yaml
 
-import:baseConfig:./base.csl
-
 database:
   host: localhost
   port: 5432
-  connection: @base:config.database
+  connection: @base:config.config.database
 `
 
 	// Create a wait group

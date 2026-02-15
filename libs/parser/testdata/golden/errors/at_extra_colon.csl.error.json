@@ -1,0 +1,4 @@
+{
+  "error": "../testdata/errors/at_extra_colon.csl:2:7: invalid syntax: @ reference path must use '.' only (no additional ':')",
+  "filename": "../testdata/errors/at_extra_colon.csl"
+}

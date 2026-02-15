@@ -54,9 +54,75 @@ type ResolverOptions struct {
 
 // Resolver resolves ReferenceExpr nodes to their actual values using providers.
 type Resolver struct {
-	opts  ResolverOptions
-	cache *fetchCache
+	opts   ResolverOptions
+	cache  *fetchCache
+	resCtx *ResolutionContext
 }
+
+// ResolutionContext tracks active resolution stack to detect circular references.
+// This is a minimal version that mirrors the public API in reference_resolution.go.
+type ResolutionContext struct {
+	mu    sync.Mutex
+	Stack []PathRef
+}
+
+// PathRef identifies a unique reference path being resolved.
+type PathRef struct {
+	Alias string
+	Path  string
+}
+
+// String returns a human-readable representation of the PathRef.
+func (r PathRef) String() string {
+	return fmt.Sprintf("%s:%s", r.Alias, r.Path)
+}
+
+// Push adds a path to the resolution stack.
+func (ctx *ResolutionContext) Push(alias string, path []string) error {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	ref := PathRef{Alias: alias, Path: pathKey(path)}
+
+	for _, existing := range ctx.Stack {
+		if existing == ref {
+			return fmt.Errorf("%w: %s", ErrCircularReference, ctx.formatCycle(ref))
+		}
+	}
+
+	ctx.Stack = append(ctx.Stack, ref)
+	return nil
+}
+
+// Pop removes the most recent path from the resolution stack.
+func (ctx *ResolutionContext) Pop() {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
+	if len(ctx.Stack) > 0 {
+		ctx.Stack = ctx.Stack[:len(ctx.Stack)-1]
+	}
+}
+
+// formatCycle creates a human-readable cycle path for error messages.
+func (ctx *ResolutionContext) formatCycle(ref PathRef) string {
+	parts := make([]string, 0, len(ctx.Stack)+1)
+	for _, r := range ctx.Stack {
+		parts = append(parts, r.String())
+	}
+	parts = append(parts, ref.String())
+	return strings.Join(parts, " → ")
+}
+
+func pathKey(path []string) string {
+	if len(path) == 0 {
+		return "."
+	}
+	return strings.Join(path, ":")
+}
+
+// ErrCircularReference indicates a cycle was detected in the resolution chain.
+var ErrCircularReference = errors.New("circular reference detected")
 
 // New creates a new Resolver with the given options.
 func New(opts ResolverOptions) *Resolver {
@@ -65,8 +131,9 @@ func New(opts ResolverOptions) *Resolver {
 	}
 
 	return &Resolver{
-		opts:  opts,
-		cache: newFetchCache(),
+		opts:   opts,
+		cache:  newFetchCache(),
+		resCtx: &ResolutionContext{Stack: []PathRef{}},
 	}
 }
 
@@ -94,6 +161,14 @@ func (r *Resolver) ResolveValue(ctx context.Context, val any) (any, error) {
 
 // resolveReference resolves a single ReferenceExpr by calling the appropriate provider.
 func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr) (any, error) {
+	if err := r.resCtx.Push(ref.Alias, ref.Path); err != nil {
+		return nil, fmt.Errorf("resolving @%s:%s at %s:%d: %w",
+			ref.Alias, pathKey(ref.Path),
+			ref.SourceSpan.Filename, ref.SourceSpan.StartLine,
+			err)
+	}
+	defer r.resCtx.Pop()
+
 	// Build cache key
 	cacheKey := buildCacheKey(ref.Alias, ref.Path)
 
@@ -111,7 +186,7 @@ func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr)
 	// Fetch value from provider
 	val, err := provider.Fetch(ctx, ref.Path)
 	if err != nil {
-		return nil, r.handleFetchError(ref, err)
+		return nil, r.handleFetchError(ref, ref.Path, err)
 	}
 
 	// Unwrap single-key "value" objects that some providers return for scalars
@@ -122,10 +197,16 @@ func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr)
 		}
 	}
 
-	// Cache result
-	r.cache.set(cacheKey, val)
+	// Resolve any nested references returned by the provider.
+	resolved, err := r.ResolveValue(ctx, val)
+	if err != nil {
+		return nil, err
+	}
 
-	return val, nil
+	// Cache result
+	r.cache.set(cacheKey, resolved)
+
+	return resolved, nil
 }
 
 // resolveMap resolves all values in a map.
@@ -182,11 +263,11 @@ func (r *Resolver) handleProviderError(ref *ast.ReferenceExpr, _ error) error {
 }
 
 // handleFetchError handles errors from provider.Fetch.
-func (r *Resolver) handleFetchError(ref *ast.ReferenceExpr, err error) error {
+func (r *Resolver) handleFetchError(ref *ast.ReferenceExpr, path []string, err error) error {
 	if r.opts.AllowMissingProvider && r.opts.OnWarning != nil {
 		warning := fmt.Sprintf("failed to fetch reference %q:%v at %s:%d:%d: %v",
 			ref.Alias,
-			ref.Path,
+			path,
 			ref.SourceSpan.Filename,
 			ref.SourceSpan.StartLine,
 			ref.SourceSpan.StartCol,
@@ -200,7 +281,7 @@ func (r *Resolver) handleFetchError(ref *ast.ReferenceExpr, err error) error {
 	return fmt.Errorf("%w: failed to fetch %q:%v at %s:%d:%d: %w",
 		ErrUnresolvedReference,
 		ref.Alias,
-		ref.Path,
+		path,
 		ref.SourceSpan.Filename,
 		ref.SourceSpan.StartLine,
 		ref.SourceSpan.StartCol,

@@ -59,19 +59,6 @@ func (s *SourceDecl) Span() SourceSpan { return s.SourceSpan }
 func (s *SourceDecl) node()            {}
 func (s *SourceDecl) stmt()            {}
 
-// ImportStmt represents an import statement.
-// Example: import:folder:filename
-type ImportStmt struct {
-	Alias      string     `json:"alias"`
-	Path       string     `json:"path,omitempty"` // Optional nested path
-	SourceSpan SourceSpan `json:"source_span"`
-}
-
-// Span implements Node for ImportStmt.
-func (i *ImportStmt) Span() SourceSpan { return i.SourceSpan }
-func (i *ImportStmt) node()            {}
-func (i *ImportStmt) stmt()            {}
-
 // SectionDecl represents a configuration section with key-value pairs.
 // Example: config-section-name:
 //
@@ -134,14 +121,14 @@ func (s *StringLiteral) node()            {}
 func (s *StringLiteral) expr()            {}
 
 // ReferenceExpr represents an inline reference expression.
-// Example: @network:vpc.cidr
+// Example: @alias:path.to.value
 //
 // References are first-class values that can appear anywhere a value is expected.
-// They consist of an alias (identifying the source/import) and a dotted path
-// to the target property within that source.
+// They consist of an alias (identifying the source provider instance) and a
+// path describing what to resolve. Providers interpret the path segments.
 type ReferenceExpr struct {
-	Alias      string     `json:"alias"`       // Source alias to resolve
-	Path       []string   `json:"path"`        // Dotted path components
+	Alias      string     `json:"alias"`       // Source provider instance alias
+	Path       []string   `json:"path"`        // Path segments (may include "." for root)
 	SourceSpan SourceSpan `json:"source_span"` // Precise source location
 }
 

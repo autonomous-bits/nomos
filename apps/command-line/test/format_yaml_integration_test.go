@@ -73,12 +73,12 @@ database:
 		t.Fatalf("failed to parse YAML output: %v\nContent: %s", err, content)
 	}
 
-	// Verify the structure contains expected sections
-	if parsed["data"] == nil {
-		t.Error("YAML output missing 'data' section")
+	// Verify the structure contains expected content (metadata is opt-in)
+	if parsed["region"] == nil {
+		t.Error("YAML output missing expected top-level data")
 	}
-	if parsed["metadata"] == nil {
-		t.Error("YAML output missing 'metadata' section")
+	if parsed["metadata"] != nil {
+		t.Error("YAML output should not include 'metadata' by default")
 	}
 
 	// Verify content is not JSON (should not start with '{')
@@ -88,7 +88,7 @@ database:
 	}
 
 	// Verify YAML-specific syntax is present
-	if !strings.Contains(contentStr, "data:") || !strings.Contains(contentStr, "metadata:") {
+	if !strings.Contains(contentStr, "region:") {
 		t.Error("YAML output missing expected YAML syntax (key: value)")
 	}
 }
@@ -210,16 +210,10 @@ middle:
 	// Check that keys appear in sorted order in the output string
 	outputStr := string(content)
 
-	// Look for keys under the data section
-	dataPos := strings.Index(outputStr, "data:")
-	if dataPos == -1 {
-		t.Fatal("data section not found in output")
-	}
-
-	// Find positions of our keys after data section
-	alphaPos := indexOfAfter(outputStr, "alpha:", dataPos)
-	middlePos := indexOfAfter(outputStr, "middle:", dataPos)
-	zebraPos := indexOfAfter(outputStr, "zebra:", dataPos)
+	// Find positions of our keys in the top-level output
+	alphaPos := strings.Index(outputStr, "alpha:")
+	middlePos := strings.Index(outputStr, "middle:")
+	zebraPos := strings.Index(outputStr, "zebra:")
 
 	if alphaPos == -1 || middlePos == -1 || zebraPos == -1 {
 		t.Fatalf("expected keys not found in output")
@@ -276,12 +270,4 @@ func TestFormatIntegration_YAML_CaseInsensitive(t *testing.T) {
 			}
 		})
 	}
-}
-
-func indexOfAfter(s, substr string, start int) int {
-	idx := strings.Index(s[start:], substr)
-	if idx == -1 {
-		return -1
-	}
-	return start + idx
 }

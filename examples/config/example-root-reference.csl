@@ -1,0 +1,31 @@
+# Example: Root Reference with Overrides
+#
+# This example demonstrates using map references (@alias:path) to include
+# all properties from a provider path and then override specific values.
+#
+# Map references include the full map at the target path, then deep merge
+# semantics allow selective overrides of nested properties.
+
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: './data'
+
+# Include ALL properties from the 'prod' path using map reference
+database:
+  @base:prod
+  # Override specific properties while preserving siblings
+  connection_pool:
+    max_connections: '50'  # Override base value
+    # Other pool settings from base are preserved
+
+# Alternative: Map reference with multiple overrides
+application:
+  @base:prod
+  # Override top-level property
+  environment: 'production'
+  # Override nested property
+  logging:
+    level: 'info'
+    # Other logging settings from base are preserved

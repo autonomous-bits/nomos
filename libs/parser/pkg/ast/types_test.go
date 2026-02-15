@@ -28,9 +28,9 @@ func TestReferenceExpr_Constructor(t *testing.T) {
 			},
 		},
 		{
-			name:  "single path component",
+			name:  "reference with root path",
 			alias: "config",
-			path:  []string{"key"},
+			path:  []string{},
 			sourceSpan: ast.SourceSpan{
 				Filename:  "app.csl",
 				StartLine: 5,
@@ -42,7 +42,7 @@ func TestReferenceExpr_Constructor(t *testing.T) {
 		{
 			name:  "deep path",
 			alias: "source",
-			path:  []string{"a", "b", "c", "d"},
+			path:  []string{"resource", "a", "b", "c", "d"},
 			sourceSpan: ast.SourceSpan{
 				Filename:  "deep.csl",
 				StartLine: 10,
@@ -92,7 +92,7 @@ func TestReferenceExpr_ImplementsNode(t *testing.T) {
 
 	ref := &ast.ReferenceExpr{
 		Alias:      "test",
-		Path:       []string{"key"},
+		Path:       []string{"resource", "key"},
 		SourceSpan: span,
 	}
 

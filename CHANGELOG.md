@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [Compiler][Parser] BREAKING: Treat everything after the first `:` as a dot-only path (no additional `:`) for `@alias:path`
+
 ### Fixed
 - [Compiler] Preserve list expressions during AST conversion for configuration data
 ## Nomos Refactoring Initiative (Phases 1-6) - 2025-12-26
@@ -48,7 +51,7 @@ This release represents the completion of Phases 1-5 of the Nomos Refactoring Im
 
 **BREAKING CHANGES:**
 - Migrated to Cobra framework (exit codes, help text format changed)
-- `nomos init` now returns structured results (breaking for programmatic usage)
+- Provider installation now returns structured results (breaking for programmatic usage)
 - Removed `--from` flag (providers now installed from GitHub Releases)
 - In-process providers removed (external providers required)
 
@@ -59,7 +62,7 @@ This release represents the completion of Phases 1-5 of the Nomos Refactoring Im
 - `nomos version` command with build metadata
 - `--color` flag (auto/always/never) for colored output
 - `--quiet` flag to suppress non-error output
-- Table output with progress indicators for `nomos init`
+- Table output with progress indicators for provider installation
 - Enhanced error messages with colored diagnostics
 
 ### Phase 3: Testing & Quality (Week 5-6) ✅
@@ -127,7 +130,7 @@ See individual module CHANGELOGs for complete details:
 ### Migration Guides
 
 **For CLI Users:**
-- Run `nomos init` after upgrading (in-process providers removed)
+- Run `nomos build` after upgrading (in-process providers removed)
 - Update CI/CD scripts checking exit code `2` to check for `1` instead
 - Update `.csl` files to use `type: 'owner/repo'` format for provider types
 - Set `GITHUB_TOKEN` environment variable for higher GitHub API rate limits

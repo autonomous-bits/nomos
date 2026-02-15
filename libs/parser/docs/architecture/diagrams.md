@@ -159,7 +159,7 @@ libs/parser/
 ```
 section-name:
     key1: value1          ◄─── Line is indented
-    key2: reference:...   ◄─── Line is indented
+    key2: @alias:...      ◄─── Line is indented
     nested:               ◄─── Line is indented
         sub: value        ◄─── Line is indented
 next-section:             ◄─── NOT indented → stop
@@ -196,7 +196,7 @@ parseConfigBlock():
           ▼                               ▼
   ┌──────────────┐              ┌─────────────────┐
   │ Starts with  │              │   Plain text    │
-  │"reference:"? │              │   (or quoted)   │
+    │"@"?           │              │   (or quoted)   │
   └──────┬───────┘              └────────┬────────┘
          │ Yes                           │ No
          ▼                               ▼

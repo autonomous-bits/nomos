@@ -250,10 +250,7 @@ source:
   type: terraform
 ```
 
-**Import Statements** - Module imports:
-```
-import:baseConfig:./base.csl
-```
+**Import Statements** - Removed from the language (parser rejects `import:` with migration guidance)
 
 **Section Declarations** - Configuration blocks:
 ```
@@ -265,7 +262,7 @@ database:
 **Inline References** - Value-level references:
 ```
 app:
-  db_host: reference:base:database.host
+  db_host: @base:database.host
 ```
 
 **List/Array Syntax** - YAML-style list support:
@@ -294,7 +291,7 @@ users:
     role: user
 
 # Lists in references
-backup_servers: reference:aws:database.replicas
+backup_servers: @aws:database.replicas
 ```
 
 **List Parsing Rules**:
@@ -426,7 +423,7 @@ Before (deprecated):
   reference:alias:path
 
 After (correct):
-  key: reference:alias:path
+  key: @alias:path
 ```
 
 **Migration Path**: Convert to inline references in value positions (see "Inline References" above).
