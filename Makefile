@@ -90,8 +90,8 @@ test-coverage: work-sync
 	@for dir in $(MODULES); do \
 		module_name=$$(basename $$dir); \
 		echo "Generating coverage for $$dir..."; \
-		(cd $$dir && go test -coverprofile=../coverage/$$module_name.out -covermode=atomic ./...) || exit 1; \
-		(cd $$dir && go tool cover -html=../coverage/$$module_name.out -o ../coverage/$$module_name.html) || exit 1; \
+		(cd $$dir && go test -coverprofile=$(CURDIR)/coverage/$$module_name.out -covermode=atomic ./...) || exit 1; \
+		(cd $$dir && go tool cover -html=$(CURDIR)/coverage/$$module_name.out -o $(CURDIR)/coverage/$$module_name.html) || exit 1; \
 	done
 	@echo "Coverage reports generated in ./coverage/"
 	@echo "Open coverage/*.html in a browser to view reports"

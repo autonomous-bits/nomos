@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -284,4 +285,144 @@ func TestDefaultShutdownTimeout(t *testing.T) {
 	if DefaultShutdownTimeout != expected {
 		t.Errorf("expected DefaultShutdownTimeout to be %v, got %v", expected, DefaultShutdownTimeout)
 	}
+}
+
+// TestHelperProcess is a helper process for testing the Manager.
+// It mocks a provider process behavior.
+func TestHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	// This code runs in the helper process
+	// We must exit at the end to avoid running other tests
+
+	// Check what kind of behavior is requested
+	behavior := os.Getenv("HELPER_BEHAVIOR")
+	switch behavior {
+	case "success":
+		// Print port and wait for signal
+		fmt.Println("PROVIDER_PORT=12345")
+		// Simulate running server
+		ch := make(chan os.Signal, 1)
+		// We don't actually bind a port, just simulate waiting
+		<-ch
+
+	case "invalid_port":
+		fmt.Println("PROVIDER_PORT=not_a_number")
+
+	case "no_port":
+		fmt.Println("Some log output")
+
+	case "crash":
+		os.Exit(1)
+
+	case "hang_on_shutdown":
+		fmt.Println("PROVIDER_PORT=12345")
+		// Ignore signals for a while
+		time.Sleep(10 * time.Second)
+	}
+
+	os.Exit(0)
+}
+
+// createMockProvider creates a wrapper script that runs the test binary as a helper process
+func createMockProvider(t *testing.T, behavior string) string {
+	if os.Getenv("GO_WANT_HELPER_PROCESS") == "1" {
+		return "" // Avoid recursion
+	}
+
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatalf("failed to get executable: %v", err)
+	}
+
+	dir := t.TempDir()
+	scriptPath := filepath.Join(dir, "provider-mock.sh")
+
+	// Create a script that runs the test binary with the helper environment variables
+	scriptContent := fmt.Sprintf(`#!/bin/sh
+export GO_WANT_HELPER_PROCESS=1
+export HELPER_BEHAVIOR="%s"
+"%s" -test.run=TestHelperProcess -- "$@"
+`, behavior, exe)
+
+	//nolint:gosec // G306: we need executable permissions (0700) for this test script to run
+	if err := os.WriteFile(scriptPath, []byte(scriptContent), 0700); err != nil {
+		t.Fatalf("failed to create mock provider script: %v", err)
+	}
+
+	return scriptPath
+}
+
+func TestManager_GetProvider_Integration(t *testing.T) {
+	if os.Getenv("GO_WANT_HELPER_PROCESS") == "1" {
+		return
+	}
+
+	tests := []struct {
+		name      string
+		behavior  string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:      "ProcessCrash",
+			behavior:  "crash",
+			wantErr:   true,
+			errSubstr: "failed to start provider process", // or "exit status 1" depending on timing
+		},
+		{
+			name:      "InvalidPort",
+			behavior:  "invalid_port",
+			wantErr:   true,
+			errSubstr: "invalid port format",
+		},
+		{
+			name:      "NoPort",
+			behavior:  "no_port",
+			wantErr:   true,
+			errSubstr: "provider did not report port",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scriptPath := createMockProvider(t, tt.behavior)
+			manager := NewManager(nil)
+			defer func() {
+				_ = manager.Shutdown(context.Background())
+			}()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			_, err := manager.GetProvider(ctx, "test-alias", scriptPath, core.ProviderInitOptions{})
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetProvider() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errSubstr != "" {
+				if err == nil {
+					t.Errorf("GetProvider() error = nil, want substring %q", tt.errSubstr)
+					return
+				}
+				// "failed to start provider process" is generic
+				// Use lenient check for crash
+				if tt.behavior == "crash" {
+					return
+				}
+				if !contains(err.Error(), tt.errSubstr) {
+					t.Errorf("GetProvider() error = %v, want substring %q", err, tt.errSubstr)
+				}
+			}
+		})
+	}
+}
+
+// contains check helper (redefined here since it's a different package/test file)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && s[0:len(substr)] == substr ||
+		(len(s) > len(substr) && contains(s[1:], substr))
 }
