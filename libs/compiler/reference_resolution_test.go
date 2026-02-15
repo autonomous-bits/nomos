@@ -1935,3 +1935,313 @@ func toString(v any) string {
 		return fmt.Sprintf("%v", val)
 	}
 }
+
+// Unit tests for internal helper functions
+
+func TestValueToASTExpr_AllTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    any
+		wantType string
+		wantVal  string
+	}{
+		{
+			name:     "nil value",
+			value:    nil,
+			wantType: "*ast.StringLiteral",
+			wantVal:  "",
+		},
+		{
+			name:     "string value",
+			value:    "hello",
+			wantType: "*ast.StringLiteral",
+			wantVal:  "hello",
+		},
+		{
+			name:     "int value",
+			value:    42,
+			wantType: "*ast.StringLiteral",
+			wantVal:  "42",
+		},
+		{
+			name:     "int64 value",
+			value:    int64(9223372036854775807),
+			wantType: "*ast.StringLiteral",
+			wantVal:  "9223372036854775807",
+		},
+		{
+			name:     "float64 value",
+			value:    3.14,
+			wantType: "*ast.StringLiteral",
+			wantVal:  "3.14",
+		},
+		{
+			name:     "bool true",
+			value:    true,
+			wantType: "*ast.StringLiteral",
+			wantVal:  "true",
+		},
+		{
+			name:     "bool false",
+			value:    false,
+			wantType: "*ast.StringLiteral",
+			wantVal:  "false",
+		},
+		{
+			name: "map value",
+			value: map[string]any{
+				"key": "value",
+			},
+			wantType: "*ast.MapExpr",
+		},
+		{
+			name:     "empty map",
+			value:    map[string]any{},
+			wantType: "*ast.MapExpr",
+		},
+		{
+			name: "list value",
+			value: []any{
+				"item1",
+				"item2",
+			},
+			wantType: "*ast.ListExpr",
+		},
+		{
+			name:     "empty list",
+			value:    []any{},
+			wantType: "*ast.ListExpr",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expr, err := valueToASTExpr(tt.value)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Check type
+			gotType := fmt.Sprintf("%T", expr)
+			if gotType != tt.wantType {
+				t.Errorf("type = %s, want %s", gotType, tt.wantType)
+			}
+
+			// Check value for string literals
+			if strLit, ok := expr.(*ast.StringLiteral); ok && tt.wantVal != "" {
+				if strLit.Value != tt.wantVal {
+					t.Errorf("value = %q, want %q", strLit.Value, tt.wantVal)
+				}
+			}
+		})
+	}
+}
+
+func TestValueToASTExpr_NestedMap(t *testing.T) {
+	value := map[string]any{
+		"database": map[string]any{
+			"host": "localhost",
+			"port": 5432,
+		},
+		"api_url": "http://api.example.com",
+	}
+
+	expr, err := valueToASTExpr(value)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	mapExpr, ok := expr.(*ast.MapExpr)
+	if !ok {
+		t.Fatalf("expected *ast.MapExpr, got %T", expr)
+	}
+
+	if len(mapExpr.Entries) != 2 {
+		t.Errorf("entries count = %d, want 2", len(mapExpr.Entries))
+	}
+
+	// Check database entry is also a map
+	dbExpr, exists := mapExpr.Entries["database"]
+	if !exists {
+		t.Fatal("expected 'database' entry")
+	}
+
+	dbMap, ok := dbExpr.(*ast.MapExpr)
+	if !ok {
+		t.Errorf("expected database to be *ast.MapExpr, got %T", dbExpr)
+	}
+
+	if ok && len(dbMap.Entries) != 2 {
+		t.Errorf("database entries count = %d, want 2", len(dbMap.Entries))
+	}
+}
+
+func TestValueToASTExpr_NestedList(t *testing.T) {
+	value := []any{
+		"string",
+		42,
+		true,
+		[]any{"nested", "list"},
+		map[string]any{"key": "value"},
+	}
+
+	expr, err := valueToASTExpr(value)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	listExpr, ok := expr.(*ast.ListExpr)
+	if !ok {
+		t.Fatalf("expected *ast.ListExpr, got %T", expr)
+	}
+
+	if len(listExpr.Elements) != 5 {
+		t.Errorf("elements count = %d, want 5", len(listExpr.Elements))
+	}
+
+	// Check nested list
+	nestedList, ok := listExpr.Elements[3].(*ast.ListExpr)
+	if !ok {
+		t.Errorf("expected element[3] to be *ast.ListExpr, got %T", listExpr.Elements[3])
+	}
+
+	if ok && len(nestedList.Elements) != 2 {
+		t.Errorf("nested list elements count = %d, want 2", len(nestedList.Elements))
+	}
+
+	// Check nested map
+	nestedMap, ok := listExpr.Elements[4].(*ast.MapExpr)
+	if !ok {
+		t.Errorf("expected element[4] to be *ast.MapExpr, got %T", listExpr.Elements[4])
+	}
+
+	if ok && len(nestedMap.Entries) != 1 {
+		t.Errorf("nested map entries count = %d, want 1", len(nestedMap.Entries))
+	}
+}
+
+func TestValueToASTExpr_ReferenceExpr(t *testing.T) {
+	refExpr := &ast.ReferenceExpr{
+		Alias: "base",
+		Path:  []string{"database", "host"},
+	}
+
+	expr, err := valueToASTExpr(refExpr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	gotRef, ok := expr.(*ast.ReferenceExpr)
+	if !ok {
+		t.Fatalf("expected *ast.ReferenceExpr, got %T", expr)
+	}
+
+	if gotRef.Alias != "base" {
+		t.Errorf("alias = %q, want %q", gotRef.Alias, "base")
+	}
+
+	if len(gotRef.Path) != 2 || gotRef.Path[0] != "database" || gotRef.Path[1] != "host" {
+		t.Errorf("path = %v, want [database host]", gotRef.Path)
+	}
+}
+
+func TestValueToASTExpr_DefaultCase(t *testing.T) {
+	// Test with a type that doesn't have explicit handling (falls to default case)
+	type customType struct {
+		field string
+	}
+
+	value := customType{field: "test"}
+
+	expr, err := valueToASTExpr(value)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	strLit, ok := expr.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("expected *ast.StringLiteral for default case, got %T", expr)
+	}
+
+	// Should contain string representation of the struct
+	if !contains(strLit.Value, "test") {
+		t.Errorf("value = %q, should contain 'test'", strLit.Value)
+	}
+}
+
+func TestConvertToASTExprs(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     map[string]any
+		wantKeys  []string
+		wantErr   bool
+	}{
+		{
+			name: "simple map",
+			input: map[string]any{
+				"host": "localhost",
+				"port": 5432,
+			},
+			wantKeys: []string{"host", "port"},
+			wantErr:  false,
+		},
+		{
+			name: "nested map",
+			input: map[string]any{
+				"database": map[string]any{
+					"host": "localhost",
+					"port": 5432,
+				},
+				"api_url": "http://api.example.com",
+			},
+			wantKeys: []string{"database", "api_url"},
+			wantErr:  false,
+		},
+		{
+			name:     "empty map",
+			input:    map[string]any{},
+			wantKeys: []string{},
+			wantErr:  false,
+		},
+		{
+			name: "map with various types",
+			input: map[string]any{
+				"string": "value",
+				"int":    42,
+				"bool":   true,
+				"float":  3.14,
+				"list":   []any{"a", "b"},
+				"map":    map[string]any{"nested": "value"},
+			},
+			wantKeys: []string{"string", "int", "bool", "float", "list", "map"},
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := convertToASTExprs(tt.input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(result) != len(tt.wantKeys) {
+				t.Errorf("result length = %d, want %d", len(result), len(tt.wantKeys))
+			}
+
+			for _, key := range tt.wantKeys {
+				if _, exists := result[key]; !exists {
+					t.Errorf("expected key %q in result, not found", key)
+				}
+			}
+		})
+	}
+}
