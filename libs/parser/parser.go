@@ -842,8 +842,13 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 				"invalid syntax: path cannot be empty; use '.' for root (@alias:.)")
 		}
 
-		// Parse path segments (supports colon-separated segments and bracket notation)
-		pathParts, err := p.parseInlineReferencePathSegments(pathStr, s.Filename(), startLine, startCol)
+		if strings.Contains(pathStr, ":") {
+			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: @ reference path must use '.' only (no additional ':')")
+		}
+
+		// Parse path segments (dot-separated segments with optional bracket notation)
+		pathParts, err := p.parseInlineReferencePath(pathStr, s.Filename(), startLine, startCol)
 		if err != nil {
 			return nil, err
 		}
@@ -895,7 +900,14 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 		return []string{}, nil
 	}
 	if !strings.ContainsAny(pathStr, "[]") {
-		return strings.Split(pathStr, "."), nil
+		parts := strings.Split(pathStr, ".")
+		for _, part := range parts {
+			if part == "" {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path has empty segment")
+			}
+		}
+		return parts, nil
 	}
 
 	var components []string
@@ -904,6 +916,10 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 	for i := 0; i < len(pathStr); i++ {
 		switch pathStr[i] {
 		case '.':
+			if current.Len() == 0 {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: inline reference path has empty segment")
+			}
 			components = append(components, current.String())
 			current.Reset()
 		case '[':
@@ -943,6 +959,10 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 			current.WriteByte(pathStr[i])
 		}
 	}
+	if current.Len() == 0 {
+		return nil, NewParseError(SyntaxError, filename, line, col,
+			"invalid syntax: inline reference path has empty segment")
+	}
 
 	components = append(components, current.String())
 	return components, nil
@@ -950,34 +970,6 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 
 // parseInlineReferencePathSegments splits a path on ':' and '.' (with bracket support)
 // to produce the full list of path segments. Providers interpret these segments.
-func (p *Parser) parseInlineReferencePathSegments(pathStr, filename string, line, col int) ([]string, error) {
-	if pathStr == "." {
-		return []string{}, nil
-	}
-
-	segments := strings.Split(pathStr, ":")
-	parts := make([]string, 0, len(segments))
-
-	for _, segment := range segments {
-		if segment == "." {
-			continue
-		}
-		if segment == "" {
-			return nil, NewParseError(SyntaxError, filename, line, col,
-				"invalid syntax: inline reference path has empty segment")
-		}
-
-		segParts, err := p.parseInlineReferencePath(segment, filename, line, col)
-		if err != nil {
-			return nil, err
-		}
-		if len(segParts) > 0 {
-			parts = append(parts, segParts...)
-		}
-	}
-
-	return parts, nil
-}
 
 // parseListExpr parses a list expression with YAML-style block notation (dash markers).
 // It enforces 2-space indentation, validates against empty items, supports nested lists,

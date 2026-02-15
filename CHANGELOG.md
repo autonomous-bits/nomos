@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- [Compiler][Parser] BREAKING: Treat everything after the first `:` in references as provider path segments (use `@alias:path`)
+- [Compiler][Parser] BREAKING: Treat everything after the first `:` as a dot-only path (no additional `:`) for `@alias:path`
 
 ### Fixed
 - [Compiler] Preserve list expressions during AST conversion for configuration data

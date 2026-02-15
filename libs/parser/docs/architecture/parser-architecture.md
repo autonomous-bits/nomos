@@ -433,7 +433,7 @@ type ReferenceExpr struct {
 **Syntax:**
 ```
 # Correct (inline reference as value)
-cidr: @network:config:vpc.cidr
+cidr: @network:config.vpc.cidr
 
 # Error (top-level reference - deprecated)
 reference:network:vpc.cidr
@@ -468,7 +468,7 @@ reference:network:vpc.cidr
 **Example Error:**
 ```
 config.csl:5:12: invalid syntax: expected ':' after key
-   5 |     vpc_cidr @network:config:vpc.cidr
+   5 |     vpc_cidr @network:config.vpc.cidr
      |             ^
 ```
 

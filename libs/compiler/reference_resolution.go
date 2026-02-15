@@ -16,11 +16,11 @@ type ReferenceMode int
 
 const (
 	// PropertyMode represents a single property value resolution.
-	// Example: @config:app:server.port resolves to a scalar value.
+	// Example: @config:app.server.port resolves to a scalar value.
 	PropertyMode ReferenceMode = iota
 
 	// MapMode represents specific nested map resolution.
-	// Example: @config:app:database.pool resolves to a map of properties.
+	// Example: @config:app.database.pool resolves to a map of properties.
 	MapMode
 
 	// RootMode represents everything from a provider path.

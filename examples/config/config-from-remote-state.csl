@@ -23,8 +23,8 @@ source:
   key: "network.tfstate"
 
 environments:
-  production: @configs:prod:database.name
-  staging: @configs:staging:database.name
+  production: @configs:prod.database.name
+  staging: @configs:staging.database.name
 
 app:
   name: 'example-app'

@@ -450,7 +450,7 @@ Test that parsing produces correct AST structures.
 ```go
 func TestParse_ReferenceExpression(t *testing.T) {
     input := `database:
-    host: @config:db:host
+    host: @config:db.host
 `
     
     result, err := parser.Parse(strings.NewReader(input), "test.csl")
@@ -543,8 +543,8 @@ func TestCompiler_ResolveReferences(t *testing.T) {
     
     // Test compilation with references
     input := `database:
-    host: @config:db:host
-    port: @config:db:port
+    host: @config:db.host
+    port: @config:db.port
 `
     
     result, err := comp.Compile(context.Background(), input)
@@ -583,7 +583,7 @@ func TestCompiler_ImportResolution(t *testing.T) {
     directory: '%s'
 
 derived:
-    value: @base:base:baseValue
+    value: @base:base.baseValue
 `, tmpDir)
     
     // Compile with file provider

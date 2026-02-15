@@ -6,8 +6,8 @@ source:
 infrastructure:
 	vpc:
 		cidr: '10.0.0.0/16'
-		region: @base:config:config.region
-	vpc_cidr_ref: @network:config:vpc.cidr
+		region: @base:config.config.region
+	vpc_cidr_ref: @network:config.vpc.cidr
 	security-groups:
 		web:
 			ingress:

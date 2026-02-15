@@ -45,7 +45,7 @@ func TestParse_InlineScalarValue(t *testing.T) {
 		},
 		{
 			name:     "reference expression scalar",
-			input:    `vpc_id: @network:config:vpc.id`,
+			input:    `vpc_id: @network:config.vpc.id`,
 			wantKey:  "vpc_id",
 			wantType: "*ast.ReferenceExpr",
 		},
@@ -144,7 +144,7 @@ environment: "production"
 database:
   host: "localhost"
   port: "5432"
-vpc_id: @network:config:vpc.id`
+vpc_id: @network:config.vpc.id`
 
 	result, err := parser.Parse(strings.NewReader(input), "test.csl")
 	if err != nil {

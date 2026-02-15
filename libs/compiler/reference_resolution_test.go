@@ -1651,7 +1651,7 @@ func TestResolveReference_PropertyMode_AllScalarTypes(t *testing.T) {
 // T080: Alias validation is tested in internal/resolver/resolver_test.go
 // (removed from this file as it tests the wrong architectural layer)
 
-// T082: Test invalid property path error (@base:config:invalid.path)
+// T082: Test invalid property path error (@base:config.invalid.path)
 func TestResolveReference_InvalidPropertyPath(t *testing.T) {
 	t.Helper()
 

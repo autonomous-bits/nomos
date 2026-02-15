@@ -124,7 +124,7 @@ func TestAST_ContainsStatements_AfterParsing(t *testing.T) {
 	type:  'folder'
 
 config:
-	ref: @folder:config:config.key
+	ref: @folder:config.config.key
 `
 	reader := strings.NewReader(input)
 
@@ -149,7 +149,7 @@ func TestAST_StatementsHaveCorrectTypes(t *testing.T) {
 	path:  '../config'
 
 config:
-	ref: @folder:config:config.key
+	ref: @folder:config.config.key
 `
 	reader := strings.NewReader(input)
 

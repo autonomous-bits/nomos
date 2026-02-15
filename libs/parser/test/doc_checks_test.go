@@ -33,7 +33,7 @@ func TestDocumentation_InlineReferenceContent(t *testing.T) {
 
 	t.Run("contains scalar example", func(t *testing.T) {
 		// Check for scalar value example
-		scalarExample := "vpc_cidr: @network:config:vpc.cidr"
+		scalarExample := "vpc_cidr: @network:config.vpc.cidr"
 		if !strings.Contains(readme, scalarExample) {
 			t.Errorf("README.md must contain scalar inline reference example: %q", scalarExample)
 		}

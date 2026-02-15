@@ -15,20 +15,20 @@ source:
 # Reference single properties
 application:
   name: 'my-app'
-  api_url: @common:config:api.url
-  api_key: @common:config:api.key
-  timeout: @common:config:api.timeout
+  api_url: @common:config.api.url
+  api_key: @common:config.api.key
+  timeout: @common:config.api.timeout
 
 # Reference deeply nested properties
 database:
-  host: @common:config:database.connection.host
-  port: @common:config:database.connection.port
-  name: @common:config:database.connection.database_name
+  host: @common:config.database.connection.host
+  port: @common:config.database.connection.port
+  name: @common:config.database.connection.database_name
   # Each reference resolves to a single scalar value
 
 # Mix literals and property references
 monitoring:
   enabled: 'true'
-  endpoint: @common:config:monitoring.endpoint
-  interval: @common:config:monitoring.interval
+  endpoint: @common:config.monitoring.endpoint
+  interval: @common:config.monitoring.interval
   custom_tag: 'production'

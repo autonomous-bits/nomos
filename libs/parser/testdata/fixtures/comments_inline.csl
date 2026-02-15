@@ -8,4 +8,4 @@ source:
 config-section:
 	key1: value1  # First key
 	key2: value2  # Second key
-	ref_example: @folder:config:config.key  # Reference example
+	ref_example: @folder:config.config.key  # Reference example

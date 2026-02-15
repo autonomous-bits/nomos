@@ -11,8 +11,8 @@ import (
 )
 
 // TestParseReferenceExpr_PropertyReference tests parsing of property reference syntax @alias:path.to.property.
-// T058: Test property reference @base:config:api.url parses correctly
-// T059: Test deeply nested property path @base:config:a.b.c.d.e
+// T058: Test property reference @base:config.api.url parses correctly
+// T059: Test deeply nested property path @base:config.a.b.c.d.e
 // T060: Test property reference in value context (assignment)
 func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 	tests := []struct {
@@ -24,7 +24,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 	}{
 		{
 			name:  "T058: single property reference",
-			input: "@base:config:api.url",
+			input: "@base:config.api.url",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "api", "url"},
@@ -33,7 +33,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T058: two-level property path",
-			input: "@shared:config:database.host",
+			input: "@shared:config.database.host",
 			want: &ast.ReferenceExpr{
 				Alias: "shared",
 				Path:  []string{"config", "database", "host"},
@@ -42,7 +42,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T058: simple scalar property",
-			input: "@base:app:version",
+			input: "@base:app.version",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"app", "version"},
@@ -51,7 +51,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T059: deeply nested property (3 levels)",
-			input: "@base:config:server.http.port",
+			input: "@base:config.server.http.port",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "server", "http", "port"},
@@ -60,7 +60,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T059: deeply nested property (4 levels)",
-			input: "@base:config:app.server.tls.cert",
+			input: "@base:config.app.server.tls.cert",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "app", "server", "tls", "cert"},
@@ -69,7 +69,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T059: deeply nested property (5 levels)",
-			input: "@base:config:a.b.c.d.e",
+			input: "@base:config.a.b.c.d.e",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "a", "b", "c", "d", "e"},
@@ -78,7 +78,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 		},
 		{
 			name:  "T059: ultra-deep nesting (7 levels)",
-			input: "@base:config:level1.level2.level3.level4.level5.level6.level7",
+			input: "@base:config.level1.level2.level3.level4.level5.level6.level7",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "level1", "level2", "level3", "level4", "level5", "level6", "level7"},

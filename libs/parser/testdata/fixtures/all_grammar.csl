@@ -6,8 +6,8 @@ source:
 section1:
 	key1: value1
 	key2: value2
-	ref1: @module1:config:config.value
-	ref2: @module2:config:data.key.nested
+	ref1: @module1:config.config.value
+	ref2: @module2:config.data.key.nested
 
 section2:
 	nested:

@@ -187,23 +187,23 @@ func TestParser_InlineReferencesStillWork(t *testing.T) {
 		{
 			name: "inline reference in scalar value",
 			input: `config:
-	host: reference:configs:database.host
+	host: @configs:database.host
 `,
 		},
 		{
 			name: "inline reference in nested section",
 			input: `database:
 	connection:
-		host: reference:network:vpc.endpoint
+		host: @network:vpc.endpoint
 		port: 5432
 `,
 		},
 		{
 			name: "multiple inline references in same section",
 			input: `app:
-	timeout: reference:settings:timeout
-	region: reference:infra:aws.region
-	endpoint: reference:services:api.url
+	timeout: @settings:timeout
+	region: @infra:aws.region
+	endpoint: @services:api.url
 `,
 		},
 	}

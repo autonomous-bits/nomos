@@ -82,9 +82,9 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 		},
 		{
 			name:    "T022: malformed - extra colon",
-			input:   "@base::.",
+			input:   "@base:config:host",
 			wantErr: true,
-			errMsg:  "empty segment",
+			errMsg:  "path must use '.' only",
 		},
 		{
 			name:    "T022: malformed - empty alias",
@@ -94,7 +94,7 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 		},
 		{
 			name:    "T022: malformed - empty path segment",
-			input:   "@base::database",
+			input:   "@base:.database",
 			wantErr: true,
 			errMsg:  "empty segment",
 		},
@@ -184,7 +184,7 @@ func TestParseReferenceExpr_PropertyPath(t *testing.T) {
 	}{
 		{
 			name:  "single property",
-			input: "@base:database:host",
+			input: "@base:database.host",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"database", "host"},
@@ -192,7 +192,7 @@ func TestParseReferenceExpr_PropertyPath(t *testing.T) {
 		},
 		{
 			name:  "nested property path",
-			input: "@base:database:pool.max_connections",
+			input: "@base:database.pool.max_connections",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"database", "pool", "max_connections"},
@@ -200,7 +200,7 @@ func TestParseReferenceExpr_PropertyPath(t *testing.T) {
 		},
 		{
 			name:  "deeply nested path",
-			input: "@base:config:server.http.tls.cert",
+			input: "@base:config.server.http.tls.cert",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "server", "http", "tls", "cert"},

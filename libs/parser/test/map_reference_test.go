@@ -23,7 +23,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 	}{
 		{
 			name:  "T042: single level map path",
-			input: "@base:config:database",
+			input: "@base:config.database",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "database"},
@@ -32,7 +32,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "T042: two-level map path",
-			input: "@base:config:app.server",
+			input: "@base:config.app.server",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "app", "server"},
@@ -41,7 +41,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "T042: deep nested map path (3+ segments)",
-			input: "@base:config:app.server.config",
+			input: "@base:config.app.server.config",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "app", "server", "config"},
@@ -50,7 +50,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "T043: verify Path field contains correct segments",
-			input: "@prod:settings:infra.network.vpc",
+			input: "@prod:settings.infra.network.vpc",
 			want: &ast.ReferenceExpr{
 				Alias: "prod",
 				Path:  []string{"settings", "infra", "network", "vpc"},
@@ -59,7 +59,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "T043: single segment path",
-			input: "@env:vars:database",
+			input: "@env:vars.database",
 			want: &ast.ReferenceExpr{
 				Alias: "env",
 				Path:  []string{"vars", "database"},
@@ -68,7 +68,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "T043: four-level nesting",
-			input: "@cfg:app:server.http.tls.certificates",
+			input: "@cfg:app.server.http.tls.certificates",
 			want: &ast.ReferenceExpr{
 				Alias: "cfg",
 				Path:  []string{"app", "server", "http", "tls", "certificates"},
@@ -77,7 +77,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "map path with hyphens",
-			input: "@base:config:app-settings.server-config",
+			input: "@base:config.app-settings.server-config",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "app-settings", "server-config"},
@@ -86,7 +86,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "map path with underscores",
-			input: "@base:config:app_config.server_settings",
+			input: "@base:config.app_config.server_settings",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "app_config", "server_settings"},
@@ -95,7 +95,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 		},
 		{
 			name:  "map path with numbers",
-			input: "@base:config:db1.pool2",
+			input: "@base:config.db1.pool2",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
 				Path:  []string{"config", "db1", "pool2"},
@@ -186,31 +186,31 @@ func TestParseReferenceExpr_MapReference_NestedLevels(t *testing.T) {
 	}{
 		{
 			name:       "1-level nesting",
-			input:      "@base:config:database",
+			input:      "@base:config.database",
 			wantPath:   []string{"config", "database"},
 			wantLevels: 2,
 		},
 		{
 			name:       "2-level nesting",
-			input:      "@base:config:app.server",
+			input:      "@base:config.app.server",
 			wantPath:   []string{"config", "app", "server"},
 			wantLevels: 3,
 		},
 		{
 			name:       "3-level nesting",
-			input:      "@base:config:app.server.config",
+			input:      "@base:config.app.server.config",
 			wantPath:   []string{"config", "app", "server", "config"},
 			wantLevels: 4,
 		},
 		{
 			name:       "4-level nesting",
-			input:      "@base:config:infra.network.vpc.subnets",
+			input:      "@base:config.infra.network.vpc.subnets",
 			wantPath:   []string{"config", "infra", "network", "vpc", "subnets"},
 			wantLevels: 5,
 		},
 		{
 			name:       "5-level nesting",
-			input:      "@base:config:app.server.http.tls.certificates",
+			input:      "@base:config.app.server.http.tls.certificates",
 			wantPath:   []string{"config", "app", "server", "http", "tls", "certificates"},
 			wantLevels: 6,
 		},

@@ -14,18 +14,18 @@ source:
 
 # Include only the database configuration map
 database:
-  @shared:config:database
+  @shared:config.database
   # Only database.* properties from the path are included
   # Other sections (e.g., network, logging) are excluded
 
 # Include a deeply nested map
 storage:
-  s3_config: @shared:config:storage.s3.production
+  s3_config: @shared:config.storage.s3.production
   # Only storage.s3.production.* properties are included
   # storage.s3.staging and other storage types are excluded
 
 # Multiple map references in one section
 infrastructure:
-  vpc: @shared:network:vpc.settings
-  security: @shared:network:security.groups
+  vpc: @shared:network.vpc.settings
+  security: @shared:network.security.groups
   # Each reference pulls in a specific map subset

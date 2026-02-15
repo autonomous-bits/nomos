@@ -370,9 +370,9 @@ nomos build -p testdata/configs --strict
 
 ### Using References with Path Navigation
 
-The CLI supports references to access specific values from provider sources using path segments and dot notation:
+The CLI supports references to access specific values from provider sources using dot-only paths:
 
-**Syntax:** `@alias:filename:path.to.value`
+**Syntax:** `@alias:filename.path.to.value`
 
 **Example source file with references:**
 
@@ -386,9 +386,9 @@ source:
 app:
   name: 'my-app'
   storage:
-    type: @configs:storage:config.storage.type
-    bucket: @configs:storage:config.buckets.primary
-    encryption: @configs:storage:config.encryption.algorithm
+    type: @configs:storage.config.storage.type
+    bucket: @configs:storage.config.buckets.primary
+    encryption: @configs:storage.config.encryption.algorithm
 ```
 
 Given `shared-configs/storage.csl`:
@@ -421,7 +421,7 @@ When compiled, the references resolve to:
 
 **Path Navigation Rules:**
 - First path segment after alias = filename (without `.csl` extension)
-- Remaining segments describe provider path; dots navigate within each segment
+- Remaining segments describe provider path (dot-separated)
 - Provider fetches the file, parses it, and navigates to the requested path
 
 See `libs/compiler/providers/file/README.md` for detailed provider documentation.

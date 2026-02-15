@@ -6,5 +6,5 @@ source:
 
 test:
   whole_prod: @configs:prod
-  prod_database: @configs:prod:database
-  prod_database_name: @configs:prod:database.name
+  prod_database: @configs:prod.database
+  prod_database_name: @configs:prod.database.name

@@ -6,7 +6,7 @@
 
 ## What Changed
 
-The Nomos configuration language has been simplified by removing the `import` statement and clarifying the at-reference (`@`) syntax to treat everything after the first `:` as the provider path:
+The Nomos configuration language has been simplified by removing the `import` statement and clarifying the at-reference (`@`) syntax to treat everything after the first `:` as a dot-only path:
 
 ### Removed
 
@@ -16,7 +16,7 @@ The Nomos configuration language has been simplified by removing the `import` st
 
 - **Path-based reference syntax**: `@alias:path` where:
   - `alias` = configured provider instance (from `source:` block)
-  - `path` = provider path segments separated by `:`, with dot/bracket navigation within segments
+  - `path` = dot/bracket path only (no additional `:`)
 - **Root references**: `@alias:.` includes all properties at the provider root
 - **Map references**: `@alias:path.to.map` includes a specific nested map
 - **Property references**: `@alias:path.to.property` resolves a single value
@@ -24,7 +24,7 @@ The Nomos configuration language has been simplified by removing the `import` st
 
 ### Changed
 
-- **Reference resolution**: Everything after the first `:` is passed to providers as path segments
+- **Reference resolution**: Everything after the first `:` is passed to providers as dot-separated path segments
 - **File provider behavior**: The first path segment is treated as the filename (without `.csl`), appended automatically
 - **Import/merge behavior**: Instead of `import:alias` followed by section redefinitions, use map references followed by property overrides
 
@@ -62,7 +62,7 @@ database:
 
 # Reference single value with a provider path
 database:
-  url: @configs:prod:database.url
+  url: @configs:prod.database.url
 ```
 
 ## Step-by-Step Migration
@@ -110,7 +110,7 @@ database:
 
 ### Step 3: Update Reference Paths for Provider Segments
 
-If the provider expects a leading path segment (for example, a filename for the file provider), add it after the alias using `:`.
+If the provider expects a leading path segment (for example, a filename for the file provider), add it as the first dot path segment.
 
 **Pattern**:
 ```
@@ -118,7 +118,7 @@ If the provider expects a leading path segment (for example, a filename for the 
 @alias:path.to.property
 
 # New (example with a leading provider path segment)
-@alias:segment:path.to.property
+@alias:segment.path.to.property
 ```
 
 **Example**:
@@ -129,7 +129,7 @@ database:
 
 # After
 database:
-  url: @configs:prod:database.url  # 'prod' is the first path segment (prod.csl)
+  url: @configs:prod.database.url  # 'prod' is the first path segment (prod.csl)
 ```
 
 ### Step 4: Remove File Extensions from Filename Segments
@@ -139,10 +139,10 @@ If using the file provider, remove `.csl` extensions from filename segments (the
 **Pattern**:
 ```
 # Old (if you had extensions)
-@alias:database.csl:property
+@alias:database.csl.property
 
 # New
-@alias:database:property
+@alias:database.property
 ```
 
 ### Step 5: Apply Deep Merge Overrides
@@ -234,8 +234,8 @@ app:
 **After**:
 ```csl
 app:
-  db_host: @configs:database:host
-  db_port: @configs:database:port
+  db_host: @configs:database.host
+  db_port: @configs:database.port
 ```
 
 **Note**: No longer need to import the entire path first - just reference the specific properties directly.
@@ -250,7 +250,7 @@ app:
 ```csl
 database:
   # Include only the connection pool configuration
-  pool: @configs:database:connection.pool
+  pool: @configs:database.connection.pool
 ```
 
 **Benefit**: More granular control - only include the specific map you need.
@@ -271,7 +271,7 @@ database:
 **After**:
 ```csl
 config:
-  @base:common:.
+  @base:common
   database:
     host: 'prod.example.com'
     # Only override what's different for prod
@@ -300,7 +300,7 @@ source:
   directory: '.'
 
 config:
-  @base:base:.
+  @base:base
   application:
     timeout: '60s'  # Override timeout for prod
     # name is preserved from base
@@ -326,7 +326,7 @@ source:
   directory: './data'
 
 database:
-  @configs:database:.  # Now this works
+  @configs:database  # Now this works
 ```
 
 ---
@@ -382,7 +382,7 @@ Error: circular reference detected: base:app → base:common → base:app
 **Problem**: Using map reference syntax with a path that resolves to a scalar.
 
 ```
-Error: expected map at configs:database:host, got string
+Error: expected map at configs:database.host, got string
 ```
 
 **Solution**: This is actually treated as forgiving behavior (FR-016) - the system will insert the scalar value. If you get this error, it means you're using an outdated compiler version.
@@ -391,11 +391,11 @@ Update to the latest version or change your reference to explicitly use property
 ```csl
 # Instead of trying to use map mode on a scalar
 database:
-  @configs:prod:database.host  # Property reference
+  @configs:prod.database.host  # Property reference
 
 # Use this syntax
 database:
-  host: @configs:prod:database.host
+  host: @configs:prod.database.host
 ```
 
 ---
@@ -419,7 +419,7 @@ database:
 **Example**:
 ```csl
 database:
-  @base:database:.
+  @base:database
   host: 'override'  # This isn't overriding?
 ```
 
@@ -427,14 +427,14 @@ database:
 ```csl
 # Correct
 database:
-  @base:database:.
+  @base:database
   host: 'override'  # Same level as other database properties
 ```
 
 Deep merge preserves structure, so if the base has `database.connection.host`, override at that same path:
 ```csl
 database:
-  @base:database:.
+  @base:database
   connection:
     host: 'override'  # Correct nesting to override connection.host
 ```
@@ -457,7 +457,7 @@ application:
 
 **Wrong**:
 ```csl
-@base:config:.  # Root level - imports everything at root
+@base:.  # Root level - imports everything at root
 application:
   name: 'myapp'
 ```
@@ -466,13 +466,13 @@ application:
 ```csl
 # If base:config has application.name, override it specifically
 application:
-  @base:config:application
+  @base:config.application
   name: 'myapp'
 ```
 
 Or use root reference and let override work:
 ```csl
-@base:config:.
+@base:.
 application:
   name: 'myapp'  # Overrides base application properties
 ```
@@ -484,7 +484,7 @@ application:
   - Root reference (`@alias:.`) - most common
   - Map reference (`@alias:path.to.map`) - for specific sections
   - Multiple property references - for individual values
-- [ ] Convert all two-part references to three-part syntax
+- [ ] Convert multi-segment references to dot-only paths
 - [ ] Remove `.csl` extensions from filename path segments
 - [ ] Ensure overrides are placed at correct indentation levels
 - [ ] Test compilation with `nomos compile`

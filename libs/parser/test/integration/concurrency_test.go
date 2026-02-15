@@ -41,7 +41,7 @@ func testConcurrentParses(t *testing.T, numGoroutines int, testName string) {
 database:
   host: localhost
   port: 5432
-  connection: @base:config:config.database
+  connection: @base:config.config.database
 `
 
 	// Create a wait group

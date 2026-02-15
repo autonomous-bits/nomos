@@ -469,6 +469,26 @@
 			],
 			"isBackground": false,
 			"group": "test"
+		},
+		{
+			"label": "Lint",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"lint"
+			],
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "Race Tests",
+			"type": "shell",
+			"command": "make",
+			"args": [
+				"test-race"
+			],
+			"isBackground": false,
+			"group": "test"
 		}
 	]
 }

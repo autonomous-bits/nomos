@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Migration: Use source declarations with @-references instead of import statements
 - **BREAKING CHANGE: ReferenceExpr structure updated** (Feature 006-expand-at-references Phase 2)
   - Removed `Resource` field from `ReferenceExpr`; provider path segments now live in `Path`
-  - Example: `@network:vpc:cidr` where path segments are `["vpc", "cidr"]`
+  - Example: `@network:vpc.cidr` where path segments are `["vpc", "cidr"]`
   - Rationale: Support path-based reference syntax `@alias:path`
 
 ### Added

@@ -1,5 +1,5 @@
 config:
-	vpc_cidr: @base:config:config.vpc.cidr
-	subnet: @network:config:subnet.public.az1
-	security: @security:config:rules.ingress.http
-	value: @simple:config:value
+	vpc_cidr: @base:config.config.vpc.cidr
+	subnet: @network:config.subnet.public.az1
+	security: @security:config.rules.ingress.http
+	value: @simple:config.value

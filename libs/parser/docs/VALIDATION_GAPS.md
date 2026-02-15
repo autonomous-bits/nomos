@@ -132,7 +132,7 @@ unknown-statement:
    - Keys must be valid identifiers (non-empty, valid start character)
 
 6. **Reference syntax:**
-   - Inline references: `@alias:path` (colon-separated segments)
+   - Inline references: `@alias:path` (dot/bracket path only, no additional `:`)
    - Top-level `reference:` statements are **rejected** with migration hint
 
 ### ❌ NOT Enforced by Parser (Deferred to Compiler):

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING CHANGE: Path-based reference syntax** (Feature 006-expand-at-references)
-  - References now treat everything after the first `:` as provider path segments: `@alias:path`
+  - References now treat everything after the first `:` as a dot-only path (no additional `:`): `@alias:path`
   - Root references use `@alias:.` to include all properties at the provider root
   - Map references: `@alias:path.to.map` includes specific nested map
   - Property references: `@alias:path.to.property` resolves single value

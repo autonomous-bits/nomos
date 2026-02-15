@@ -141,7 +141,7 @@ source:
   version: '0.2.0'
 
 app:
-  name: @configs:app:name  # Alias must match
+  name: @configs:app.name  # Alias must match
 ```
 
 #### Verify Reference Path Exists
@@ -190,7 +190,7 @@ import:base:./base.csl
 
 # New (include base config via map reference)
 config:
-  @base:base:.
+  @base:base
 ```
 
 #### Detect Reference Cycles
@@ -248,7 +248,7 @@ config.csl:15:3: SyntaxError: expected ':' after key
   app: @configs.app.name
    
   # ✅ Correct
-  app: @configs:app:name
+  app: @configs:app.name
    ```
 
 3. **Empty source alias:**
@@ -322,7 +322,7 @@ source:
   directory: '.'
 
 config:
-  @base:base:.
+  @base:base
   database:
     host: prod-server  # Overrides localhost
     # port: 5432 preserved from base

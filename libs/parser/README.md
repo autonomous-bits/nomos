@@ -58,14 +58,14 @@ source:
 **Commenting references:**
 ```csl
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr  # Reference from network source
+  vpc_cidr: @network:config.vpc.cidr  # Reference from network source
 ```
 
 **Commenting sections:**
 ```csl
 # Application infrastructure settings
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr  # Reference from network source
+  vpc_cidr: @network:config.vpc.cidr  # Reference from network source
   region: 'us-west-2'                   # AWS region
   # availability_zones: 'us-west-2a,us-west-2b'  # Disabled for now
 ```
@@ -216,8 +216,8 @@ source:
   directory: ./network-config
 
 app:
-  primaryIP: @network:config:IPs[0]
-  backupIP: @network:config:IPs[1]
+  primaryIP: @network:config.IPs[0]
+  backupIP: @network:config.IPs[1]
 ```
 
 Lists can also contain references:
@@ -240,9 +240,9 @@ Use square brackets to select list elements in reference paths. Indexes are zero
 
 ```csl
 app:
-  firstIP: @network:config:IPs[0]
-  firstSubnetMask: @network:config:subnets[0].mask
-  matrixValue: @network:config:matrix[1][2]
+  firstIP: @network:config.IPs[0]
+  firstSubnetMask: @network:config.subnets[0].mask
+  matrixValue: @network:config.matrix[1][2]
 ```
 ## Error handling
 
@@ -430,7 +430,7 @@ The inline reference syntax follows the pattern: `@alias:path`
 
 - **`@`**: Symbol indicating a reference expression
 - **`alias`**: The source alias to reference
-- **`path`**: Provider path segments separated by `:` and navigated with dots/brackets within segments
+- **`path`**: Dot/bracket path only (no additional `:`)
 
 ### Examples
 
@@ -438,7 +438,7 @@ The inline reference syntax follows the pattern: `@alias:path`
 
 ```csl
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr
+  vpc_cidr: @network:config.vpc.cidr
   region: 'us-west-2'
 ```
 
@@ -449,10 +449,10 @@ The `vpc_cidr` value is an inline reference to `vpc.cidr` from the `network` sou
 ```csl
 servers:
   web:
-    ip: @network:config:web.ip
+    ip: @network:config.web.ip
     port: '8080'
   api:
-    ip: @network:config:api.ip
+    ip: @network:config.api.ip
     port: '3000'
 ```
 
@@ -463,10 +463,10 @@ Multiple inline references can be used within the same section, allowing dynamic
 ```csl
 databases:
   primary:
-    host: @infra:config:db.primary.host
+    host: @infra:config.db.primary.host
     port: '5432'
   replica:
-    host: @infra:config:db.replica.host
+    host: @infra:config.db.replica.host
     port: '5433'
 ```
 
@@ -477,9 +477,9 @@ Inline references work seamlessly in deeply nested structures.
 ```csl
 application:
   name: 'my-app'
-  database_url: @config:config:database.url
+  database_url: @config:config.database.url
   debug: 'false'
-  api_key: @secrets:config:api.key
+  api_key: @secrets:config.api.key
 ```
 
 You can freely mix string literals and inline references within the same section.
@@ -524,7 +524,7 @@ import (
 func main() {
     source := `
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr
+  vpc_cidr: @network:config.vpc.cidr
   region: 'us-west-2'
 `
     
@@ -579,7 +579,7 @@ infrastructure:
 New inline syntax (required):
 ```csl
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr
+  vpc_cidr: @network:config.vpc.cidr
 ```
 
 For migration assistance and detailed guidance, see:
@@ -611,7 +611,7 @@ type SourceSpan struct {
 
 **Example:**
 
-For the input line `"  key: @net:config:日本"` (where 日本 is 6 bytes):
+For the input line `"  key: @net:config.日本"` (where 日本 is 6 bytes):
 - StartCol = 8 (first byte of "@")
 - EndCol = 25 (last byte of "本")
 - Token length = `EndCol - StartCol + 1 = 18 bytes`
@@ -622,10 +622,10 @@ For the input line `"  key: @net:config:日本"` (where 日本 is 6 bytes):
 
 ```csl
 section:
-  cidr: @network:config:vpc.cidr
+  cidr: @network:config.vpc.cidr
 ```
 
-The `ReferenceExpr` span for this value covers columns 9-32 (assuming 2-space indent), encompassing the complete text `"@network:config:vpc.cidr"` (24 bytes).
+The `ReferenceExpr` span for this value covers columns 9-32 (assuming 2-space indent), encompassing the complete text `"@network:config.vpc.cidr"` (24 bytes).
 
 This precision enables:
 - Accurate error reporting with caret positioning
@@ -679,7 +679,7 @@ ReferenceStmt = "reference" ":" Alias ":" Path .   // deprecated (replaced by @ 
 
 Concrete token forms (as used in scripts):
 - `@alias:path.to.property`
-- `@alias:segment:path.to.property`
+- `@alias:segment.path.to.property`
 
 Example configuration block:
 
@@ -692,7 +692,7 @@ source:
 config-section-name:
 	key1: value1
 	key2: value2
-  ref_example: @folder:config:config.key
+  ref_example: @folder:config.config.key
 ```
 
 Inline reference example (recommended):
@@ -700,7 +700,7 @@ Inline reference example (recommended):
 ```
 infrastructure:
   vpc:
-        cidr: @network:config:vpc.cidr   # reference value
+        cidr: @network:config.vpc.cidr   # reference value
         name: 'prod-vpc'                   # string value
 ```
 
@@ -762,8 +762,8 @@ source:
   path: './network'
 
 infrastructure:
-  vpc_cidr: @network:config:vpc.cidr
-  subnet_mask: @network:config:subnet.mask
+  vpc_cidr: @network:config.vpc.cidr
+  subnet_mask: @network:config.subnet.mask
 ```
 
 #### Why This Change?
@@ -818,8 +818,8 @@ source:
   type: 'folder'
 
 application:
-  db_host: @config:config:database.host
-  db_port: @config:config:database.port
+  db_host: @config:config.database.host
+  db_port: @config:config.database.port
 ```
 
 #### Error Messages

@@ -4,4 +4,4 @@ message: "Contact @support for help"
 url: "https://example.com/@user/profile"
 
 # @ as reference (not in quotes)
-actual_ref: @configs:config:email.from
+actual_ref: @configs:config.email.from

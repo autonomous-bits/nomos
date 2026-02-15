@@ -54,7 +54,7 @@ Demonstrates **map references** to include specific nested maps without unrelate
 **Pattern**: Granular imports of configuration sections
 ```csl
 database:
-  @shared:config:database
+  @shared:config.database
   # Only database.* properties included, not network, logging, etc.
 ```
 
@@ -64,8 +64,8 @@ Demonstrates **property references** to reference single scalar values.
 **Pattern**: Precise value reuse
 ```csl
 app:
-  api_url: @common:config:api.url
-  api_key: @common:config:api.key
+  api_url: @common:config.api.url
+  api_key: @common:config.api.key
 ```
 
 ### example-layered-config/
@@ -93,7 +93,7 @@ Nomos uses a single reference syntax for all references:
 ```
 
 - **`alias`**: Provider instance alias (configured in `source:` block)
-- **`path`**: Colon-separated segments, with dot/bracket navigation within a segment
+- **`path`**: Dot/bracket path only (no additional `:`)
 
 ### Three Reference Modes
 
@@ -147,7 +147,7 @@ database:
 When using the file provider:
 - The first path segment is treated as the filename without the `.csl` extension
 - The provider automatically appends `.csl` when resolving files
-- Example: `@configs:database:property` resolves to `database.csl` in the configured directory
+- Example: `@configs:database.property` resolves to `database.csl` in the configured directory
 
 ```csl
 source:
@@ -157,7 +157,7 @@ source:
 
 # References 'database.csl' in './data/' directory
 app:
-  db_host: @configs:database:host
+  db_host: @configs:database.host
 ```
 
 ## Running Examples

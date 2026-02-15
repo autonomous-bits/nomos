@@ -262,7 +262,7 @@ database:
 **Inline References** - Value-level references:
 ```
 app:
-  db_host: @base:database:host
+  db_host: @base:database.host
 ```
 
 **List/Array Syntax** - YAML-style list support:
@@ -291,7 +291,7 @@ users:
     role: user
 
 # Lists in references
-backup_servers: @aws:database:replicas
+backup_servers: @aws:database.replicas
 ```
 
 **List Parsing Rules**:

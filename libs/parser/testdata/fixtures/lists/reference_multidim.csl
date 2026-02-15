@@ -7,5 +7,5 @@ matrix:
     - d
 
 refs:
-  first: @base:config:matrix[0][1]
-  second: @base:config:matrix[1][0]
+  first: @base:config.matrix[0][1]
+  second: @base:config.matrix[1][0]

@@ -37,7 +37,7 @@ func TestIntegration_PropertyReference_EndToEnd(t *testing.T) {
 	directory: '.'
 
 config:
-	api_url: @base:base:api.url
+	api_url: @base:base.api.url
 `,
 			wantErr: false,
 		},
@@ -54,7 +54,7 @@ config:
 	directory: '.'
 
 config:
-	db_host: @base:base:database.host
+	db_host: @base:base.database.host
 `,
 			wantErr: false,
 		},
@@ -74,7 +74,7 @@ config:
 	directory: '.'
 
 config:
-	tls_cert: @base:base:app.server.http.tls.cert
+	tls_cert: @base:base.app.server.http.tls.cert
 `,
 			wantErr: false,
 		},
@@ -90,7 +90,7 @@ config:
 	directory: '.'
 
 config:
-	invalid: @base:base:database.nonexistent
+	invalid: @base:base.database.nonexistent
 `,
 			wantErr:  true,
 			errMatch: "not found",
@@ -158,7 +158,7 @@ func TestIntegration_PropertyReference_StringInterpolation(t *testing.T) {
 	directory: '.'
 
 config:
-	api_url: '@base:base:api.protocol://@base:base:api.host:@base:base:api.port'
+	api_url: '@base:base.api.protocol.//@base:base.api.host.@base:base.api.port'
 `
 
 	tmpDir := t.TempDir()
@@ -184,8 +184,8 @@ config:
 		t.Fatal("expected string interpolation to fail until supported")
 	}
 
-	if !contains(result.Error().Error(), "unresolved reference") {
-		t.Errorf("error = %q, want substring %q", result.Error().Error(), "unresolved reference")
+	if !contains(result.Error().Error(), "path must use '.' only") {
+		t.Errorf("error = %q, want substring %q", result.Error().Error(), "path must use '.' only")
 	}
 }
 
@@ -218,18 +218,18 @@ server:
 	directory: '.'
 
 application:
-	api_url: @base:base:api.url
-	db_host: @base:base:database.host
-	server_port: @base:base:server.port
+	api_url: @base:base.api.url
+	db_host: @base:base.database.host
+	server_port: @base:base.server.port
 
 config:
-	database_pool: @base:base:database.pool
+	database_pool: @base:base.database.pool
 
 database:
-	host: @base:base:database.host
+	host: @base:base.database.host
 	port: 5433
 	ssl: true
-	pool: @base:base:database.pool
+	pool: @base:base.database.pool
 `
 
 	tmpDir := t.TempDir()

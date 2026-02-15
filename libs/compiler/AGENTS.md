@@ -142,7 +142,7 @@ registry.Register("file", ProviderTypeInfo{
 
 **Path Navigation:**
 ```
-@configs:storage:config.storage.type
+@configs:storage.config.storage.type
 → Provider path segments: ["storage", "config", "storage", "type"]
 ```
 

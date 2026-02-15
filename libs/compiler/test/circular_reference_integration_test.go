@@ -32,7 +32,7 @@ func TestIntegration_CircularReference_DirectCycle(t *testing.T) {
 	directory: '.'
 
 # Direct self-reference creates A→A cycle
-config: @base:app:.`
+config: @base:app`
 
 	appPath := filepath.Join(tmpDir, "app.csl")
 	if err := os.WriteFile(appPath, []byte(appContent), 0644); err != nil {
@@ -68,7 +68,7 @@ func TestIntegration_CircularReference_TwoFilesCycle(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-base_config: @base:common:.
+base_config: @base:common
 `
 	// common.csl references app.csl - creates cycle
 	commonContent := `source:
@@ -76,7 +76,7 @@ base_config: @base:common:.
 	type: 'file'
 	directory: '.'
 
-shared: @base:app:.
+shared: @base:app
 `
 
 	appPath := filepath.Join(tmpDir, "app.csl")
@@ -125,21 +125,21 @@ func TestIntegration_CircularReference_ThreeFilesCycle(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-config: @base:settings:.
+config: @base:settings
 `,
 		"settings.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-shared: @base:common:.
+shared: @base:common
 `,
 		"common.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-base: @base:app:.
+base: @base:app
 `,
 	}
 
@@ -186,7 +186,7 @@ func TestIntegration_CircularReference_PropertyMode(t *testing.T) {
 	directory: '.'
 
 database:
-	host: @base:common:config.host
+	host: @base:common.config.host
 `,
 		"common.csl": `source:
 	alias: 'base'
@@ -194,7 +194,7 @@ database:
 	directory: '.'
 
 config:
-	host: @base:app:database.host
+	host: @base:app.database.host
 `,
 	}
 
@@ -231,7 +231,7 @@ func TestIntegration_CircularReference_MapMode(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-server: @base:common:infrastructure.network
+server: @base:common.infrastructure.network
 `,
 		"common.csl": `source:
 	alias: 'base'
@@ -239,7 +239,7 @@ server: @base:common:infrastructure.network
 	directory: '.'
 
 infrastructure:
-	network: @base:app:server
+	network: @base:app.server
 `,
 	}
 
@@ -277,21 +277,21 @@ func TestIntegration_CircularReference_ErrorMessageFormat(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-config: @base:beta:.
+config: @base:beta
 `,
 		"beta.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-config: @base:gamma:.
+config: @base:gamma
 `,
 		"gamma.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-config: @base:alpha:.
+config: @base:alpha
 `,
 	}
 
@@ -336,28 +336,28 @@ func TestIntegration_CircularReference_PerformanceCheck(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-config: @base:level1:.
+config: @base:level1
 `,
 		"level1.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-config: @base:level2:.
+config: @base:level2
 `,
 		"level2.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-config: @base:level3:.
+config: @base:level3
 `,
 		"level3.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-config: @base:app:.
+config: @base:app
 `,
 	}
 
@@ -399,14 +399,14 @@ func TestIntegration_CircularReference_NoFalsePositives(t *testing.T) {
 	type: 'file'
 	directory: '.'
 
-config: @base:common:.
+config: @base:common
 `,
 		"common.csl": `source:
 	alias: 'base'
 	type: 'file'
 	directory: '.'
 
-shared: @base:defaults:.
+shared: @base:defaults
 
 local:
 	value: 'common-local'
