@@ -314,9 +314,9 @@ func TestResolvedReference_MapMode(t *testing.T) {
 	resolved := ResolvedReference{
 		Mode:  MapMode,
 		Value: nil,
-		Entries: map[string]ast.Expr{
-			"host": &ast.StringLiteral{Value: "localhost"},
-			"port": &ast.StringLiteral{Value: "5432"},
+		Entries: []ast.MapEntry{
+			{Key: "host", Value: &ast.StringLiteral{Value: "localhost"}},
+			{Key: "port", Value: &ast.StringLiteral{Value: "5432"}},
 		},
 	}
 
@@ -342,9 +342,9 @@ func TestResolvedReference_RootMode(t *testing.T) {
 	resolved := ResolvedReference{
 		Mode:  RootMode,
 		Value: nil,
-		Entries: map[string]ast.Expr{
-			"host": &ast.StringLiteral{Value: "prod.example.com"},
-			"port": &ast.StringLiteral{Value: "5432"},
+		Entries: []ast.MapEntry{
+			{Key: "host", Value: &ast.StringLiteral{Value: "prod.example.com"}},
+			{Key: "port", Value: &ast.StringLiteral{Value: "5432"}},
 		},
 	}
 
@@ -372,10 +372,10 @@ func TestDetermineReferenceMode_RootReference(t *testing.T) {
 		wantMode     ReferenceMode
 	}{
 		{
-			name: "empty path indicates root mode",
+			name: "wildcard path indicates root mode",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{}, // Empty = root
+				Path:  []string{"*"},
 			},
 			resourceData: map[string]any{
 				"host": "localhost",
@@ -451,7 +451,7 @@ func TestResolveReference_RootMode(t *testing.T) {
 			name: "root reference includes all properties",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{}, // Root reference
+				Path:  []string{"*"},
 			},
 			resourceData: map[string]any{
 				"host": "prod.example.com",
@@ -469,7 +469,7 @@ func TestResolveReference_RootMode(t *testing.T) {
 			name: "root reference with nested data",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			resourceData: map[string]any{
 				"server": map[string]any{
@@ -497,7 +497,7 @@ func TestResolveReference_RootMode(t *testing.T) {
 			name: "root reference on empty data",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			resourceData: map[string]any{},
 			wantEntries:  map[string]any{},
@@ -597,6 +597,20 @@ func TestDetermineReferenceMode_MapMode(t *testing.T) {
 							"retries": 3,
 						},
 					},
+				},
+			},
+			wantMode: MapMode,
+		},
+		{
+			name: "wildcard suffix indicates map mode",
+			ref: &ast.ReferenceExpr{
+				Alias: "base",
+				Path:  []string{"database", "*"},
+			},
+			resourceData: map[string]any{
+				"database": map[string]any{
+					"host": "localhost",
+					"port": 5432,
 				},
 			},
 			wantMode: MapMode,
@@ -808,6 +822,24 @@ func TestResolveReference_MapMode(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "map reference with wildcard suffix",
+			ref: &ast.ReferenceExpr{
+				Alias: "base",
+				Path:  []string{"database", "*"},
+			},
+			resourceData: map[string]any{
+				"database": map[string]any{
+					"host": "localhost",
+					"port": 5432,
+				},
+				"other": map[string]any{
+					"value": "should-not-be-included",
+				},
+			},
+			wantKeys: []string{"host", "port"},
+			wantErr:  false,
+		},
+		{
 			name: "two-level map reference",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
@@ -883,7 +915,7 @@ func TestResolveReference_MapMode(t *testing.T) {
 			}
 
 			for _, key := range tt.wantKeys {
-				if _, exists := resolved.Entries[key]; !exists {
+				if _, exists := findEntry(resolved.Entries, key); !exists {
 					t.Errorf("expected key %q in Entries, not found", key)
 				}
 			}
@@ -1069,9 +1101,12 @@ func TestResolveReference_MapMode_WithMerge(t *testing.T) {
 			}
 
 			// Verify Entries contain AST expressions
-			for key, expr := range resolved.Entries {
+			for _, entry := range resolved.Entries {
+				key := entry.Key
+				expr := entry.Value
 				if expr == nil {
 					t.Errorf("Entry[%q] is nil, expected AST expression", key)
+					continue
 				}
 
 				// Verify AST expressions have correct types
@@ -1800,7 +1835,7 @@ func TestResolveReference_EmptyResource(t *testing.T) {
 			name: "root reference on empty resource",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{}, // Root reference
+				Path:  []string{"*"},
 				SourceSpan: ast.SourceSpan{
 					Filename:  "test.csl",
 					StartLine: 10,
@@ -1827,7 +1862,7 @@ func TestResolveReference_EmptyResource(t *testing.T) {
 			name: "empty resource with metadata still valid",
 			ref: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			resourceData: map[string]any{}, // Empty but valid
 			wantMode:     RootMode,
@@ -1911,12 +1946,24 @@ func deepEqualany(a, b any) bool {
 	}
 }
 
-func mapKeys(m map[string]ast.Expr) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
+func mapKeys(entries []ast.MapEntry) []string {
+	keys := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Key == "" {
+			continue
+		}
+		keys = append(keys, entry.Key)
 	}
 	return keys
+}
+
+func findEntry(entries []ast.MapEntry, key string) (ast.MapEntry, bool) {
+	for _, entry := range entries {
+		if entry.Key == key {
+			return entry, true
+		}
+	}
+	return ast.MapEntry{}, false
 }
 
 func toString(v any) string {
@@ -2061,14 +2108,17 @@ func TestValueToASTExpr_NestedMap(t *testing.T) {
 	}
 
 	// Check database entry is also a map
-	dbExpr, exists := mapExpr.Entries["database"]
+	dbEntry, exists := findEntry(mapExpr.Entries, "database")
 	if !exists {
 		t.Fatal("expected 'database' entry")
 	}
+	if dbEntry.Value == nil {
+		t.Fatal("expected 'database' entry value")
+	}
 
-	dbMap, ok := dbExpr.(*ast.MapExpr)
+	dbMap, ok := dbEntry.Value.(*ast.MapExpr)
 	if !ok {
-		t.Errorf("expected database to be *ast.MapExpr, got %T", dbExpr)
+		t.Errorf("expected database to be *ast.MapExpr, got %T", dbEntry.Value)
 	}
 
 	if ok && len(dbMap.Entries) != 2 {
@@ -2238,7 +2288,7 @@ func TestConvertToASTExprs(t *testing.T) {
 			}
 
 			for _, key := range tt.wantKeys {
-				if _, exists := result[key]; !exists {
+				if _, exists := findEntry(result, key); !exists {
 					t.Errorf("expected key %q in result, not found", key)
 				}
 			}

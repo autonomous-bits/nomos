@@ -17,7 +17,8 @@ The Nomos configuration language has been simplified by removing the `import` st
 - **Path-based reference syntax**: `@alias:path` where:
   - `alias` = configured provider instance (from `source:` block)
   - `path` = dot/bracket path only (no additional `:`)
-- **Root references**: `@alias:.` includes all properties at the provider root
+- **Root references**: `@alias:*` includes all properties at the provider root
+- **Wildcard placement**: `*` is only allowed as the final path segment (e.g., `@alias:path.*`)
 - **Map references**: `@alias:path.to.map` includes a specific nested map
 - **Property references**: `@alias:path.to.property` resolves a single value
 - **Deep merge with overrides**: Properties defined after a reference override using deep merge semantics
@@ -457,7 +458,7 @@ application:
 
 **Wrong**:
 ```csl
-@base:.  # Root level - imports everything at root
+@base:*  # Root level - imports everything at root
 application:
   name: 'myapp'
 ```
@@ -472,7 +473,7 @@ application:
 
 Or use root reference and let override work:
 ```csl
-@base:.
+@base:*
 application:
   name: 'myapp'  # Overrides base application properties
 ```
@@ -481,7 +482,7 @@ application:
 
 - [ ] Identify all files using `import:` statements
 - [ ] For each `import:`, determine if it should be:
-  - Root reference (`@alias:.`) - most common
+  - Root reference (`@alias:*`) - most common
   - Map reference (`@alias:path.to.map`) - for specific sections
   - Multiple property references - for individual values
 - [ ] Convert multi-segment references to dot-only paths

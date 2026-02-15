@@ -3,20 +3,20 @@
 source:
   alias: 'configs' # Alias for this source
   type:  'autonomous-bits/nomos-provider-file'
-  version: '0.3.1'
+  version: '0.3.3'
   directory: './data'
 
 # Second source configuration
 source:
   alias: 'configs2'
   type:  'autonomous-bits/nomos-provider-file'
-  version: '0.3.1'
+  version: '0.3.3'
   directory: './data2'
 
 source:
   alias: 'configs3'
   type:  'autonomous-bits/nomos-provider-file'
-  version: '0.3.1'
+  version: '0.3.3'
   directory: './data3'
 
 # Second source configuration
@@ -42,3 +42,4 @@ app:
       keyB: valueB
 log: @env:LOGNAME
 
+@configs3:*

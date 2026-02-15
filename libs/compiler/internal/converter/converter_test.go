@@ -39,9 +39,9 @@ func TestASTToData_SimpleSectionWithStringLiterals(t *testing.T) {
 		Statements: []ast.Stmt{
 			&ast.SectionDecl{
 				Name: "config",
-				Entries: map[string]ast.Expr{
-					"host": &ast.StringLiteral{Value: "localhost"},
-					"port": &ast.StringLiteral{Value: "8080"},
+				Entries: []ast.MapEntry{
+					{Key: "host", Value: &ast.StringLiteral{Value: "localhost"}},
+					{Key: "port", Value: &ast.StringLiteral{Value: "8080"}},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -71,15 +71,15 @@ func TestASTToData_MultipleSections(t *testing.T) {
 		Statements: []ast.Stmt{
 			&ast.SectionDecl{
 				Name: "database",
-				Entries: map[string]ast.Expr{
-					"name": &ast.StringLiteral{Value: "mydb"},
+				Entries: []ast.MapEntry{
+					{Key: "name", Value: &ast.StringLiteral{Value: "mydb"}},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
 			&ast.SectionDecl{
 				Name: "server",
-				Entries: map[string]ast.Expr{
-					"port": &ast.StringLiteral{Value: "9000"},
+				Entries: []ast.MapEntry{
+					{Key: "port", Value: &ast.StringLiteral{Value: "9000"}},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -117,8 +117,8 @@ func TestASTToData_WithReferenceExpr(t *testing.T) {
 		Statements: []ast.Stmt{
 			&ast.SectionDecl{
 				Name: "config",
-				Entries: map[string]ast.Expr{
-					"cidr": refExpr,
+				Entries: []ast.MapEntry{
+					{Key: "cidr", Value: refExpr},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -150,8 +150,8 @@ func TestASTToData_ListExprConversion(t *testing.T) {
 			&ast.StringLiteral{Value: "web01"},
 			refExpr,
 			&ast.MapExpr{
-				Entries: map[string]ast.Expr{
-					"port": &ast.StringLiteral{Value: "8080"},
+				Entries: []ast.MapEntry{
+					{Key: "port", Value: &ast.StringLiteral{Value: "8080"}},
 				},
 			},
 			&ast.ListExpr{
@@ -167,8 +167,8 @@ func TestASTToData_ListExprConversion(t *testing.T) {
 		Statements: []ast.Stmt{
 			&ast.SectionDecl{
 				Name: "servers",
-				Entries: map[string]ast.Expr{
-					"targets": listExpr,
+				Entries: []ast.MapEntry{
+					{Key: "targets", Value: listExpr},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -221,8 +221,8 @@ func TestASTToData_ListExprWithPathAndIdent(t *testing.T) {
 		Statements: []ast.Stmt{
 			&ast.SectionDecl{
 				Name: "config",
-				Entries: map[string]ast.Expr{
-					"items": listExpr,
+				Entries: []ast.MapEntry{
+					{Key: "items", Value: listExpr},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -264,8 +264,8 @@ func TestASTToData_IgnoresSourceStatements(t *testing.T) {
 			},
 			&ast.SectionDecl{
 				Name: "config",
-				Entries: map[string]ast.Expr{
-					"key": &ast.StringLiteral{Value: "value"},
+				Entries: []ast.MapEntry{
+					{Key: "key", Value: &ast.StringLiteral{Value: "value"}},
 				},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
@@ -287,5 +287,151 @@ func TestASTToData_IgnoresSourceStatements(t *testing.T) {
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("ASTToData() = %v, want %v", result, expected)
+	}
+}
+
+func TestASTToData_SpreadStatement_WildcardLogic(t *testing.T) {
+	tests := []struct {
+		name       string
+		stmt       *ast.SpreadStmt
+		wantSpread bool
+	}{
+		{
+			name: "Reference with wildcard should be spread",
+			stmt: &ast.SpreadStmt{
+				Reference: &ast.ReferenceExpr{
+					Alias: "base",
+					Path:  []string{"*"},
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+			wantSpread: true,
+		},
+		{
+			name: "Reference without wildcard should NOT be spread",
+			stmt: &ast.SpreadStmt{
+				Reference: &ast.ReferenceExpr{
+					Alias: "base",
+					Path:  []string{"some", "path"},
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+			wantSpread: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tree := &ast.AST{
+				Statements: []ast.Stmt{tt.stmt},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			}
+
+			result, err := ASTToData(tree)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			orderedEntries := result[OrderedEntriesKey]
+			if orderedEntries == nil {
+				t.Fatal("expected OrderedEntriesKey to be present")
+			}
+
+			entries, ok := orderedEntries.([]OrderedEntry)
+			if !ok {
+				t.Fatalf("expected []OrderedEntry, got %T", orderedEntries)
+			}
+
+			if len(entries) != 1 {
+				t.Fatalf("expected 1 entry, got %d", len(entries))
+			}
+
+			if entries[0].Spread != tt.wantSpread {
+				t.Errorf("Spread = %v, want %v", entries[0].Spread, tt.wantSpread)
+			}
+		})
+	}
+}
+
+func TestASTToData_MapEntry_WildcardLogic(t *testing.T) {
+	tests := []struct {
+		name       string
+		entry      ast.MapEntry
+		wantSpread bool
+	}{
+		{
+			name: "Nested reference with wildcard should be spread",
+			entry: ast.MapEntry{
+				Spread: true,
+				Value: &ast.ReferenceExpr{
+					Alias: "base",
+					Path:  []string{"*"},
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+			wantSpread: true,
+		},
+		{
+			name: "Nested reference without wildcard should NOT be spread",
+			entry: ast.MapEntry{
+				Spread: true,
+				Value: &ast.ReferenceExpr{
+					Alias: "base",
+					Path:  []string{"some", "path"},
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			},
+			wantSpread: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tree := &ast.AST{
+				Statements: []ast.Stmt{
+					&ast.SectionDecl{
+						Name: "config",
+						Entries: []ast.MapEntry{
+							tt.entry,
+						},
+						SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+					},
+				},
+				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
+			}
+
+			result, err := ASTToData(tree)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			configMap, ok := result["config"].(map[string]any)
+			if !ok {
+				t.Fatalf("expected config to be map[string]any, got %T", result["config"])
+			}
+
+			if tt.wantSpread {
+				orderedEntries := configMap[OrderedEntriesKey]
+				if orderedEntries == nil {
+					t.Logf("configMap keys: %v", reflect.ValueOf(configMap).MapKeys())
+					t.Fatal("expected OrderedEntriesKey to be present for spread")
+				}
+				entries, ok := orderedEntries.([]OrderedEntry)
+				if !ok {
+					t.Fatalf("expected []OrderedEntry, got %T", orderedEntries)
+				}
+				if entries[0].Spread != true {
+					t.Errorf("expected Spread=true, got %v", entries[0].Spread)
+				}
+			} else {
+				// If not spread, it should be under empty key
+				if _, ok := configMap[""]; !ok {
+					t.Fatal("expected empty key to be present for non-spread")
+				}
+				if _, ok := configMap[OrderedEntriesKey]; ok {
+					t.Error("expected OrderedEntriesKey to NOT be present for non-spread")
+				}
+			}
+		})
 	}
 }

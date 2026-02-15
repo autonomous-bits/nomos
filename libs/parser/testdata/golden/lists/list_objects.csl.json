@@ -1,137 +1,206 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 10,
+    "filename": "../testdata/fixtures/lists/list_objects.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
-      "name": "users",
-      "entries": {
-        "": {
-          "elements": [
-            {
-              "entries": {
-                "name": {
-                  "value": "alice",
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 2,
-                    "start_col": 11,
-                    "end_line": 2,
-                    "end_col": 15
-                  }
-                },
-                "role": {
-                  "value": "admin",
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 3,
-                    "start_col": 11,
-                    "end_line": 3,
-                    "end_col": 15
-                  }
-                },
-                "tags": {
-                  "elements": [
-                    {
-                      "value": "oncall",
-                      "source_span": {
-                        "filename": "../testdata/fixtures/lists/list_objects.csl",
-                        "start_line": 5,
-                        "start_col": 9,
-                        "end_line": 5,
-                        "end_col": 14
-                      }
+      "entries": [
+        {
+          "source_span": {
+            "end_col": 1,
+            "end_line": 10,
+            "filename": "../testdata/fixtures/lists/list_objects.csl",
+            "start_col": 3,
+            "start_line": 2
+          },
+          "value": {
+            "elements": [
+              {
+                "entries": [
+                  {
+                    "key": "name",
+                    "source_span": {
+                      "end_col": 15,
+                      "end_line": 2,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 2
                     },
-                    {
-                      "value": "platform",
+                    "value": {
                       "source_span": {
+                        "end_col": 15,
+                        "end_line": 2,
                         "filename": "../testdata/fixtures/lists/list_objects.csl",
-                        "start_line": 6,
-                        "start_col": 9,
-                        "end_line": 6,
-                        "end_col": 16
+                        "start_col": 11,
+                        "start_line": 2
+                      },
+                      "value": "alice"
+                    }
+                  },
+                  {
+                    "key": "role",
+                    "source_span": {
+                      "end_col": 15,
+                      "end_line": 3,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 3
+                    },
+                    "value": {
+                      "source_span": {
+                        "end_col": 15,
+                        "end_line": 3,
+                        "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_col": 11,
+                        "start_line": 3
+                      },
+                      "value": "admin"
+                    }
+                  },
+                  {
+                    "key": "tags",
+                    "source_span": {
+                      "end_col": 1,
+                      "end_line": 7,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 4
+                    },
+                    "value": {
+                      "elements": [
+                        {
+                          "source_span": {
+                            "end_col": 14,
+                            "end_line": 5,
+                            "filename": "../testdata/fixtures/lists/list_objects.csl",
+                            "start_col": 9,
+                            "start_line": 5
+                          },
+                          "value": "oncall"
+                        },
+                        {
+                          "source_span": {
+                            "end_col": 16,
+                            "end_line": 6,
+                            "filename": "../testdata/fixtures/lists/list_objects.csl",
+                            "start_col": 9,
+                            "start_line": 6
+                          },
+                          "value": "platform"
+                        }
+                      ],
+                      "source_span": {
+                        "end_col": 1,
+                        "end_line": 7,
+                        "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_col": 5,
+                        "start_line": 4
                       }
                     }
-                  ],
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 4,
-                    "start_col": 5,
-                    "end_line": 7,
-                    "end_col": 1
                   }
+                ],
+                "source_span": {
+                  "end_col": 1,
+                  "end_line": 7,
+                  "filename": "../testdata/fixtures/lists/list_objects.csl",
+                  "start_col": 5,
+                  "start_line": 2
                 }
               },
-              "source_span": {
-                "filename": "../testdata/fixtures/lists/list_objects.csl",
-                "start_line": 2,
-                "start_col": 5,
-                "end_line": 7,
-                "end_col": 1
-              }
-            },
-            {
-              "entries": {
-                "active": {
-                  "value": "true",
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 9,
-                    "start_col": 13,
-                    "end_line": 9,
-                    "end_col": 16
+              {
+                "entries": [
+                  {
+                    "key": "name",
+                    "source_span": {
+                      "end_col": 13,
+                      "end_line": 7,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 7
+                    },
+                    "value": {
+                      "source_span": {
+                        "end_col": 13,
+                        "end_line": 7,
+                        "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_col": 11,
+                        "start_line": 7
+                      },
+                      "value": "bob"
+                    }
+                  },
+                  {
+                    "key": "role",
+                    "source_span": {
+                      "end_col": 14,
+                      "end_line": 8,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 8
+                    },
+                    "value": {
+                      "source_span": {
+                        "end_col": 14,
+                        "end_line": 8,
+                        "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_col": 11,
+                        "start_line": 8
+                      },
+                      "value": "user"
+                    }
+                  },
+                  {
+                    "key": "active",
+                    "source_span": {
+                      "end_col": 16,
+                      "end_line": 9,
+                      "filename": "../testdata/fixtures/lists/list_objects.csl",
+                      "start_col": 5,
+                      "start_line": 9
+                    },
+                    "value": {
+                      "source_span": {
+                        "end_col": 16,
+                        "end_line": 9,
+                        "filename": "../testdata/fixtures/lists/list_objects.csl",
+                        "start_col": 13,
+                        "start_line": 9
+                      },
+                      "value": "true"
+                    }
                   }
-                },
-                "name": {
-                  "value": "bob",
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 7,
-                    "start_col": 11,
-                    "end_line": 7,
-                    "end_col": 13
-                  }
-                },
-                "role": {
-                  "value": "user",
-                  "source_span": {
-                    "filename": "../testdata/fixtures/lists/list_objects.csl",
-                    "start_line": 8,
-                    "start_col": 11,
-                    "end_line": 8,
-                    "end_col": 14
-                  }
+                ],
+                "source_span": {
+                  "end_col": 1,
+                  "end_line": 10,
+                  "filename": "../testdata/fixtures/lists/list_objects.csl",
+                  "start_col": 5,
+                  "start_line": 7
                 }
-              },
-              "source_span": {
-                "filename": "../testdata/fixtures/lists/list_objects.csl",
-                "start_line": 7,
-                "start_col": 5,
-                "end_line": 10,
-                "end_col": 1
               }
+            ],
+            "source_span": {
+              "end_col": 1,
+              "end_line": 10,
+              "filename": "../testdata/fixtures/lists/list_objects.csl",
+              "start_col": 3,
+              "start_line": 2
             }
-          ],
-          "source_span": {
-            "filename": "../testdata/fixtures/lists/list_objects.csl",
-            "start_line": 2,
-            "start_col": 3,
-            "end_line": 10,
-            "end_col": 1
           }
         }
-      },
+      ],
+      "name": "users",
       "source_span": {
-        "filename": "../testdata/fixtures/lists/list_objects.csl",
-        "start_line": 1,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 10,
-        "end_col": 1
+        "filename": "../testdata/fixtures/lists/list_objects.csl",
+        "start_col": 1,
+        "start_line": 1
       }
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/lists/list_objects.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 10,
-    "end_col": 1
-  }
+  ]
 }

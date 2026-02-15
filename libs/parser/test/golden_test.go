@@ -34,13 +34,21 @@ func TestGolden_SimpleFile(t *testing.T) {
 	// Read golden file
 	//nolint:gosec // G304: goldenPath is controlled test fixture path
 	expectedJSON, err := os.ReadFile(goldenPath)
-	if err != nil {
-		// If golden file doesn't exist, write it (useful for generating golden files)
-		t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+	if err != nil || os.Getenv("UPDATE_GOLDEN") == "true" {
+		// If golden file doesn't exist or update requested, write it
+		if os.Getenv("UPDATE_GOLDEN") == "true" {
+			t.Logf("Updating golden file at %s", goldenPath)
+		} else {
+			t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+		}
 		if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 			t.Fatalf("failed to write golden file: %v", err)
 		}
-		t.Skip("Generated golden file, re-run test to verify")
+		if os.Getenv("UPDATE_GOLDEN") != "true" {
+			t.Skip("Generated golden file, re-run test to verify")
+		}
+		// If updating, we continue to verify (it should pass now)
+		expectedJSON = actualJSON
 	}
 
 	// Compare
@@ -86,12 +94,20 @@ func TestGolden_AllFixtures(t *testing.T) {
 			// Read or create golden file
 			//nolint:gosec // G304: goldenPath is controlled test fixture path
 			expectedJSON, err := os.ReadFile(goldenPath)
-			if err != nil {
-				t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+			if err != nil || os.Getenv("UPDATE_GOLDEN") == "true" {
+				// If golden file doesn't exist or update requested, write it
+				if os.Getenv("UPDATE_GOLDEN") == "true" {
+					t.Logf("Updating golden file at %s", goldenPath)
+				} else {
+					t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+				}
 				if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 					t.Fatalf("failed to write golden file: %v", err)
 				}
-				t.Skip("Generated golden file, re-run test to verify")
+				if os.Getenv("UPDATE_GOLDEN") != "true" {
+					t.Skip("Generated golden file, re-run test to verify")
+				}
+				expectedJSON = actualJSON
 			}
 
 			// Compare

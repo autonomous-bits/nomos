@@ -26,43 +26,73 @@
     },
     {
       "name": "config-section",
-      "entries": {
-        "key1": {
-          "value": "value1",
+      "entries": [
+        {
+          "key": "key1",
+          "value": {
+            "value": "value1",
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_inline.csl",
+              "start_line": 9,
+              "start_col": 8,
+              "end_line": 9,
+              "end_col": 13
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_inline.csl",
             "start_line": 9,
-            "start_col": 8,
+            "start_col": 2,
             "end_line": 9,
             "end_col": 13
           }
         },
-        "key2": {
-          "value": "value2",
+        {
+          "key": "key2",
+          "value": {
+            "value": "value2",
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_inline.csl",
+              "start_line": 10,
+              "start_col": 8,
+              "end_line": 10,
+              "end_col": 13
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_inline.csl",
             "start_line": 10,
-            "start_col": 8,
+            "start_col": 2,
             "end_line": 10,
             "end_col": 13
           }
         },
-        "ref_example": {
-          "alias": "folder",
-          "path": [
-            "config",
-            "config",
-            "key"
-          ],
+        {
+          "key": "ref_example",
+          "value": {
+            "alias": "folder",
+            "path": [
+              "config",
+              "config",
+              "key"
+            ],
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_inline.csl",
+              "start_line": 11,
+              "start_col": 15,
+              "end_line": 11,
+              "end_col": 39
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_inline.csl",
             "start_line": 11,
-            "start_col": 15,
+            "start_col": 2,
             "end_line": 11,
             "end_col": 39
           }
         }
-      },
+      ],
       "source_span": {
         "filename": "../testdata/fixtures/comments_inline.csl",
         "start_line": 8,

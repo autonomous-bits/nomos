@@ -1,127 +1,207 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 25,
+    "filename": "../testdata/fixtures/comments_with_unicode.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
-      "name": "config",
-      "entries": {
-        "key": {
-          "value": "value",
+      "entries": [
+        {
+          "key": "key",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 8,
-            "start_col": 7,
+            "end_col": 11,
             "end_line": 8,
-            "end_col": 11
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 8
+          },
+          "value": {
+            "source_span": {
+              "end_col": 11,
+              "end_line": 8,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 7,
+              "start_line": 8
+            },
+            "value": "value"
           }
         },
-        "option": {
-          "value": "true",
+        {
+          "key": "setting",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 12,
-            "start_col": 10,
-            "end_line": 12,
-            "end_col": 13
-          }
-        },
-        "setting": {
-          "value": "enabled",
-          "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 10,
-            "start_col": 11,
+            "end_col": 17,
             "end_line": 10,
-            "end_col": 17
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 10
+          },
+          "value": {
+            "source_span": {
+              "end_col": 17,
+              "end_line": 10,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 11,
+              "start_line": 10
+            },
+            "value": "enabled"
+          }
+        },
+        {
+          "key": "option",
+          "source_span": {
+            "end_col": 13,
+            "end_line": 12,
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 12
+          },
+          "value": {
+            "source_span": {
+              "end_col": 13,
+              "end_line": 12,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 10,
+              "start_line": 12
+            },
+            "value": "true"
           }
         }
-      },
+      ],
+      "name": "config",
       "source_span": {
-        "filename": "../testdata/fixtures/comments_with_unicode.csl",
-        "start_line": 6,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 13,
-        "end_col": 1
+        "filename": "../testdata/fixtures/comments_with_unicode.csl",
+        "start_col": 1,
+        "start_line": 6
       }
     },
     {
-      "name": "database",
-      "entries": {
-        "host": {
-          "value": "localhost",
+      "entries": [
+        {
+          "key": "host",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 16,
-            "start_col": 8,
+            "end_col": 16,
             "end_line": 16,
-            "end_col": 16
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 16
+          },
+          "value": {
+            "source_span": {
+              "end_col": 16,
+              "end_line": 16,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 8,
+              "start_line": 16
+            },
+            "value": "localhost"
           }
         },
-        "port": {
-          "value": "5432",
+        {
+          "key": "port",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 17,
-            "start_col": 8,
+            "end_col": 11,
             "end_line": 17,
-            "end_col": 11
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 17
+          },
+          "value": {
+            "source_span": {
+              "end_col": 11,
+              "end_line": 17,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 8,
+              "start_line": 17
+            },
+            "value": "5432"
           }
         }
-      },
+      ],
+      "name": "database",
       "source_span": {
-        "filename": "../testdata/fixtures/comments_with_unicode.csl",
-        "start_line": 14,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 19,
-        "end_col": 1
+        "filename": "../testdata/fixtures/comments_with_unicode.csl",
+        "start_col": 1,
+        "start_line": 14
       }
     },
     {
-      "name": "features",
-      "entries": {
-        "beta": {
-          "value": "disabled",
+      "entries": [
+        {
+          "key": "new_ui",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 23,
-            "start_col": 8,
-            "end_line": 23,
-            "end_col": 15
-          }
-        },
-        "experimental": {
-          "value": "false",
-          "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 24,
-            "start_col": 16,
-            "end_line": 24,
-            "end_col": 20
-          }
-        },
-        "new_ui": {
-          "value": "enabled",
-          "source_span": {
-            "filename": "../testdata/fixtures/comments_with_unicode.csl",
-            "start_line": 22,
-            "start_col": 10,
+            "end_col": 16,
             "end_line": 22,
-            "end_col": 16
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 22
+          },
+          "value": {
+            "source_span": {
+              "end_col": 16,
+              "end_line": 22,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 10,
+              "start_line": 22
+            },
+            "value": "enabled"
+          }
+        },
+        {
+          "key": "beta",
+          "source_span": {
+            "end_col": 15,
+            "end_line": 23,
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 23
+          },
+          "value": {
+            "source_span": {
+              "end_col": 15,
+              "end_line": 23,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 8,
+              "start_line": 23
+            },
+            "value": "disabled"
+          }
+        },
+        {
+          "key": "experimental",
+          "source_span": {
+            "end_col": 20,
+            "end_line": 24,
+            "filename": "../testdata/fixtures/comments_with_unicode.csl",
+            "start_col": 2,
+            "start_line": 24
+          },
+          "value": {
+            "source_span": {
+              "end_col": 20,
+              "end_line": 24,
+              "filename": "../testdata/fixtures/comments_with_unicode.csl",
+              "start_col": 16,
+              "start_line": 24
+            },
+            "value": "false"
           }
         }
-      },
+      ],
+      "name": "features",
       "source_span": {
-        "filename": "../testdata/fixtures/comments_with_unicode.csl",
-        "start_line": 20,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 25,
-        "end_col": 1
+        "filename": "../testdata/fixtures/comments_with_unicode.csl",
+        "start_col": 1,
+        "start_line": 20
       }
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/comments_with_unicode.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 25,
-    "end_col": 1
-  }
+  ]
 }

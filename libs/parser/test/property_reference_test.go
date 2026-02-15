@@ -123,7 +123,7 @@ func TestParseReferenceExpr_PropertyReference(t *testing.T) {
 			}
 
 			// Extract the value expression
-			valueExpr, ok := section.Entries["value"]
+			valueExpr, ok := findEntry(section.Entries, "value")
 			if !ok {
 				t.Fatal("expected 'value' entry in section")
 			}

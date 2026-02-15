@@ -1,75 +1,115 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 13,
+    "filename": "../testdata/fixtures/comments_edge_cases.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
-      "name": "config-section",
-      "entries": {
-        "key": {
-          "value": "value",
+      "entries": [
+        {
+          "key": "key",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_edge_cases.csl",
-            "start_line": 3,
-            "start_col": 7,
+            "end_col": 11,
             "end_line": 3,
-            "end_col": 11
+            "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_col": 2,
+            "start_line": 3
+          },
+          "value": {
+            "source_span": {
+              "end_col": 11,
+              "end_line": 3,
+              "filename": "../testdata/fixtures/comments_edge_cases.csl",
+              "start_col": 7,
+              "start_line": 3
+            },
+            "value": "value"
           }
         },
-        "key2": {
-          "value": "value",
+        {
+          "key": "key2",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_edge_cases.csl",
-            "start_line": 4,
-            "start_col": 8,
+            "end_col": 12,
             "end_line": 4,
-            "end_col": 12
+            "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_col": 2,
+            "start_line": 4
+          },
+          "value": {
+            "source_span": {
+              "end_col": 12,
+              "end_line": 4,
+              "filename": "../testdata/fixtures/comments_edge_cases.csl",
+              "start_col": 8,
+              "start_line": 4
+            },
+            "value": "value"
           }
         },
-        "key3": {
-          "value": "result",
+        {
+          "key": "key3",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_edge_cases.csl",
-            "start_line": 7,
-            "start_col": 8,
+            "end_col": 13,
             "end_line": 7,
-            "end_col": 13
+            "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_col": 2,
+            "start_line": 7
+          },
+          "value": {
+            "source_span": {
+              "end_col": 13,
+              "end_line": 7,
+              "filename": "../testdata/fixtures/comments_edge_cases.csl",
+              "start_col": 8,
+              "start_line": 7
+            },
+            "value": "result"
           }
         }
-      },
+      ],
+      "name": "config-section",
       "source_span": {
-        "filename": "../testdata/fixtures/comments_edge_cases.csl",
-        "start_line": 2,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 8,
-        "end_col": 1
+        "filename": "../testdata/fixtures/comments_edge_cases.csl",
+        "start_col": 1,
+        "start_line": 2
       }
     },
     {
-      "name": "another-section",
-      "entries": {
-        "setting": {
-          "value": "enabled",
+      "entries": [
+        {
+          "key": "setting",
           "source_span": {
-            "filename": "../testdata/fixtures/comments_edge_cases.csl",
-            "start_line": 12,
-            "start_col": 11,
+            "end_col": 17,
             "end_line": 12,
-            "end_col": 17
+            "filename": "../testdata/fixtures/comments_edge_cases.csl",
+            "start_col": 2,
+            "start_line": 12
+          },
+          "value": {
+            "source_span": {
+              "end_col": 17,
+              "end_line": 12,
+              "filename": "../testdata/fixtures/comments_edge_cases.csl",
+              "start_col": 11,
+              "start_line": 12
+            },
+            "value": "enabled"
           }
         }
-      },
+      ],
+      "name": "another-section",
       "source_span": {
-        "filename": "../testdata/fixtures/comments_edge_cases.csl",
-        "start_line": 11,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 13,
-        "end_col": 1
+        "filename": "../testdata/fixtures/comments_edge_cases.csl",
+        "start_col": 1,
+        "start_line": 11
       }
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/comments_edge_cases.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 13,
-    "end_col": 1
-  }
+  ]
 }

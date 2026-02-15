@@ -1,63 +1,103 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 6,
+    "filename": "../testdata/fixtures/unicode.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
-      "name": "configuration",
-      "entries": {
-        "description": {
-          "value": "Unicode support: café, naïve, 日本語",
+      "entries": [
+        {
+          "key": "name",
           "source_span": {
-            "filename": "../testdata/fixtures/unicode.csl",
-            "start_line": 3,
-            "start_col": 15,
-            "end_line": 3,
-            "end_col": 55
-          }
-        },
-        "emoji": {
-          "value": "🚀 📦 ⚙️",
-          "source_span": {
-            "filename": "../testdata/fixtures/unicode.csl",
-            "start_line": 5,
-            "start_col": 9,
-            "end_line": 5,
-            "end_col": 24
-          }
-        },
-        "name": {
-          "value": "Test Configuration 测试",
-          "source_span": {
-            "filename": "../testdata/fixtures/unicode.csl",
-            "start_line": 2,
-            "start_col": 8,
+            "end_col": 32,
             "end_line": 2,
-            "end_col": 32
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 2,
+            "start_line": 2
+          },
+          "value": {
+            "source_span": {
+              "end_col": 32,
+              "end_line": 2,
+              "filename": "../testdata/fixtures/unicode.csl",
+              "start_col": 8,
+              "start_line": 2
+            },
+            "value": "Test Configuration 测试"
           }
         },
-        "symbols": {
-          "value": "→ ← ↑ ↓ ✓ ✗",
+        {
+          "key": "description",
           "source_span": {
+            "end_col": 55,
+            "end_line": 3,
             "filename": "../testdata/fixtures/unicode.csl",
-            "start_line": 4,
-            "start_col": 11,
+            "start_col": 2,
+            "start_line": 3
+          },
+          "value": {
+            "source_span": {
+              "end_col": 55,
+              "end_line": 3,
+              "filename": "../testdata/fixtures/unicode.csl",
+              "start_col": 15,
+              "start_line": 3
+            },
+            "value": "Unicode support: café, naïve, 日本語"
+          }
+        },
+        {
+          "key": "symbols",
+          "source_span": {
+            "end_col": 33,
             "end_line": 4,
-            "end_col": 33
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 2,
+            "start_line": 4
+          },
+          "value": {
+            "source_span": {
+              "end_col": 33,
+              "end_line": 4,
+              "filename": "../testdata/fixtures/unicode.csl",
+              "start_col": 11,
+              "start_line": 4
+            },
+            "value": "→ ← ↑ ↓ ✓ ✗"
+          }
+        },
+        {
+          "key": "emoji",
+          "source_span": {
+            "end_col": 24,
+            "end_line": 5,
+            "filename": "../testdata/fixtures/unicode.csl",
+            "start_col": 2,
+            "start_line": 5
+          },
+          "value": {
+            "source_span": {
+              "end_col": 24,
+              "end_line": 5,
+              "filename": "../testdata/fixtures/unicode.csl",
+              "start_col": 9,
+              "start_line": 5
+            },
+            "value": "🚀 📦 ⚙️"
           }
         }
-      },
+      ],
+      "name": "configuration",
       "source_span": {
-        "filename": "../testdata/fixtures/unicode.csl",
-        "start_line": 1,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 6,
-        "end_col": 1
+        "filename": "../testdata/fixtures/unicode.csl",
+        "start_col": 1,
+        "start_line": 1
       }
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/unicode.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 6,
-    "end_col": 1
-  }
+  ]
 }

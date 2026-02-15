@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
@@ -116,7 +117,7 @@ func (ctx *ResolutionContext) formatCycle(ref PathRef) string {
 
 func pathKey(path []string) string {
 	if len(path) == 0 {
-		return "."
+		return "*"
 	}
 	return strings.Join(path, ":")
 }
@@ -211,9 +212,20 @@ func (r *Resolver) resolveReference(ctx context.Context, ref *ast.ReferenceExpr)
 
 // resolveMap resolves all values in a map.
 func (r *Resolver) resolveMap(ctx context.Context, m map[string]any) (map[string]any, error) {
+	if ordered, ok := m[converter.OrderedEntriesKey]; ok {
+		entries, ok := ordered.([]converter.OrderedEntry)
+		if !ok {
+			return nil, fmt.Errorf("invalid ordered entries payload")
+		}
+		return r.resolveOrderedEntries(ctx, entries)
+	}
+
 	result := make(map[string]any, len(m))
 
 	for k, v := range m {
+		if k == converter.OrderedEntriesKey {
+			continue
+		}
 		resolved, err := r.ResolveValue(ctx, v)
 		if err != nil {
 			return nil, fmt.Errorf("resolving key %q: %w", k, err)
@@ -222,6 +234,89 @@ func (r *Resolver) resolveMap(ctx context.Context, m map[string]any) (map[string
 	}
 
 	return result, nil
+}
+
+func (r *Resolver) resolveOrderedEntries(ctx context.Context, entries []converter.OrderedEntry) (map[string]any, error) {
+	result := make(map[string]any)
+
+	for _, entry := range entries {
+		resolved, err := r.ResolveValue(ctx, entry.Value)
+		if err != nil {
+			return nil, err
+		}
+		if entry.Spread {
+			mapValue, ok := resolved.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("spread reference must resolve to map, got %T", resolved)
+			}
+			result = deepMergeMap(result, mapValue)
+			continue
+		}
+
+		if existing, ok := result[entry.Key]; ok {
+			existingMap, existingIsMap := existing.(map[string]any)
+			resolvedMap, resolvedIsMap := resolved.(map[string]any)
+			if existingIsMap && resolvedIsMap {
+				result[entry.Key] = deepMergeMap(existingMap, resolvedMap)
+				continue
+			}
+		}
+
+		result[entry.Key] = resolved
+	}
+
+	return result, nil
+}
+
+func deepMergeMap(dst, src map[string]any) map[string]any {
+	result := make(map[string]any, len(dst)+len(src))
+	for k, v := range dst {
+		result[k] = deepCopyValue(v)
+	}
+	for k, v := range src {
+		if existing, ok := result[k]; ok {
+			result[k] = mergeValues(existing, v)
+			continue
+		}
+		result[k] = deepCopyValue(v)
+	}
+	return result
+}
+
+func mergeValues(dst, src any) any {
+	if src == nil {
+		return nil
+	}
+	if dst == nil {
+		return deepCopyValue(src)
+	}
+	leftMap, leftIsMap := dst.(map[string]any)
+	rightMap, rightIsMap := src.(map[string]any)
+	if leftIsMap && rightIsMap {
+		return deepMergeMap(leftMap, rightMap)
+	}
+	return deepCopyValue(src)
+}
+
+func deepCopyValue(val any) any {
+	if val == nil {
+		return nil
+	}
+	if mapVal, ok := val.(map[string]any); ok {
+		copied := make(map[string]any, len(mapVal))
+		for k, v := range mapVal {
+			copied[k] = deepCopyValue(v)
+		}
+		return copied
+	}
+	if sliceVal, ok := val.([]any); ok {
+		copied := make([]any, len(sliceVal))
+		for i, v := range sliceVal {
+			copied[i] = deepCopyValue(v)
+		}
+		return copied
+	}
+	return val
 }
 
 // resolveSlice resolves all elements in a slice.

@@ -3,9 +3,20 @@ package converter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
+
+const OrderedEntriesKey = "__nomos_ordered_entries__"
+
+// OrderedEntry tracks ordered map entries including spread references.
+// Spread entries have Spread=true and an empty Key.
+type OrderedEntry struct {
+	Key    string
+	Value  any
+	Spread bool
+}
 
 // ASTToData converts an AST into a map suitable for merging and composition.
 // It extracts all SectionDecl statements and converts their entries to map[string]any.
@@ -16,23 +27,41 @@ func ASTToData(tree *ast.AST) (map[string]any, error) {
 	}
 
 	result := make(map[string]any)
+	rootOrdered := make([]OrderedEntry, 0)
+	hasRootSpread := false
 
 	for _, stmt := range tree.Statements {
 		// Currently we only process SectionDecl statements
 		// Other statement types (source, import, reference) are handled elsewhere
-		section, isSection := stmt.(*ast.SectionDecl)
-		if !isSection {
+		switch node := stmt.(type) {
+		case *ast.SectionDecl:
+			// Convert the section to a nested map entry
+			sectionData, err := sectionToData(node)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert section %q: %w", node.Name, err)
+			}
+
+			// Add section to result
+			result[node.Name] = sectionData
+			rootOrdered = append(rootOrdered, OrderedEntry{
+				Key:   node.Name,
+				Value: sectionData,
+			})
+
+		case *ast.SpreadStmt:
+			isSpread := shouldSpread(node.Reference)
+			hasRootSpread = true
+			rootOrdered = append(rootOrdered, OrderedEntry{
+				Value:  node.Reference,
+				Spread: isSpread,
+			})
+		default:
 			continue
 		}
+	}
 
-		// Convert the section to a nested map entry
-		sectionData, err := sectionToData(section)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert section %q: %w", section.Name, err)
-		}
-
-		// Add section to result
-		result[section.Name] = sectionData
+	if hasRootSpread {
+		result[OrderedEntriesKey] = rootOrdered
 	}
 
 	return result, nil
@@ -48,17 +77,7 @@ func sectionToData(section *ast.SectionDecl) (any, error) {
 	}
 
 	// Otherwise, process as nested map
-	result := make(map[string]any, len(section.Entries))
-
-	for key, expr := range section.Entries {
-		value, err := exprToValue(expr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert key %q: %w", key, err)
-		}
-		result[key] = value
-	}
-
-	return result, nil
+	return mapEntriesToData(section.Entries)
 }
 
 // exprToValue converts an AST expression to a runtime value.
@@ -69,6 +88,17 @@ func exprToValue(expr ast.Expr) (any, error) {
 
 	switch e := expr.(type) {
 	case *ast.StringLiteral:
+		// Check if it's a variable reference (starts with "var.")
+		if strings.HasPrefix(e.Value, "var.") {
+			parts := strings.Split(e.Value, ".")
+			if len(parts) > 1 {
+				return &ast.ReferenceExpr{
+					Alias:      "var",
+					Path:       parts[1:],
+					SourceSpan: e.SourceSpan,
+				}, nil
+			}
+		}
 		return e.Value, nil
 
 	case *ast.ReferenceExpr:
@@ -79,15 +109,7 @@ func exprToValue(expr ast.Expr) (any, error) {
 	case *ast.MapExpr:
 		// MapExpr represents a nested map structure
 		// Recursively convert all nested entries
-		result := make(map[string]any, len(e.Entries))
-		for k, v := range e.Entries {
-			val, err := exprToValue(v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert nested key %q: %w", k, err)
-			}
-			result[k] = val
-		}
-		return result, nil
+		return mapEntriesToData(e.Entries)
 
 	case *ast.ListExpr:
 		// ListExpr represents an ordered list of values
@@ -102,6 +124,15 @@ func exprToValue(expr ast.Expr) (any, error) {
 		return result, nil
 
 	case *ast.PathExpr:
+		// Check if it's a variable reference (starts with "var")
+		if len(e.Components) > 1 && e.Components[0] == "var" {
+			return &ast.ReferenceExpr{
+				Alias:      "var",
+				Path:       e.Components[1:],
+				SourceSpan: e.SourceSpan,
+			}, nil
+		}
+
 		// PathExpr might represent a structured value
 		// For now, convert to string representation
 		return pathExprToString(e), nil
@@ -113,6 +144,54 @@ func exprToValue(expr ast.Expr) (any, error) {
 	default:
 		return nil, fmt.Errorf("unsupported expression type: %T", expr)
 	}
+}
+
+func mapEntriesToData(entries []ast.MapEntry) (map[string]any, error) {
+	result := make(map[string]any, len(entries))
+	ordered := make([]OrderedEntry, 0, len(entries))
+	hasSpread := false
+
+	for _, entry := range entries {
+		value, err := exprToValue(entry.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert key %q: %w", entry.Key, err)
+		}
+
+		isSpread := entry.Spread
+		if isSpread {
+			if ref, ok := value.(*ast.ReferenceExpr); ok {
+				isSpread = shouldSpread(ref)
+			}
+		}
+
+		ordered = append(ordered, OrderedEntry{
+			Key:    entry.Key,
+			Value:  value,
+			Spread: isSpread,
+		})
+		if isSpread {
+			hasSpread = true
+			continue
+		}
+		result[entry.Key] = value
+	}
+
+	if hasSpread {
+		result[OrderedEntriesKey] = ordered
+	}
+
+	return result, nil
+}
+
+// shouldSpread determines if a reference should be treated as a spread.
+// A reference is a spread if its path contains a wildcard "*".
+func shouldSpread(ref *ast.ReferenceExpr) bool {
+	for _, segment := range ref.Path {
+		if segment == "*" {
+			return true
+		}
+	}
+	return false
 }
 
 // pathExprToString converts a PathExpr to a dot-separated string.

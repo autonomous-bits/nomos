@@ -46,7 +46,7 @@ func TestParseInlineReferences_ValidFixture(t *testing.T) {
 	}
 
 	// Assert - check that vpc_cidr entry contains a ReferenceExpr
-	vpcCIDRExpr, exists := infraSection.Entries["vpc_cidr"]
+	vpcCIDRExpr, exists := findEntry(infraSection.Entries, "vpc_cidr")
 	if !exists {
 		t.Fatal("expected 'vpc_cidr' entry in infrastructure section")
 	}
@@ -78,7 +78,7 @@ func TestParseInlineReferences_ValidFixture(t *testing.T) {
 	}
 
 	// Check 'region' is a StringLiteral
-	regionExpr, exists := infraSection.Entries["region"]
+	regionExpr, exists := findEntry(infraSection.Entries, "region")
 	if !exists {
 		t.Fatal("expected 'region' entry in infrastructure section")
 	}
@@ -126,7 +126,7 @@ config:
 	}
 
 	// Verify cidr entry exists and contains reference syntax
-	cidrExpr, exists := configSection.Entries["cidr"]
+	cidrExpr, exists := findEntry(configSection.Entries, "cidr")
 	if !exists {
 		t.Fatal("expected 'cidr' entry in config section")
 	}
@@ -188,7 +188,7 @@ config:
 	}
 
 	// Verify mixed values
-	literalExpr, exists := configSection.Entries["literal_value"]
+	literalExpr, exists := findEntry(configSection.Entries, "literal_value")
 	if !exists {
 		t.Fatal("expected 'literal_value' entry")
 	}
@@ -200,7 +200,7 @@ config:
 		t.Errorf("expected literal_value to be 'plain-string', got %q", literalValue.Value)
 	}
 
-	refExpr, exists := configSection.Entries["ref_value"]
+	refExpr, exists := findEntry(configSection.Entries, "ref_value")
 	if !exists {
 		t.Fatal("expected 'ref_value' entry")
 	}
@@ -212,7 +212,7 @@ config:
 		t.Errorf("expected ref_value alias to be 'base', got %q", refValue.Alias)
 	}
 
-	anotherLiteralExpr, exists := configSection.Entries["another_literal"]
+	anotherLiteralExpr, exists := findEntry(configSection.Entries, "another_literal")
 	if !exists {
 		t.Fatal("expected 'another_literal' entry")
 	}

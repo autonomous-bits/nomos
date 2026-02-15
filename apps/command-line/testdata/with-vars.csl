@@ -1,6 +1,5 @@
 // Configuration with variable substitution examples
-deployment {
+deployment:
   region: var.region
   environment: var.env
   instance_type: "t3.micro"
-}

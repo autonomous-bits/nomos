@@ -102,12 +102,18 @@ func exprToValue(expr ast.Expr) (any, error) {
 		return e, nil
 	case *ast.MapExpr:
 		result := make(map[string]any, len(e.Entries))
-		for k, v := range e.Entries {
-			val, err := exprToValue(v)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert map key %q: %w", k, err)
+		for _, entry := range e.Entries {
+			if entry.Spread {
+				return nil, fmt.Errorf("spread entries are not supported in source config")
 			}
-			result[k] = val
+			if entry.Key == "" {
+				return nil, fmt.Errorf("map entry key cannot be empty")
+			}
+			val, err := exprToValue(entry.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert map key %q: %w", entry.Key, err)
+			}
+			result[entry.Key] = val
 		}
 		return result, nil
 	case *ast.ListExpr:

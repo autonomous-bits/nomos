@@ -1,10 +1,10 @@
 {
-  "statements": null,
   "source_span": {
-    "filename": "../testdata/fixtures/empty.csl",
-    "start_line": 1,
-    "start_col": 1,
+    "end_col": 1,
     "end_line": 1,
-    "end_col": 1
-  }
+    "filename": "../testdata/fixtures/empty.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
+  "statements": null
 }

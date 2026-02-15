@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/pipeline"
 
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
@@ -211,6 +212,74 @@ func TestResolveReferences_Integration(t *testing.T) {
 		}
 		if resolved["second"] != "cached-data" {
 			t.Errorf("expected second='cached-data', got %v", resolved["second"])
+		}
+	})
+
+	t.Run("resolves root spread with ordered entries", func(t *testing.T) {
+		registry := NewProviderRegistry()
+		registry.Register("configs3", func(_ ProviderInitOptions) (Provider, error) {
+			return &testProvider{
+				responses: map[string]any{
+					"*": map[string]any{
+						"environment": "dev",
+						"network": map[string]any{
+							"cidr": "192.168.0.0/16",
+							"zone": "base",
+						},
+					},
+				},
+			}, nil
+		})
+
+		data := map[string]any{
+			converter.OrderedEntriesKey: []converter.OrderedEntry{
+				{
+					Key:   "app",
+					Value: map[string]any{"name": "example-app"},
+				},
+				{
+					Spread: true,
+					Value: &ast.ReferenceExpr{
+						Alias: "configs3",
+						Path:  []string{"*"},
+						SourceSpan: ast.SourceSpan{
+							Filename:  "test.csl",
+							StartLine: 1,
+							StartCol:  1,
+						},
+					},
+				},
+				{
+					Key: "network",
+					Value: map[string]any{
+						"cidr": "10.0.0.0/24",
+					},
+				},
+			},
+		}
+
+		ctx := context.Background()
+		resolved, err := pipeline.ResolveReferences(ctx, data, pipeline.ResolveOptions{
+			ProviderRegistry:     registry,
+			AllowMissingProvider: false,
+		})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		if resolved["environment"] != "dev" {
+			t.Errorf("expected environment 'dev', got %v", resolved["environment"])
+		}
+
+		network, ok := resolved["network"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected network to be map[string]any, got %T", resolved["network"])
+		}
+		if network["cidr"] != "10.0.0.0/24" {
+			t.Errorf("expected cidr override, got %v", network["cidr"])
+		}
+		if network["zone"] != "base" {
+			t.Errorf("expected zone 'base' preserved, got %v", network["zone"])
 		}
 	})
 }

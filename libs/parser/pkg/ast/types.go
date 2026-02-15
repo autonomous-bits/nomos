@@ -39,6 +39,18 @@ type Stmt interface {
 	stmt() // Marker method
 }
 
+// SpreadStmt represents a top-level spread reference statement.
+// Example: @alias:path.to.map
+type SpreadStmt struct {
+	Reference  *ReferenceExpr `json:"reference"`
+	SourceSpan SourceSpan     `json:"source_span"`
+}
+
+// Span implements Node for SpreadStmt.
+func (s *SpreadStmt) Span() SourceSpan { return s.SourceSpan }
+func (s *SpreadStmt) node()            {}
+func (s *SpreadStmt) stmt()            {}
+
 // SourceDecl represents a source provider declaration.
 // Example: source:
 //
@@ -69,10 +81,10 @@ func (s *SourceDecl) stmt()            {}
 // and Entries is nil. For nested maps, Entries is populated and Value is nil.
 // Exactly one of Value or Entries should be set (mutually exclusive).
 type SectionDecl struct {
-	Name       string          `json:"name"`
-	Value      Expr            `json:"value,omitempty"`   // For inline scalar values (mutually exclusive with Entries)
-	Entries    map[string]Expr `json:"entries,omitempty"` // For nested maps (mutually exclusive with Value)
-	SourceSpan SourceSpan      `json:"source_span"`
+	Name       string     `json:"name"`
+	Value      Expr       `json:"value,omitempty"`   // For inline scalar values (mutually exclusive with Entries)
+	Entries    []MapEntry `json:"entries,omitempty"` // For nested maps (mutually exclusive with Value)
+	SourceSpan SourceSpan `json:"source_span"`
 }
 
 // Span implements Node for SectionDecl.
@@ -137,6 +149,17 @@ func (r *ReferenceExpr) Span() SourceSpan { return r.SourceSpan }
 func (r *ReferenceExpr) node()            {}
 func (r *ReferenceExpr) expr()            {}
 
+// MapEntry represents a single key/value entry or a spread reference in a map.
+//
+// For spread entries, Spread is true and Key is empty. Value must be a ReferenceExpr.
+// For normal entries, Spread is false and Key is required.
+type MapEntry struct {
+	Key        string     `json:"key,omitempty"`
+	Value      Expr       `json:"value"`
+	Spread     bool       `json:"spread,omitempty"`
+	SourceSpan SourceSpan `json:"source_span"`
+}
+
 // MapExpr represents a nested map/object literal.
 // Example:
 //
@@ -148,8 +171,8 @@ func (r *ReferenceExpr) expr()            {}
 // MapExpr enables nested configuration structures where values can themselves
 // be maps, allowing for arbitrary depth nesting.
 type MapExpr struct {
-	Entries    map[string]Expr `json:"entries"`     // Nested key-value pairs
-	SourceSpan SourceSpan      `json:"source_span"` // Precise source location
+	Entries    []MapEntry `json:"entries"`     // Nested key-value pairs
+	SourceSpan SourceSpan `json:"source_span"` // Precise source location
 }
 
 // Span implements Node for MapExpr.

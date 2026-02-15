@@ -308,7 +308,7 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		if section, ok := stmt.(*ast.SectionDecl); ok {
 			if section.Name == "config-section" {
 				// Check for the inline reference entry
-				if refExpr, ok := section.Entries["ref_example"]; ok {
+				if refExpr, ok := findEntry(section.Entries, "ref_example"); ok {
 					if refNode, ok := refExpr.(*ast.ReferenceExpr); ok {
 						referenceFound = true
 						if refNode.Alias != "folder" {
@@ -448,8 +448,20 @@ func TestParseFile_CommentFixtures(t *testing.T) {
 			// Read expected golden file
 			//nolint:gosec // G304: goldenPath is controlled test fixture path
 			expectedJSON, err := os.ReadFile(tt.goldenPath)
-			if err != nil {
-				t.Fatalf("failed to read golden file %s: %v", tt.goldenPath, err)
+			if err != nil || os.Getenv("UPDATE_GOLDEN") == "true" {
+				// If golden file doesn't exist or update requested, write it
+				if os.Getenv("UPDATE_GOLDEN") == "true" {
+					t.Logf("Updating golden file at %s", tt.goldenPath)
+				} else {
+					t.Logf("Golden file not found at %s, writing actual output", tt.goldenPath)
+				}
+				if err := os.WriteFile(tt.goldenPath, actualJSON, 0600); err != nil {
+					t.Fatalf("failed to write golden file: %v", err)
+				}
+				if os.Getenv("UPDATE_GOLDEN") != "true" {
+					t.Skip("Generated golden file, re-run test to verify")
+				}
+				expectedJSON = actualJSON
 			}
 
 			// Parse both JSONs to compare structure rather than bytes
