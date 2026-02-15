@@ -17,8 +17,6 @@ func BenchmarkParse_Small(b *testing.B) {
   alias: myConfig
   type: yaml
 
-import:baseConfig:./base.csl
-
 database:
   host: localhost
   port: 5432
@@ -178,9 +176,6 @@ func BenchmarkParse_TypicalConfigWithoutComments(b *testing.B) {
 	builder.WriteString("  alias: typicalConfig\n")
 	builder.WriteString("  type: yaml\n\n")
 
-	builder.WriteString("import:baseConfig:./base.csl\n")
-	builder.WriteString("import:sharedTypes:./types.csl\n\n")
-
 	builder.WriteString("database:\n")
 	builder.WriteString("  host: localhost\n")
 	builder.WriteString("  port: 5432\n")
@@ -250,11 +245,6 @@ func BenchmarkParse_TypicalConfigWith100Comments(b *testing.B) {
 	builder.WriteString("source:\n")
 	builder.WriteString("  alias: typicalConfig  # Unique identifier\n")
 	builder.WriteString("  type: yaml  # Configuration format\n\n")
-
-	builder.WriteString("# Import base configurations\n")
-	builder.WriteString("import:baseConfig:./base.csl\n")
-	builder.WriteString("# Import shared type definitions\n")
-	builder.WriteString("import:sharedTypes:./types.csl\n\n")
 
 	builder.WriteString("# Database configuration\n")
 	builder.WriteString("# Connection settings for PostgreSQL\n")
@@ -394,9 +384,6 @@ func BenchmarkParse_ConfigWith1000Comments(b *testing.B) {
 	for i := 0; i < 50; i++ {
 		builder.WriteString(fmt.Sprintf("# Import documentation line %d\n", i))
 	}
-
-	builder.WriteString("import:baseConfig:./base.csl\n")
-	builder.WriteString("import:sharedTypes:./types.csl\n\n")
 
 	builder.WriteString("###############################################################################\n")
 	builder.WriteString("# 3. DATABASE CONFIGURATION\n")

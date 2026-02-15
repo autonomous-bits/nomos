@@ -12,7 +12,7 @@ The simplest use case: scalar inline references in a flat section.
 
 ```csl
 infrastructure:
-	vpc_cidr: reference:network:vpc.cidr
+	vpc_cidr: @network:config:vpc.cidr
 	region: 'us-west-2'
 ```
 
@@ -25,10 +25,10 @@ Inline references within nested map structures, showing how different keys can r
 ```csl
 servers:
 	web:
-		ip: reference:network:web.ip
+		ip: @network:config:web.ip
 		port: '8080'
 	api:
-		ip: reference:network:api.ip
+		ip: @network:config:api.ip
 		port: '3000'
 ```
 
@@ -41,9 +41,9 @@ The most common real-world pattern: mixing string literals and inline references
 ```csl
 application:
 	name: 'my-application'
-	database_url: reference:config:database.connection_string
+	database_url: @config:config:database.connection_string
 	debug_mode: 'false'
-	api_key: reference:secrets:third_party.api_key
+	api_key: @secrets:config:third_party.api_key
 ```
 
 ### Deeply Nested Structures
@@ -55,11 +55,11 @@ Inline references at various nesting levels:
 ```csl
 databases:
 	primary:
-		host: reference:infra:db.primary.host
+		host: @infra:config:db.primary.host
 		connection:
 			max_pool_size: '20'
 	replica:
-		host: reference:infra:db.replica.host
+		host: @infra:config:db.replica.host
 ```
 
 ## Using These Examples

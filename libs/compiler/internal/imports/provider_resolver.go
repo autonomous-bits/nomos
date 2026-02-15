@@ -28,15 +28,12 @@ type ProviderRegistry = core.ProviderRegistry
 // ProviderTypeRegistry manages provider type constructors.
 type ProviderTypeRegistry = core.ProviderTypeRegistry
 
-// ExtractedData represents parsed file data with imports extracted.
+// ExtractedData represents parsed file data with source declarations extracted.
 type ExtractedData struct {
 	// Sources are the source provider declarations from the file
 	Sources []SourceDecl
 
-	// Imports are the import statements from the file
-	Imports []ImportDecl
-
-	// Data is the converted configuration data (sections only, no source/import statements)
+	// Data is the converted configuration data (sections only, no source statements)
 	Data map[string]any
 }
 
@@ -47,22 +44,15 @@ type SourceDecl struct {
 	Config map[string]any
 }
 
-// ImportDecl represents an import statement extracted from AST.
-type ImportDecl struct {
-	Alias string   // Provider alias to import from
-	Path  []string // Optional nested path (empty means import entire source)
-}
-
-// ExtractImports extracts source declarations, imports, and data from a parsed AST.
+// ExtractImports extracts source declarations and data from a parsed AST.
+// Note: Import statements are no longer supported and have been removed from the language.
 func ExtractImports(tree *ast.AST) (ExtractedData, error) {
 	var sources []SourceDecl
-	var imports []ImportDecl
 
 	// Handle nil tree
 	if tree == nil {
 		return ExtractedData{
 			Sources: sources,
-			Imports: imports,
 			Data:    make(map[string]any),
 		}, nil
 	}
@@ -84,23 +74,6 @@ func ExtractImports(tree *ast.AST) (ExtractedData, error) {
 				Type:   s.Type,
 				Config: config,
 			})
-
-		case *ast.ImportStmt:
-			// Extract import statement
-			// Format: import:alias or import:alias:path
-			// The path can be a file path (e.g., "base.csl") or a map path (e.g., "config.database")
-			// For file provider: path is the filename
-			// For other providers: path might be a dotted map key path
-			// We keep the path as a single element for now - providers will interpret it
-			imp := ImportDecl{
-				Alias: s.Alias,
-			}
-			if s.Path != "" {
-				// Store path as single element - don't split on dots here
-				// The provider will decide how to interpret the path
-				imp.Path = []string{s.Path}
-			}
-			imports = append(imports, imp)
 		}
 	}
 
@@ -112,7 +85,6 @@ func ExtractImports(tree *ast.AST) (ExtractedData, error) {
 
 	return ExtractedData{
 		Sources: sources,
-		Imports: imports,
 		Data:    data,
 	}, nil
 }
@@ -169,8 +141,9 @@ func pathExprToString(p *ast.PathExpr) string {
 	return result
 }
 
-// ResolveImports resolves imports using the provider registry and type registry.
-// Returns merged data from all imports in dependency order.
+// ResolveImports initializes providers from source declarations and returns the file's data.
+// Note: Import statements are no longer supported. References (@alias:path) are now
+// used for cross-file dependencies and are resolved separately during compilation.
 func ResolveImports(ctx context.Context, filePath string, registry ProviderRegistry, typeRegistry ProviderTypeRegistry) (map[string]any, error) {
 	// Parse the file
 	tree, diags, err := parse.ParseFile(filePath)
@@ -196,7 +169,7 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 	// Extract declarations
 	extracted, err := ExtractImports(tree)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract imports for %q: %w", filePath, err)
+		return nil, fmt.Errorf("failed to extract data for %q: %w", filePath, err)
 	}
 
 	// Initialize providers from source declarations
@@ -206,22 +179,8 @@ func ResolveImports(ctx context.Context, filePath string, registry ProviderRegis
 		}
 	}
 
-	// Resolve each import
-	result := make(map[string]any)
-	for _, imp := range extracted.Imports {
-		importedData, err := resolveImport(ctx, imp, registry)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve import %q: %w", imp.Alias, err)
-		}
-
-		// Merge imported data (first imports win for now - we'll improve this)
-		result = deepMerge(result, importedData)
-	}
-
-	// Merge main file data (last-wins)
-	result = deepMerge(result, extracted.Data)
-
-	return result, nil
+	// Return the file's data (references will be resolved separately)
+	return extracted.Data, nil
 }
 
 // initializeProvider initializes a provider from a source declaration.
@@ -278,66 +237,4 @@ func (p *alreadyInitializedProvider) Init(_ context.Context, _ ProviderInitOptio
 
 func (p *alreadyInitializedProvider) Fetch(ctx context.Context, path []string) (any, error) {
 	return p.provider.Fetch(ctx, path)
-}
-
-// resolveImport resolves a single import using the provider.
-func resolveImport(ctx context.Context, imp ImportDecl, registry ProviderRegistry) (map[string]any, error) {
-	// Get the provider
-	provider, err := registry.GetProvider(ctx, imp.Alias)
-	if err != nil {
-		return nil, fmt.Errorf("provider %q not found: %w", imp.Alias, err)
-	}
-
-	// Determine fetch path
-	var fetchPath []string
-	if len(imp.Path) == 0 {
-		// No path specified - import:alias form
-		// This is ambiguous for most providers
-		// For now, return error - providers could implement a "default" path in the future
-		return nil, fmt.Errorf("import %q: path required (use import:alias:path syntax)", imp.Alias)
-	}
-
-	fetchPath = imp.Path
-
-	// Fetch data
-	data, err := provider.Fetch(ctx, fetchPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch from %q path %v: %w", imp.Alias, fetchPath, err)
-	}
-
-	// Convert to map
-	result, ok := data.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("import %q returned non-map data: %T", imp.Alias, data)
-	}
-
-	return result, nil
-}
-
-// deepMerge merges two maps with last-wins semantics for scalars and deep-merge for nested maps.
-func deepMerge(base, override map[string]any) map[string]any {
-	result := make(map[string]any)
-
-	// Copy base
-	for k, v := range base {
-		result[k] = v
-	}
-
-	// Apply overrides
-	for k, v := range override {
-		if baseVal, exists := result[k]; exists {
-			// Both exist - check if both are maps
-			if baseMap, ok := baseVal.(map[string]any); ok {
-				if overrideMap, ok := v.(map[string]any); ok {
-					// Deep merge maps
-					result[k] = deepMerge(baseMap, overrideMap)
-					continue
-				}
-			}
-		}
-		// Last-wins for scalars, arrays, or type mismatches
-		result[k] = v
-	}
-
-	return result
 }

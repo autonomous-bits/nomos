@@ -3,14 +3,11 @@ source:
 	type:  'test'
 	path:  './test'
 
-import:module1:./module1.csl
-import:module2
-
 section1:
 	key1: value1
 	key2: value2
-	ref1: @module1:config.value
-	ref2: @module2:data.key.nested
+	ref1: @module1:config:config.value
+	ref2: @module2:config:data.key.nested
 
 section2:
 	nested:

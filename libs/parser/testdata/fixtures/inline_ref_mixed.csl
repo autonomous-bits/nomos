@@ -9,21 +9,21 @@ source:
 	path: './app-config'
 
 config:
-	primary_host: @network:vpc.cidr
+	primary_host: @network:config:vpc.cidr
 	backup_hosts:
-		backup1: @network:backup1.host
+		backup1: @network:config:backup1.host
 		static_backup: 'static-backup.example.com'
-		backup2: @network:backup2.host
+		backup2: @network:config:backup2.host
 	settings:
 		timeout: '30s'
 		retry_count: '3'
-		endpoint: @app:api.endpoint
+		endpoint: @app:config:api.endpoint
 		nested:
-			deep_ref: @network:deep.nested.value
+			deep_ref: @network:config:deep.nested.value
 			literal: 'literal-value'
 	tags:
 		env: 'production'
-		app_tag: @app:tags.environment
+		app_tag: @app:config:tags.environment
 		region: 'us-west-2'
 
 

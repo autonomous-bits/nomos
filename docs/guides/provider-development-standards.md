@@ -281,7 +281,7 @@ func (p *Provider) Init(ctx context.Context, req *providerv1.InitRequest) (*prov
 │  3. Read PORT=50051 from stdout                                 │
 │  4. Establish gRPC connection                                   │
 │  5. Call Init(alias="dev_configs", config={...})                │
-│  6. On each import: Call Fetch(path=[...])                      │
+│  6. On each reference: Call Fetch(path=[...])                   │
 │  7. On completion: Call Shutdown()                              │
 │  8. Terminate subprocess                                        │
 └─────────────────────────────────────────────────────────────────┘
@@ -830,7 +830,7 @@ Use appropriate status codes for different error conditions:
 |------------|-------------|---------|
 | `OK` | Success (implicit) | (No error returned) |
 | `InvalidArgument` | Invalid request parameters | Path format invalid, config missing required field |
-| `NotFound` | Resource not found | Path does not exist in data source |
+| `NotFound` | Path not found | Path does not exist in data source |
 | `FailedPrecondition` | Operation out of order | `Fetch` called before `Init` |
 | `PermissionDenied` | Authorization failure | Insufficient permissions to access resource |
 | `Unavailable` | Temporary failure | External service unreachable |
@@ -842,7 +842,7 @@ Use appropriate status codes for different error conditions:
 **Requirements**:
 1. **MUST** include actionable context in error messages
 2. **MUST** avoid leaking sensitive information (passwords, tokens)
-3. **SHOULD** include resource identifiers (path, config key)
+3. **SHOULD** include path identifiers (path segments, config key)
 4. **SHOULD** suggest remediation when possible
 
 **Example**:

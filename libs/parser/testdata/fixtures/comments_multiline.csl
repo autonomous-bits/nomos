@@ -7,10 +7,6 @@
 # Author: Test Suite
 # Date: 2026-01-18
 
-# Import statement with documentation
-# This import brings in shared configuration
-import:shared:common
-
 # =====================================================
 # Database Configuration Section
 # =====================================================

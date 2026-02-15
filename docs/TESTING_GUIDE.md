@@ -450,7 +450,7 @@ Test that parsing produces correct AST structures.
 ```go
 func TestParse_ReferenceExpression(t *testing.T) {
     input := `database:
-  host: reference:config:db.host
+    host: @config:db:host
 `
     
     result, err := parser.Parse(strings.NewReader(input), "test.csl")
@@ -543,8 +543,8 @@ func TestCompiler_ResolveReferences(t *testing.T) {
     
     // Test compilation with references
     input := `database:
-  host: reference:config:db/host
-  port: reference:config:db/port
+    host: @config:db:host
+    port: @config:db:port
 `
     
     result, err := comp.Compile(context.Background(), input)
@@ -563,9 +563,9 @@ func TestCompiler_ResolveReferences(t *testing.T) {
 }
 ```
 
-#### Import Resolution Tests
+#### File Provider Reference Tests
 
-Test import resolution with file-based providers.
+Test reference resolution with file-based providers.
 
 ```go
 func TestCompiler_ImportResolution(t *testing.T) {
@@ -576,12 +576,15 @@ func TestCompiler_ImportResolution(t *testing.T) {
     baseFile := filepath.Join(tmpDir, "base.csl")
     os.WriteFile(baseFile, []byte(baseConfig), 0644)
     
-    // Create config that imports base
-    mainConfig := fmt.Sprintf(`import:base:%s
+        // Create config that references base
+        mainConfig := fmt.Sprintf(`source:
+    alias: 'base'
+    type: 'file'
+    directory: '%s'
 
 derived:
-  value: reference:base:baseValue
-`, baseFile)
+    value: @base:base:baseValue
+`, tmpDir)
     
     // Compile with file provider
     comp := compiler.New(compiler.Options{

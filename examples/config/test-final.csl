@@ -5,16 +5,16 @@ source:
   directory: './data'
 
 environments:
-  production_full: @configs:prod.database
-  staging_full: @configs:staging.database
-  production_db_name: @configs:prod.database.name
-  staging_db_name: @configs:staging.database.name
+  production_full: @configs:prod:database
+  staging_full: @configs:staging:database
+  production_db_name: @configs:prod:database.name
+  staging_db_name: @configs:staging:database.name
   production:
-    database_name: @configs:prod.database.name
-    host: @configs:prod.database.host
+    database_name: @configs:prod:database.name
+    host: @configs:prod:database.host
   staging:
-    database_name: @configs:staging.database.name
-    host: @configs:staging.database.host
+    database_name: @configs:staging:database.name
+    host: @configs:staging:database.host
 
 app:
   name: 'example-app'

@@ -29,6 +29,7 @@
     "makefile.configureOnOpen": false,
     "github.copilot.chat.customAgents.showOrganizationAndEnterpriseAgents": true,
     "yaml.schemas": {
-        "https://json.schemastore.org/golangci-lint.json": ".golangci.yml"
+        "https://json.schemastore.org/golangci-lint.json": ".golangci.yml",
+        "https://json.schemastore.org/github-action.json": ".github/actions/*/action.yml"
     }
 }

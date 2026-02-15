@@ -252,12 +252,14 @@ func TestASTToData_ListExprWithPathAndIdent(t *testing.T) {
 	}
 }
 
-func TestASTToData_IgnoresNonSectionStatements(t *testing.T) {
+func TestASTToData_IgnoresSourceStatements(t *testing.T) {
+	// Source declarations are handled separately and ignored by ASTToData
 	tree := &ast.AST{
 		Statements: []ast.Stmt{
-			&ast.ImportStmt{
+			&ast.SourceDecl{
 				Alias:      "base",
-				Path:       "base.csl",
+				Type:       "file",
+				Config:     map[string]ast.Expr{},
 				SourceSpan: ast.SourceSpan{Filename: "test.csl"},
 			},
 			&ast.SectionDecl{
@@ -276,7 +278,7 @@ func TestASTToData_IgnoresNonSectionStatements(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Should only have config section, import is ignored
+	// Should only have config section, source declaration is ignored
 	expected := map[string]any{
 		"config": map[string]any{
 			"key": "value",

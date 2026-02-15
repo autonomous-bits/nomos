@@ -25,7 +25,7 @@ These workarounds make configurations harder to read, maintain, and validate. Li
 1. **Block-style List Syntax**: Support YAML-style dash notation (`-`) for list items
 2. **Nesting**: Allow lists within lists and lists within maps
 3. **Type Flexibility**: Support heterogeneous element types at parser level (strings, numbers, maps, nested lists)
-4. **Reference Support**: Enable list indexing in references (`reference:alias:config.IPs[0]`)
+4. **Reference Support**: Enable list indexing in references (`@alias:config:IPs[0]`)
 5. **Empty Lists**: Explicit syntax for empty collections (`[]`)
 6. **Validation**: Enforce consistent indentation (2 spaces) and provide clear error messages
 7. **Performance**: Minimal overhead compared to existing parsing operations
@@ -271,8 +271,8 @@ Support list indexing in reference expressions:
 
 **Syntax**:
 ```
-reference:alias:config.IPs[0]           # Single index
-reference:alias:nested.lists[1][2]      # Multi-dimensional
+@alias:config:IPs[0]           # Single index
+@alias:config:nested.lists[1][2]      # Multi-dimensional
 ```
 
 **Implementation**: Extend reference path parsing to include index notation as part of path components:

@@ -1,0 +1,32 @@
+# Development Environment Configuration
+#
+# Includes base configuration and overrides values for local development.
+
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: '.'
+
+# Include all base configuration
+config:
+  @base:base
+  
+  # Override for development
+  database:
+    host: 'localhost'
+    name: 'nomos_dev'
+    pool:
+      max_connections: '10'  # Lower pool size for dev
+  
+  api:
+    endpoint: 'http://localhost:3000'  # Dev API port
+  
+  logging:
+    level: 'debug'  # More verbose logging in dev
+    destinations:
+      - 'stdout'
+      - 'dev.log'
+  
+  monitoring:
+    enabled: 'false'  # Disable monitoring in dev

@@ -95,7 +95,7 @@ databases:
 			input: `
 config:
   database:
-    host: @infra:db.host
+    host: @infra:config:db.host
     port: 5432
 `,
 			wantErr: false,
@@ -112,8 +112,8 @@ config:
 					t.Errorf("expected alias 'infra', got %q", hostRef.Alias)
 				}
 
-				if len(hostRef.Path) != 2 || hostRef.Path[0] != "db" || hostRef.Path[1] != "host" {
-					t.Errorf("expected path [db, host], got %v", hostRef.Path)
+				if len(hostRef.Path) != 3 || hostRef.Path[0] != "config" || hostRef.Path[1] != "db" || hostRef.Path[2] != "host" {
+					t.Errorf("expected path [config, db, host], got %v", hostRef.Path)
 				}
 			},
 		},

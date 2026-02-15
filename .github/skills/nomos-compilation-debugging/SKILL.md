@@ -128,7 +128,7 @@ source:
 
 ### Step 4: Debug Reference Resolution Errors
 
-**Symptom:** `unresolved reference: reference:alias:path`
+**Symptom:** `unresolved reference: @alias:path`
 
 #### Verify Source Declaration
 
@@ -141,7 +141,7 @@ source:
   version: '0.2.0'
 
 app:
-  name: reference:configs:app.name  # Alias must match
+  name: @configs:app:name  # Alias must match
 ```
 
 #### Verify Reference Path Exists
@@ -150,7 +150,7 @@ Test provider Fetch manually if possible:
 
 ```bash
 # For file provider, verify file exists
-ls -la ./data/app.name  # or whatever the file path should be
+ls -la ./data/app.csl  # or whatever the file path should be
 ```
 
 #### Check Provider Init Configuration
@@ -179,24 +179,29 @@ For debugging, continue compilation without provider:
 nomos build --allow-missing-provider config.csl
 ```
 
-### Step 5: Debug Import Errors
+### Step 5: Debug Legacy Import Errors
 
-**Symptom:** `cycle detected` or `failed to resolve import`
+**Symptom:** `import statement no longer supported; use @alias:path syntax instead`
 
-#### Check Import Statements
+#### Find and Remove Import Statements
 
-Verify import syntax:
+Imports are no longer supported. Replace them with inline references:
 
 ```nomos
-import:base:./base.csl  # Correct format: import:<alias>:<path>
+# Old (remove)
+import:base:./base.csl
+
+# New (include base config via map reference)
+config:
+  @base:base:.
 ```
 
-#### Detect Import Cycles
+#### Detect Reference Cycles
 
 ```
-A imports B
-B imports C
-C imports A  ← Cycle!
+A references B
+B references C
+C references A  ← Cycle!
 ```
 
 **Solution:** Refactor to break cycle
@@ -204,14 +209,14 @@ C imports A  ← Cycle!
 - Remove circular dependencies
 - Use references instead of imports where possible
 
-#### Verify Import Paths
+#### Verify Provider Paths
 
 ```bash
-# Check that imported files exist
+# Check that referenced files exist (file provider)
 ls -la ./base.csl
 ls -la ./shared/common.csl
 
-# Verify paths are relative to importing file or absolute
+# Verify paths are relative to provider directory or absolute
 ```
 
 ### Step 6: Debug Syntax Errors
@@ -242,11 +247,11 @@ config.csl:15:3: SyntaxError: expected ':' after key
 
 2. **Invalid reference syntax:**
    ```nomos
-   # ❌ Wrong
-   app: reference:configs.app.name
+  # ❌ Wrong
+  app: @configs.app.name
    
-   # ✅ Correct
-   app: reference:configs:app.name
+  # ✅ Correct
+  app: @configs:app:name
    ```
 
 3. **Empty source alias:**
@@ -318,10 +323,16 @@ database:
   port: 5432
 
 # override.csl
-import:base:./base.csl
-database:
-  host: prod-server  # Overrides localhost
-  # port: 5432 preserved from base
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  directory: '.'
+
+config:
+  @base:base:.
+  database:
+    host: prod-server  # Overrides localhost
+    # port: 5432 preserved from base
 ```
 
 #### Trace Value Provenance

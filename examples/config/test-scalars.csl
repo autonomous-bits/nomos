@@ -5,10 +5,10 @@ source:
   directory: './data'
 
 test:
-  scalar1: @configs:prod.database.name
-  scalar2: @configs:staging.database.name
-  nested1: @configs:prod.database
-  nested2: @configs:staging.database
+  scalar1: @configs:prod:database.name
+  scalar2: @configs:staging:database.name
+  nested1: @configs:prod:database
+  nested2: @configs:staging:database
 
 app:
   name: 'test-app'

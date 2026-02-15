@@ -123,7 +123,8 @@ func TestAST_ContainsStatements_AfterParsing(t *testing.T) {
 	alias: 'folder'
 	type:  'folder'
 
-import:folder:filename
+config:
+	ref: @folder:config:config.key
 `
 	reader := strings.NewReader(input)
 
@@ -147,10 +148,8 @@ func TestAST_StatementsHaveCorrectTypes(t *testing.T) {
 	type:  'folder'
 	path:  '../config'
 
-import:folder:filename
-
 config:
-	ref: @folder:config.key
+	ref: @folder:config:config.key
 `
 	reader := strings.NewReader(input)
 
@@ -162,20 +161,17 @@ config:
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// We expect at least 3 statements: source, import, section
-	if len(result.Statements) < 3 {
-		t.Fatalf("expected at least 3 statements, got %d", len(result.Statements))
+	// We expect at least 2 statements: source, section
+	if len(result.Statements) < 2 {
+		t.Fatalf("expected at least 2 statements, got %d", len(result.Statements))
 	}
 
 	// Type assertions to verify statement types
 	if _, ok := result.Statements[0].(*ast.SourceDecl); !ok {
 		t.Errorf("expected first statement to be *ast.SourceDecl, got %T", result.Statements[0])
 	}
-	if _, ok := result.Statements[1].(*ast.ImportStmt); !ok {
-		t.Errorf("expected second statement to be *ast.ImportStmt, got %T", result.Statements[1])
-	}
-	if _, ok := result.Statements[2].(*ast.SectionDecl); !ok {
-		t.Errorf("expected third statement to be *ast.SectionDecl, got %T", result.Statements[2])
+	if _, ok := result.Statements[1].(*ast.SectionDecl); !ok {
+		t.Errorf("expected second statement to be *ast.SectionDecl, got %T", result.Statements[1])
 	}
 }
 
@@ -197,9 +193,9 @@ func TestParse_Negative_InvalidSyntax(t *testing.T) {
 			shouldContain: "invalid syntax",
 		},
 		{
-			name:          "incomplete import missing path",
+			name:          "import no longer supported",
 			input:         "import:",
-			shouldContain: "", // Empty identifier is handled gracefully
+			shouldContain: "import statement no longer supported",
 		},
 	}
 
@@ -275,9 +271,9 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		t.Fatalf("expected no error parsing simple.csl, got %v", err)
 	}
 
-	// Verify we have all expected statement types (source, import, section with inline ref)
-	if len(result.Statements) < 3 {
-		t.Fatalf("expected at least 3 statements (source, import, section), got %d", len(result.Statements))
+	// Verify we have all expected statement types (source, section with inline ref)
+	if len(result.Statements) < 2 {
+		t.Fatalf("expected at least 2 statements (source, section), got %d", len(result.Statements))
 	}
 
 	// Verify source declaration is present and correct
@@ -305,28 +301,6 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 		t.Error("expected to find source declaration")
 	}
 
-	// Verify import statement is present and correct
-	importFound := false
-	for _, stmt := range result.Statements {
-		if impStmt, ok := stmt.(*ast.ImportStmt); ok {
-			importFound = true
-			if impStmt.Alias != "folder" {
-				t.Errorf("import: expected alias 'folder', got '%s'", impStmt.Alias)
-			}
-			if impStmt.Path != "filename" {
-				t.Errorf("import: expected path 'filename', got '%s'", impStmt.Path)
-			}
-			// Verify source span
-			span := impStmt.Span()
-			if span.Filename != filePath {
-				t.Errorf("import: expected filename '%s', got '%s'", filePath, span.Filename)
-			}
-		}
-	}
-	if !importFound {
-		t.Error("expected to find import statement")
-	}
-
 	// Verify reference is now inline within section (as per User Story #18)
 	// Check that the section contains an inline reference
 	referenceFound := false
@@ -341,7 +315,7 @@ func TestParseFile_Integration_AllGrammarConstructs(t *testing.T) {
 							t.Errorf("inline reference: expected alias 'folder', got '%s'", refNode.Alias)
 						}
 						// Verify dotted path tokenization
-						expectedPath := []string{"config", "key"}
+						expectedPath := []string{"config", "config", "key"}
 						if !reflect.DeepEqual(refNode.Path, expectedPath) {
 							t.Errorf("inline reference: expected path %v, got %v", expectedPath, refNode.Path)
 						}

@@ -200,7 +200,11 @@ func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 	case "source":
 		return p.parseSourceDecl(s, startLine, startCol)
 	case "import":
-		return p.parseImportStmt(s, startLine, startCol)
+		// Import statement no longer supported - return clear error
+		err := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+			"import statement no longer supported; use @alias:path syntax instead")
+		err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+		return nil, err
 	case "reference":
 		return nil, p.parseReferenceStmt(s, startLine, startCol)
 	default:
@@ -290,70 +294,6 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 		Type:    typeName,
 		Version: version,
 		Config:  config,
-		SourceSpan: ast.SourceSpan{
-			Filename:  s.Filename(),
-			StartLine: startLine,
-			StartCol:  startCol,
-			EndLine:   endLine,
-			EndCol:    endCol,
-		},
-	}, nil
-}
-
-// parseImportStmt parses an import statement.
-func (p *Parser) parseImportStmt(s *scanner.Scanner, startLine, startCol int) (*ast.ImportStmt, error) {
-	s.ConsumeToken() // consume "import"
-
-	// Validate colon after keyword
-	if err := p.expectColonAfterKeyword(s, "import"); err != nil {
-		return nil, err
-	}
-
-	alias := s.ReadIdentifier()
-
-	// Validate alias is not empty
-	if alias == "" {
-		err := NewParseError(SyntaxError, s.Filename(), s.Line(), s.Column(),
-			"invalid syntax: 'import' statement requires an alias")
-		err.SetSnippet(generateSnippetFromSource(p.sourceText, s.Line(), s.Column()))
-		return nil, err
-	}
-
-	path := ""
-
-	// Check for optional path
-	if s.PeekChar() == ':' {
-		s.Advance() // consume ':'
-		s.SkipWhitespace()
-		pathStartCol := s.Column()
-		path = s.ReadValue()
-
-		if strings.HasPrefix(path, "\x00BACKSLASH_ERROR\x00") {
-			actualValue := strings.TrimPrefix(path, "\x00BACKSLASH_ERROR\x00")
-			backslashPos := strings.IndexRune(actualValue, '\\')
-			errorCol := pathStartCol
-			if backslashPos >= 0 {
-				errorCol = pathStartCol + backslashPos
-			}
-			err := NewParseError(SyntaxError, s.Filename(), startLine, errorCol,
-				"invalid syntax: unexpected character '\\'")
-			err.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, errorCol))
-			return nil, err
-		}
-
-		if len(path) > 0 && (path[0] == '\'' || path[0] == '"') {
-			quote := path[0]
-			return nil, NewParseError(SyntaxError, s.Filename(), startLine, pathStartCol,
-				fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
-		}
-	}
-
-	s.SkipToNextLine()
-	endLine, endCol := s.Line(), s.Column()
-
-	return &ast.ImportStmt{
-		Alias: alias,
-		Path:  path,
 		SourceSpan: ast.SourceSpan{
 			Filename:  s.Filename(),
 			StartLine: startLine,
@@ -870,38 +810,40 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 				"invalid syntax: double @ in reference expression")
 		}
 
-		// Parse reference expression: @alias:dotted.path
+		// Parse reference expression: @alias:path
+		// T033: Parse inline reference syntax @alias:path
 		refText := valueText[1:] // Remove @
-		parts := strings.SplitN(refText, ":", 2)
 
+		// Split by ":" to get alias and path
+		parts := strings.SplitN(refText, ":", 2)
 		if len(parts) != 2 {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: @ reference must include path after colon (@alias:path)")
+				"invalid syntax: @ reference must use format @alias:path")
 		}
 
 		aliasName := parts[0]
 		pathStr := parts[1]
 
-		// Validate alias name exists
+		// T035: Validate alias identifier
 		if aliasName == "" {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: @ reference must include alias name (@alias:path)")
+				"invalid syntax: alias cannot be empty (@alias:path)")
 		}
 
-		// Validate alias name pattern
+		// Validate alias name pattern: ^[a-zA-Z_][a-zA-Z0-9_-]*$
 		if !isValidAliasName(aliasName) {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: alias name must start with letter or underscore")
+				"invalid syntax: alias name must start with letter or underscore and contain only letters, numbers, underscores, or hyphens")
 		}
 
 		// Validate path exists
 		if pathStr == "" {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: @ reference path cannot be empty (@alias:path.to.value)")
+				"invalid syntax: path cannot be empty; use '.' for root (@alias:.)")
 		}
 
-		// Parse path (supports bracket notation like matrix[0][1])
-		pathParts, err := p.parseInlineReferencePath(pathStr, s.Filename(), startLine, startCol)
+		// Parse path segments (supports colon-separated segments and bracket notation)
+		pathParts, err := p.parseInlineReferencePathSegments(pathStr, s.Filename(), startLine, startCol)
 		if err != nil {
 			return nil, err
 		}
@@ -949,6 +891,9 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 // Errors are returned for malformed bracket usage (missing closing bracket, empty or non-numeric index,
 // stray ']' or '[') and include actionable messages.
 func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col int) ([]string, error) {
+	if pathStr == "." {
+		return []string{}, nil
+	}
 	if !strings.ContainsAny(pathStr, "[]") {
 		return strings.Split(pathStr, "."), nil
 	}
@@ -1001,6 +946,37 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 
 	components = append(components, current.String())
 	return components, nil
+}
+
+// parseInlineReferencePathSegments splits a path on ':' and '.' (with bracket support)
+// to produce the full list of path segments. Providers interpret these segments.
+func (p *Parser) parseInlineReferencePathSegments(pathStr, filename string, line, col int) ([]string, error) {
+	if pathStr == "." {
+		return []string{}, nil
+	}
+
+	segments := strings.Split(pathStr, ":")
+	parts := make([]string, 0, len(segments))
+
+	for _, segment := range segments {
+		if segment == "." {
+			continue
+		}
+		if segment == "" {
+			return nil, NewParseError(SyntaxError, filename, line, col,
+				"invalid syntax: inline reference path has empty segment")
+		}
+
+		segParts, err := p.parseInlineReferencePath(segment, filename, line, col)
+		if err != nil {
+			return nil, err
+		}
+		if len(segParts) > 0 {
+			parts = append(parts, segParts...)
+		}
+	}
+
+	return parts, nil
 }
 
 // parseListExpr parses a list expression with YAML-style block notation (dash markers).

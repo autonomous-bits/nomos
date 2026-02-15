@@ -189,7 +189,7 @@ Key parser behaviours the compiler relies on:
     - `ReferenceExpr` has `Alias string`, `Path []string` and carries a `SourceSpan`.
 
 - Inline references:
-    - The parser treats inline references as first-class values: `key: @alias:dot.path` produces an `ast.ReferenceExpr` assigned as the entry value.
+	- The parser treats inline references as first-class values: `key: @alias:path.to.value` produces an `ast.ReferenceExpr` assigned as the entry value.
     - Top-level `reference:` statements (legacy) are rejected by the parser with a `SyntaxError` and a migration hint — the compiler should not expect top-level reference statements.
 
 - Source spans and position information:
@@ -221,13 +221,13 @@ Implication for the compiler:
 
 The compiler resolves inline `@` reference expressions via the provider system. References are first-class values that can appear anywhere a value is expected.
 
-**Syntax:** `@{alias}:{path}`
+**Syntax:** `@alias:path`
 
 Where:
-- `{alias}` is the provider alias (from a `source:` declaration)
-- `{path}` is a dot-separated path to navigate into the provider's data
+- `alias` is the provider alias (from a `source:` declaration)
+- `path` uses `:` for provider segments and dot/bracket navigation within segments
 
-For file providers, the path format is: `{filename}.{nested.path.to.value}`
+For file providers, the path format is: `filename:nested.path.to.value`
 
 **Per-run caching:** Provider fetch results are cached for the duration of a single compilation run. Identical provider+path combinations result in a single provider call, with subsequent resolutions using the cached value.
 

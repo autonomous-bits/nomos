@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
@@ -139,65 +140,23 @@ func TestResolveFileImports_SimpleImport(t *testing.T) {
 	// Act
 	data, err := resolveFileImports(context.Background(), filePath, opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	// Assert - import statements are deprecated
+	if err == nil {
+		t.Fatal("expected error for deprecated import statement, got nil")
+	}
+	if data != nil {
+		t.Errorf("expected nil data with error, got %v", data)
 	}
 
-	if data == nil {
-		t.Fatal("expected data to be non-nil")
+	// Verify error message mentions the deprecated syntax
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "import statement no longer supported") {
+		t.Errorf("expected error about deprecated import syntax, got: %v", err)
 	}
-
-	// Debug: Print the actual data
-	t.Logf("Actual data: %+v", data)
-
-	// Verify deep merge semantics: override values should win
-	database, ok := data["database"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected database to be a map, got %T", data["database"])
-	}
-
-	t.Logf("Database: %+v", database)
-
-	// Overridden values
-	if host := database["host"]; host != "prod-db.example.com" {
-		t.Errorf("expected database.host to be 'prod-db.example.com', got %v", host)
-	}
-
-	if name := database["name"]; name != "production_db" {
-		t.Errorf("expected database.name to be 'production_db', got %v", name)
-	}
-
-	// Note: Merged values from base depend on internal/imports working correctly.
-	// For now, just verify the override values are present.
-	// NOTE: Additional assertions should be added for deep-merge verification:
-	// - database.port (from base) - verify base values survive merge
-	// - database.connection_timeout (from base) - verify nested paths
-	// - server.host (from base) - verify cross-section merging
-
-	// Server values
-	server, ok := data["server"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected server to be a map, got %T", data["server"])
-	}
-
-	port := server["port"]
-	// Port could be string or float64 depending on parser
-	switch v := port.(type) {
-	case float64:
-		if v != 9090 {
-			t.Errorf("expected server.port to be 9090, got %v", v)
-		}
-	case string:
-		if v != "9090" {
-			t.Errorf("expected server.port to be '9090', got %v", v)
-		}
-	default:
-		t.Errorf("expected server.port to be number or string, got %T: %v", port, port)
-	}
+	t.Logf("✓ Deprecated import statement correctly rejected: %v", err)
 }
 
-// TestResolveFileImports_MultiLevelImportChain tests import chains with multiple levels.
+// TestResolveFileImports_MultiLevelImportChain tests that multi-level import chains are deprecated.
 func TestResolveFileImports_MultiLevelImportChain(t *testing.T) {
 	// Arrange
 	testDir := filepath.Join("testdata", "import_resolution")
@@ -214,46 +173,20 @@ func TestResolveFileImports_MultiLevelImportChain(t *testing.T) {
 	// Act
 	data, err := resolveFileImports(context.Background(), filePath, opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	// Assert - import statements are deprecated
+	if err == nil {
+		t.Fatal("expected error for deprecated import statement, got nil")
+	}
+	if data != nil {
+		t.Errorf("expected nil data with error, got %v", data)
 	}
 
-	if data == nil {
-		t.Fatal("expected data to be non-nil")
+	// Verify error message mentions the deprecated syntax
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "import statement no longer supported") {
+		t.Errorf("expected error about deprecated import syntax, got: %v", err)
 	}
-
-	// Verify last-wins semantics: level3 should override level2 and level1
-	config, ok := data["config"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected config to be a map, got %T", data["config"])
-	}
-
-	// Level could be string or float64
-	level := config["level"]
-	switch v := level.(type) {
-	case float64:
-		if v != 3 {
-			t.Errorf("expected config.level to be 3 (from level3), got %v", v)
-		}
-	case string:
-		if v != "3" {
-			t.Errorf("expected config.level to be '3' (from level3), got %v", v)
-		}
-	default:
-		t.Errorf("expected config.level to be number or string, got %T: %v", level, level)
-	}
-
-	if value := config["value"]; value != "level3" {
-		t.Errorf("expected config.value to be 'level3' (from level3), got %v", value)
-	}
-
-	// Note: Multi-level import deep merge depends on internal/imports recursive resolution.
-	// NOTE: Add assertions to verify 3-level deep-merge correctness:
-	// - network.protocol from level3 (most specific wins)
-	// - network.retries from level2 (intermediate override)
-	// - network.timeout from level1 (base value preserved)
-	// This will validate the deep-merge algorithm's layering behavior.
+	t.Logf("✓ Multi-level import chain correctly rejected: %v", err)
 }
 
 // TestResolveFileImports_NoTypeRegistry tests fallback behavior when type registry is nil.
@@ -571,32 +504,43 @@ shared:
 	// Act
 	data, err := resolveFileImports(context.Background(), mainFile, opts)
 
-	// Assert
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	// Assert - expect error due to deprecated import: syntax
+	if err == nil {
+		t.Fatal("expected error for deprecated import statement, got nil")
 	}
-
-	// Verify both services are present (or at least that merge attempted)
-	// Note: The actual merge behavior depends on imports.ResolveImports implementation
-	if data == nil {
-		t.Fatal("expected non-nil data")
+	if data != nil {
+		t.Errorf("expected nil data with error, got %v", data)
 	}
+	t.Logf("✓ Multiple imports correctly rejected: %v", err)
 
-	// Check if services were imported (lenient check)
-	service1Present := data["service1"] != nil
-	service2Present := data["service2"] != nil
-	sharedPresent := data["shared"] != nil
-
-	if !service1Present && !service2Present && !sharedPresent {
-		t.Errorf("expected at least some data from imports, got empty: %v", data)
-	}
-
-	// If data is present, verify last-wins for shared key
-	if shared, ok := data["shared"].(map[string]any); ok {
-		if value := shared["value"]; value == "from_main" {
-			t.Logf("Correct: shared.value is 'from_main' (last-wins)")
-		} else {
-			t.Logf("Note: shared.value is %v, expected 'from_main' for proper last-wins", value)
+	// OLD TEST CODE (kept for reference):
+	/*
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
 		}
-	}
+
+		// Verify both services are present (or at least that merge attempted)
+		// Note: The actual merge behavior depends on imports.ResolveImports implementation
+		if data == nil {
+			t.Fatal("expected non-nil data")
+		}
+
+		// Check if services were imported (lenient check)
+		service1Present := data["service1"] != nil
+		service2Present := data["service2"] != nil
+		sharedPresent := data["shared"] != nil
+
+		if !service1Present && !service2Present && !sharedPresent {
+			t.Errorf("expected at least some data from imports, got empty: %v", data)
+		}
+
+		// If data is present, verify last-wins for shared key
+		if shared, ok := data["shared"].(map[string]any); ok {
+			if value := shared["value"]; value == "from_main" {
+				t.Logf("Correct: shared.value is 'from_main' (last-wins)")
+			} else {
+				t.Logf("Note: shared.value is %v, expected 'from_main' for proper last-wins", value)
+			}
+		}
+	*/
 }

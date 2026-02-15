@@ -17,11 +17,9 @@ func TestSourceSpan_AllNodesHaveSpans(t *testing.T) {
 	type:  'folder'
 	path:  '../config'
 
-import:folder:filename
-
 config-section:
 	key1: value1
-	ref: @folder:config.key
+	ref: @folder:config:config.key
 `
 	reader := strings.NewReader(input)
 
@@ -64,12 +62,13 @@ config-section:
 
 // TestSourceSpan_CorrectLineNumbers tests that line numbers are accurate.
 func TestSourceSpan_CorrectLineNumbers(t *testing.T) {
-	// Arrange - source starts at line 1, import at line 5
+	// Arrange - source starts at line 1, section at line 5
 	input := `source:
 	alias: 'test'
 	type:  'folder'
 
-import:test:path
+test:
+	value: 'test'
 `
 	reader := strings.NewReader(input)
 
@@ -81,8 +80,8 @@ import:test:path
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(result.Statements) < 2 {
-		t.Fatalf("expected at least 2 statements, got %d", len(result.Statements))
+	if len(result.Statements) != 2 {
+		t.Fatalf("expected 2 statements, got %d", len(result.Statements))
 	}
 
 	// First statement (source) should start at line 1
@@ -91,10 +90,10 @@ import:test:path
 		t.Errorf("source statement: expected start line 1, got %d", sourceStmt.Span().StartLine)
 	}
 
-	// Second statement (import) should start at line 5
-	importStmt := result.Statements[1]
-	if importStmt.Span().StartLine != 5 {
-		t.Errorf("import statement: expected start line 5, got %d", importStmt.Span().StartLine)
+	// Second statement (section) should start at line 5
+	sectionStmt := result.Statements[1]
+	if sectionStmt.Span().StartLine != 5 {
+		t.Errorf("section statement: expected start line 5, got %d", sectionStmt.Span().StartLine)
 	}
 }
 
@@ -113,38 +112,38 @@ func TestReferenceExprSourceSpan_ScalarValue(t *testing.T) {
 		{
 			name: "simple inline reference",
 			input: `config:
-	cidr: @network:vpc.cidr
+	cidr: @network:config:vpc.cidr
 `,
-			// "@network:vpc.cidr" is 17 chars, starts at col 8 on line 2
+			// "@network:config:vpc.cidr" is 24 chars, starts at col 8 on line 2
 			wantStartLine:  2,
 			wantStartCol:   8,
 			wantEndLine:    2,
-			wantEndCol:     24, // 8 + 17 - 1
-			referenceValue: "@network:vpc.cidr",
+			wantEndCol:     31, // 8 + 24 - 1
+			referenceValue: "@network:config:vpc.cidr",
 		},
 		{
 			name: "inline reference with single path segment",
 			input: `settings:
-	value: @alias:key
+	value: @alias:config:key
 `,
-			// "@alias:key" is 10 chars, starts at col 9 on line 2
+			// "@alias:config:key" is 17 chars, starts at col 9 on line 2
 			wantStartLine:  2,
 			wantStartCol:   9,
 			wantEndLine:    2,
-			wantEndCol:     18, // 9 + 10 - 1
-			referenceValue: "@alias:key",
+			wantEndCol:     25, // 9 + 17 - 1
+			referenceValue: "@alias:config:key",
 		},
 		{
 			name: "inline reference with long dotted path",
 			input: `network:
-	subnet: @vpc:config.network.subnet.cidr
+	subnet: @vpc:config:config.network.subnet.cidr
 `,
-			// "@vpc:config.network.subnet.cidr" is 31 chars, starts at col 10 on line 2
+			// "@vpc:config:config.network.subnet.cidr" is 38 chars, starts at col 10 on line 2
 			wantStartLine:  2,
 			wantStartCol:   10,
 			wantEndLine:    2,
-			wantEndCol:     40, // 10 + 31 - 1
-			referenceValue: "@vpc:config.network.subnet.cidr",
+			wantEndCol:     47, // 10 + 38 - 1
+			referenceValue: "@vpc:config:config.network.subnet.cidr",
 		},
 	}
 
@@ -191,8 +190,8 @@ func TestReferenceExprSourceSpan_ScalarValue(t *testing.T) {
 // used as values in configuration maps.
 func TestReferenceExprSourceSpan_MapValue(t *testing.T) {
 	input := `network:
-	vpc: @config:vpc.id
-	subnet: @config:subnet.id
+	vpc: @config:config:vpc.id
+	subnet: @config:config:subnet.id
 `
 
 	result, err := parser.Parse(strings.NewReader(input), "test.csl")
@@ -209,8 +208,8 @@ func TestReferenceExprSourceSpan_MapValue(t *testing.T) {
 	// Check that we have both references (order may vary due to map iteration)
 	var vpcRef, subnetRef *ast.ReferenceExpr
 	for _, ref := range refExprs {
-		if ref.Path[len(ref.Path)-1] == "id" && len(ref.Path) == 2 {
-			switch ref.Path[0] {
+		if len(ref.Path) == 3 && ref.Path[0] == "config" && ref.Path[2] == "id" {
+			switch ref.Path[1] {
 			case "vpc":
 				vpcRef = ref
 			case "subnet":
@@ -226,24 +225,24 @@ func TestReferenceExprSourceSpan_MapValue(t *testing.T) {
 		t.Fatal("subnet reference not found")
 	}
 
-	// VPC reference: "@config:vpc.id" on line 2, col 7
+	// VPC reference: "@config:config:vpc.id" on line 2, col 7
 	span1 := vpcRef.Span()
 	if span1.StartLine != 2 || span1.StartCol != 7 {
 		t.Errorf("vpc reference StartLine:StartCol: got %d:%d, want 2:7", span1.StartLine, span1.StartCol)
 	}
 	extracted1 := extractTextFromSpan(input, span1)
-	if extracted1 != "@config:vpc.id" {
-		t.Errorf("vpc reference extracted text: got %q, want %q", extracted1, "@config:vpc.id")
+	if extracted1 != "@config:config:vpc.id" {
+		t.Errorf("vpc reference extracted text: got %q, want %q", extracted1, "@config:config:vpc.id")
 	}
 
-	// Subnet reference: "@config:subnet.id" on line 3, col 10
+	// Subnet reference: "@config:config:subnet.id" on line 3, col 10
 	span2 := subnetRef.Span()
 	if span2.StartLine != 3 || span2.StartCol != 10 {
 		t.Errorf("subnet reference StartLine:StartCol: got %d:%d, want 3:10", span2.StartLine, span2.StartCol)
 	}
 	extracted2 := extractTextFromSpan(input, span2)
-	if extracted2 != "@config:subnet.id" {
-		t.Errorf("subnet reference extracted text: got %q, want %q", extracted2, "@config:subnet.id")
+	if extracted2 != "@config:config:subnet.id" {
+		t.Errorf("subnet reference extracted text: got %q, want %q", extracted2, "@config:config:subnet.id")
 	}
 }
 
@@ -360,39 +359,39 @@ func TestReferenceExprSourceSpan_EdgeCases(t *testing.T) {
 	}{
 		{
 			name:        "unicode in surrounding context",
-			input:       "unicode:\n  key: @net:日本",
+			input:       "unicode:\n  key: @net:config:日本",
 			wantAlias:   "net",
-			wantPath:    []string{"日本"},
-			wantExtract: "@net:日本",
+			wantPath:    []string{"config", "日本"},
+			wantExtract: "@net:config:日本",
 			wantLine:    2,
-			wantByteLen: 11, // "@net:日本" = 11 bytes (日本 is 6 bytes)
+			wantByteLen: 18, // "@net:config:日本" = 18 bytes (日本 is 6 bytes)
 		},
 		{
 			name:        "very long dotted path",
-			input:       "section:\n  value: @alias:level1.level2.level3.level4.level5.level6.level7",
+			input:       "section:\n  value: @alias:config:level1.level2.level3.level4.level5.level6.level7",
 			wantAlias:   "alias",
-			wantPath:    []string{"level1", "level2", "level3", "level4", "level5", "level6", "level7"},
-			wantExtract: "@alias:level1.level2.level3.level4.level5.level6.level7",
+			wantPath:    []string{"config", "level1", "level2", "level3", "level4", "level5", "level6", "level7"},
+			wantExtract: "@alias:config:level1.level2.level3.level4.level5.level6.level7",
 			wantLine:    2,
-			wantByteLen: 55,
+			wantByteLen: 62,
 		},
 		{
 			name:        "single segment path",
-			input:       "section:\n  value: @myalias:path",
+			input:       "section:\n  value: @myalias:config:path",
 			wantAlias:   "myalias",
-			wantPath:    []string{"path"},
-			wantExtract: "@myalias:path",
+			wantPath:    []string{"config", "path"},
+			wantExtract: "@myalias:config:path",
 			wantLine:    2,
-			wantByteLen: 13,
+			wantByteLen: 20,
 		},
 		{
 			name:        "path with numbers and dashes",
-			input:       "section:\n  value: @alias-1:path-2.sub_3",
+			input:       "section:\n  value: @alias-1:config:path-2.sub_3",
 			wantAlias:   "alias-1",
-			wantPath:    []string{"path-2", "sub_3"},
-			wantExtract: "@alias-1:path-2.sub_3",
+			wantPath:    []string{"config", "path-2", "sub_3"},
+			wantExtract: "@alias-1:config:path-2.sub_3",
 			wantLine:    2,
-			wantByteLen: 21,
+			wantByteLen: 28,
 		},
 	}
 

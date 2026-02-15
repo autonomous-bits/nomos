@@ -39,8 +39,6 @@ func normalizeFilenames(node ast.Node, fixturesDir string) {
 		for _, expr := range n.Config {
 			normalizeFilenames(expr, fixturesDir)
 		}
-	case *ast.ImportStmt:
-		n.SourceSpan = span
 	case *ast.SectionDecl:
 		n.SourceSpan = span
 		if n.Value != nil {

@@ -4,9 +4,9 @@ source:
 	path: './config'
 
 servers:
-	server1: @network:server1.ip
-	server2: @network:server2.ip
+	server1: @network:config:server1.ip
+	server2: @network:config:server2.ip
 	static_server: 'static-server.example.com'
-	server3: @network:server3.ip
+	server3: @network:config:server3.ip
 
 

@@ -1,0 +1,31 @@
+# Example: Map Reference
+#
+# This example demonstrates using map references to include specific nested maps
+# from a provider path without including unrelated properties.
+#
+# Map references use a path that resolves to a map, including only that
+# section and its nested properties.
+
+source:
+  alias: 'shared'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: './data'
+
+# Include only the database configuration map
+database:
+  @shared:config:database
+  # Only database.* properties from the path are included
+  # Other sections (e.g., network, logging) are excluded
+
+# Include a deeply nested map
+storage:
+  s3_config: @shared:config:storage.s3.production
+  # Only storage.s3.production.* properties are included
+  # storage.s3.staging and other storage types are excluded
+
+# Multiple map references in one section
+infrastructure:
+  vpc: @shared:network:vpc.settings
+  security: @shared:network:security.groups
+  # Each reference pulls in a specific map subset

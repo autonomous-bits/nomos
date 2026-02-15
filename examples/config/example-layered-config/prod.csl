@@ -1,0 +1,39 @@
+# Production Environment Configuration
+#
+# Includes base configuration and overrides values for production environment.
+
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: '.'
+
+# Include all base configuration
+config:
+  @base:base
+  
+  # Override for production
+  database:
+    host: 'prod-db.internal'
+    name: 'nomos_prod'
+    pool:
+      min_connections: '10'     # Higher minimum for production
+      max_connections: '100'    # Large pool for production load
+      timeout_seconds: '60'     # Longer timeout
+  
+  api:
+    endpoint: 'https://api.example.com'
+    timeout_ms: '10000'  # Higher timeout for production
+    retry:
+      max_attempts: '5'   # More retries in production
+      backoff_ms: '2000'  # Longer backoff
+  
+  logging:
+    level: 'warn'  # Less verbose in production
+    destinations:
+      - '/var/log/nomos/prod.log'
+      - 'syslog'
+  
+  monitoring:
+    enabled: 'true'
+    interval_seconds: '60'

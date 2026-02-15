@@ -1,4 +1,4 @@
 {
-  "error": "../testdata/errors/at_empty_path.csl:2:7: invalid syntax: @ reference path cannot be empty (@alias:path.to.value)",
+  "error": "../testdata/errors/at_empty_path.csl:2:7: invalid syntax: path cannot be empty; use '.' for root (@alias:.)",
   "filename": "../testdata/errors/at_empty_path.csl"
 }

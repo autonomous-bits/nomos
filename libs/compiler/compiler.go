@@ -207,8 +207,8 @@ func Compile(ctx context.Context, opts Options) CompilationResult {
 			provenance = make(map[string]Provenance)
 			// TODO: Track provenance for imported data
 			// Currently all keys are attributed to the root file, but they may originate from:
-			// - Import statements (import:alias:path) -> should track source file of the import
-			// - Inline references (reference:alias:path) -> should track provider alias
+			// - Import statements (deprecated) -> should track source file of the import if still supported
+			// - Inline references (@alias:path) -> should track provider alias
 			// Requires internal/imports to return provenance metadata alongside merged data.
 			// See GitHub issue for detailed design: provenance should flow through deep-merge.
 			for key := range data {

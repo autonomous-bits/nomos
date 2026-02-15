@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING CHANGE: Path-based reference syntax** (Feature 006-expand-at-references)
+  - References now treat everything after the first `:` as provider path segments: `@alias:path`
+  - Root references use `@alias:.` to include all properties at the provider root
+  - Map references: `@alias:path.to.map` includes specific nested map
+  - Property references: `@alias:path.to.property` resolves single value
+  - Deep merge semantics: Properties after reference override using deep merge (preserve siblings)
+  - Circular reference detection: Tracks resolution chain and fails with full cycle path
+  - File provider: Filename path segment does not require `.csl` extension (auto-appended)
+  - Migration: Update all references to use `@alias:path`; see migration guide
+  - See [Migration Guide](../../docs/guides/expand-at-references-migration.md)
+
+### Added
+- **Reference resolution modes** (Feature 006-expand-at-references)
+  - `ReferenceMode` enum: PropertyMode, MapMode, RootMode
+  - `ResolvedReference` struct with mode-specific Value or Entries
+  - `ResolutionContext` for circular reference detection with Push/Pop/formatCycle
+  - `DetermineReferenceMode` function to classify references by path structure
+  - `ResolveReference` function with context-aware resolution and error wrapping
+- **Deep merge implementation** (Feature 006-expand-at-references)
+  - `DeepMerge` function with recursive map merging
+  - Array replacement (no deep array merge)
+  - Scalar last-wins override
+  - Sibling property preservation during nested overrides
+- **Comprehensive error types** (Feature 006-expand-at-references)
+  - `ErrAliasNotFound`: Source alias not configured
+  - `ErrPathNotFound`: Provider cannot resolve path
+  - `ErrPropertyPathInvalid`: Property path doesn't exist (includes available keys)
+  - `ErrCircularReference`: Cycle detected in resolution chain
+  - All errors include source span for precise error reporting
+
 ### Fixed
 - [Compiler] Converter properly handles `SectionDecl.Value` field for inline scalars, producing flat output structure compatible with tfvars format
 

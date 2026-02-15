@@ -1,0 +1,34 @@
+# Staging Environment Configuration
+#
+# Includes base configuration and overrides values for staging environment.
+
+source:
+  alias: 'base'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: '.'
+
+# Include all base configuration
+config:
+  @base:base
+  
+  # Override for staging
+  database:
+    host: 'staging-db.internal'
+    name: 'nomos_staging'
+    pool:
+      max_connections: '30'  # Moderate pool size
+  
+  api:
+    endpoint: 'https://api-staging.example.com'
+    timeout_ms: '8000'  # Slightly higher timeout
+  
+  logging:
+    level: 'info'
+    destinations:
+      - 'stdout'
+      - '/var/log/nomos/staging.log'
+  
+  monitoring:
+    enabled: 'true'
+    interval_seconds: '30'  # More frequent checks in staging

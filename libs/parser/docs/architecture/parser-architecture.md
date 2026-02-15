@@ -340,21 +340,18 @@ type ReferenceExpr struct {
    - Extract `type` field (optional)
    - Return `SourceDecl` node
 
-5. **Import Statement** (`parseImportStmt`)
+5. **Import Statement** (deprecated)
    ```
    import:alias:optional.path
    ```
-   - Consume `import` keyword
-   - Expect `:`
-   - Read alias (required)
-   - Optionally read `:` and path
-   - Return `ImportStmt` node
+   - Parser rejects import statements with migration guidance
+   - Use inline references instead (`@alias:path`)
 
 6. **Section Declaration** (`parseSectionDecl`)
    ```
    section-name:
        key1: value1
-       key2: reference:alias:path.to.value
+      key2: @alias:path.to.value
    ```
    - Read section name
    - Expect `:`
@@ -372,8 +369,8 @@ type ReferenceExpr struct {
 
 8. **Value Expression** (`parseValueExpr`)
    - Read value until end of line
-   - Check if starts with `reference:`
-     - Yes → Parse as `ReferenceExpr` (split by `:` and `.`)
+    - Check if starts with `@`
+       - Yes → Parse as `ReferenceExpr` (split by `:` and `.`)
      - No → Parse as `StringLiteral` (strip quotes)
    - Return expression node with source span
 
@@ -436,7 +433,7 @@ type ReferenceExpr struct {
 **Syntax:**
 ```
 # Correct (inline reference as value)
-cidr: reference:network:vpc.cidr
+cidr: @network:config:vpc.cidr
 
 # Error (top-level reference - deprecated)
 reference:network:vpc.cidr
@@ -471,7 +468,7 @@ reference:network:vpc.cidr
 **Example Error:**
 ```
 config.csl:5:12: invalid syntax: expected ':' after key
-   5 |     vpc_cidr reference:network:vpc.cidr
+   5 |     vpc_cidr @network:config:vpc.cidr
      |             ^
 ```
 

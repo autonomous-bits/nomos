@@ -1,0 +1,34 @@
+# Example: Property Reference
+#
+# This example demonstrates using property references to reference single scalar
+# values from a provider path.
+#
+# Property references use a path that resolves to a scalar value (string,
+# number, boolean), allowing precise value reuse without including entire maps.
+
+source:
+  alias: 'common'
+  type: 'autonomous-bits/nomos-provider-file'
+  version: '0.2.1'
+  directory: './data'
+
+# Reference single properties
+application:
+  name: 'my-app'
+  api_url: @common:config:api.url
+  api_key: @common:config:api.key
+  timeout: @common:config:api.timeout
+
+# Reference deeply nested properties
+database:
+  host: @common:config:database.connection.host
+  port: @common:config:database.connection.port
+  name: @common:config:database.connection.database_name
+  # Each reference resolves to a single scalar value
+
+# Mix literals and property references
+monitoring:
+  enabled: 'true'
+  endpoint: @common:config:monitoring.endpoint
+  interval: @common:config:monitoring.interval
+  custom_tag: 'production'

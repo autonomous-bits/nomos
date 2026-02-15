@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [Compiler][Parser] BREAKING: Treat everything after the first `:` in references as provider path segments (use `@alias:path`)
+
 ### Fixed
 - [Compiler] Preserve list expressions during AST conversion for configuration data
 ## Nomos Refactoring Initiative (Phases 1-6) - 2025-12-26

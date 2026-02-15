@@ -392,3 +392,310 @@ func TestDeepMergeWithProvenance_ArrayReplacement(t *testing.T) {
 		t.Errorf("provenance = %v, want %v", provenance, expectedProvenance)
 	}
 }
+
+// T025-T028: Test DeepMerge with various root reference scenarios
+// These tests validate deep merge semantics for User Story 1.
+
+// T025: Test DeepMerge with empty override map
+func TestDeepMerge_EmptyOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		dst      map[string]any
+		src      map[string]any
+		expected map[string]any
+	}{
+		{
+			name: "empty src preserves dst",
+			dst: map[string]any{
+				"host": "localhost",
+				"port": 8080,
+			},
+			src: map[string]any{},
+			expected: map[string]any{
+				"host": "localhost",
+				"port": 8080,
+			},
+		},
+		{
+			name:     "empty dst, populated src",
+			dst:      map[string]any{},
+			src:      map[string]any{"key": "value"},
+			expected: map[string]any{"key": "value"},
+		},
+		{
+			name:     "both empty",
+			dst:      map[string]any{},
+			src:      map[string]any{},
+			expected: map[string]any{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DeepMerge(tt.dst, tt.src)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("DeepMerge() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// T026: Test DeepMerge with sibling properties
+func TestDeepMerge_SiblingProperties(t *testing.T) {
+	tests := []struct {
+		name     string
+		dst      map[string]any
+		src      map[string]any
+		expected map[string]any
+	}{
+		{
+			name: "non-overlapping siblings",
+			dst: map[string]any{
+				"host": "localhost",
+				"port": 8080,
+			},
+			src: map[string]any{
+				"ssl":  true,
+				"path": "/api",
+			},
+			expected: map[string]any{
+				"host": "localhost",
+				"port": 8080,
+				"ssl":  true,
+				"path": "/api",
+			},
+		},
+		{
+			name: "overlapping siblings with last-wins",
+			dst: map[string]any{
+				"host": "localhost",
+				"port": 8080,
+			},
+			src: map[string]any{
+				"port": 9000,
+				"ssl":  true,
+			},
+			expected: map[string]any{
+				"host": "localhost",
+				"port": 9000,
+				"ssl":  true,
+			},
+		},
+		{
+			name: "multiple siblings all override",
+			dst: map[string]any{
+				"a": 1,
+				"b": 2,
+				"c": 3,
+			},
+			src: map[string]any{
+				"a": 10,
+				"b": 20,
+				"c": 30,
+			},
+			expected: map[string]any{
+				"a": 10,
+				"b": 20,
+				"c": 30,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DeepMerge(tt.dst, tt.src)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("DeepMerge() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// T027: Test DeepMerge with nested map overrides
+func TestDeepMerge_NestedOverrides(t *testing.T) {
+	tests := []struct {
+		name     string
+		dst      map[string]any
+		src      map[string]any
+		expected map[string]any
+	}{
+		{
+			name: "partial nested override",
+			dst: map[string]any{
+				"database": map[string]any{
+					"host": "localhost",
+					"port": 5432,
+					"ssl":  false,
+				},
+			},
+			src: map[string]any{
+				"database": map[string]any{
+					"host": "prod.example.com",
+					"ssl":  true,
+				},
+			},
+			expected: map[string]any{
+				"database": map[string]any{
+					"host": "prod.example.com",
+					"port": 5432,
+					"ssl":  true,
+				},
+			},
+		},
+		{
+			name: "deeply nested merge",
+			dst: map[string]any{
+				"server": map[string]any{
+					"http": map[string]any{
+						"port":    8080,
+						"timeout": 30,
+					},
+				},
+			},
+			src: map[string]any{
+				"server": map[string]any{
+					"http": map[string]any{
+						"port": 9000,
+						"tls":  true,
+					},
+				},
+			},
+			expected: map[string]any{
+				"server": map[string]any{
+					"http": map[string]any{
+						"port":    9000,
+						"timeout": 30,
+						"tls":     true,
+					},
+				},
+			},
+		},
+		{
+			name: "three levels deep",
+			dst: map[string]any{
+				"level1": map[string]any{
+					"level2": map[string]any{
+						"level3": map[string]any{
+							"value":    "original",
+							"preserve": true,
+						},
+					},
+				},
+			},
+			src: map[string]any{
+				"level1": map[string]any{
+					"level2": map[string]any{
+						"level3": map[string]any{
+							"value": "updated",
+							"new":   "added",
+						},
+					},
+				},
+			},
+			expected: map[string]any{
+				"level1": map[string]any{
+					"level2": map[string]any{
+						"level3": map[string]any{
+							"value":    "updated",
+							"preserve": true,
+							"new":      "added",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DeepMerge(tt.dst, tt.src)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("DeepMerge() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// T028: Test DeepMerge with array replacement (arrays are not merged, they replace)
+func TestDeepMerge_ArrayReplacement_Extended(t *testing.T) {
+	tests := []struct {
+		name     string
+		dst      map[string]any
+		src      map[string]any
+		expected map[string]any
+	}{
+		{
+			name: "array replaces array completely",
+			dst: map[string]any{
+				"servers": []any{"server1", "server2"},
+			},
+			src: map[string]any{
+				"servers": []any{"server3", "server4", "server5"},
+			},
+			expected: map[string]any{
+				"servers": []any{"server3", "server4", "server5"},
+			},
+		},
+		{
+			name: "array in nested structure",
+			dst: map[string]any{
+				"config": map[string]any{
+					"servers": []any{1, 2, 3},
+					"ports":   []any{8080, 8081},
+				},
+			},
+			src: map[string]any{
+				"config": map[string]any{
+					"servers": []any{4, 5},
+				},
+			},
+			expected: map[string]any{
+				"config": map[string]any{
+					"servers": []any{4, 5},
+					"ports":   []any{8080, 8081},
+				},
+			},
+		},
+		{
+			name: "empty array replaces non-empty",
+			dst: map[string]any{
+				"items": []any{1, 2, 3},
+			},
+			src: map[string]any{
+				"items": []any{},
+			},
+			expected: map[string]any{
+				"items": []any{},
+			},
+		},
+		{
+			name: "array with objects replaces",
+			dst: map[string]any{
+				"configs": []any{
+					map[string]any{"name": "config1"},
+				},
+			},
+			src: map[string]any{
+				"configs": []any{
+					map[string]any{"name": "config2"},
+					map[string]any{"name": "config3"},
+				},
+			},
+			expected: map[string]any{
+				"configs": []any{
+					map[string]any{"name": "config2"},
+					map[string]any{"name": "config3"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DeepMerge(tt.dst, tt.src)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("DeepMerge() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}

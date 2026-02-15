@@ -9,6 +9,6 @@ source:
 	path: './network-config'
 
 infrastructure:
-	vpc_cidr: @network:vpc.cidr
+	vpc_cidr: @network:config:vpc.cidr
 	region: 'us-west-2'
 	availability_zone: 'us-west-2a'

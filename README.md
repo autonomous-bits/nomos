@@ -40,8 +40,7 @@ The scripting language supports the following keywords:
 | Keyword | Description |
 | :-| :- |
 | `source` | A configurable source provider, at a minimum you should be able to provide an alias and the type of provider. |
-| `import` | Using a source, configuration could be imported i.e. when compiled those values should be part of a snapshot. Syntax should be `import:{alias}` or `import:{alias}:{path_to_map}`. If two or more files have conflicting properties the last import will override the previous properties. |
-| `@` | Using a source, load a specific value from the configuration. Syntax is `@{alias}:{path.to.property}` where the path uses dot notation to navigate into nested structures. For file providers, the format is `@{alias}:{filename}.{nested.path}` |
+| `@` | Using a source, load a specific value from the configuration. Syntax is `@alias:path` where the path uses `:` for provider segments and dot notation for nested values. For file providers, the first segment is the filename without `.csl`. |
 
 **Comment Support**: Document your configurations with YAML-style `#` comments:
 ```
@@ -55,11 +54,11 @@ Comments are single-line, context-aware, and preserved within quoted strings. Se
 
 ### Reference Syntax Details
 
-References allow you to access specific values from imported sources using dot-separated paths:
+References allow you to access specific values from providers using path segments and dot-separated navigation:
 
 **For file providers:**
 ```
-@{alias}:{filename}.{path.to.value}
+@alias:filename:path.to.value
 ```
 
 **Example:**
@@ -84,9 +83,9 @@ source:
   directory: './shared-configs'
 
 app:
-  storage_type: @configs:storage.config.storage.type        # Resolves to 's3'
-  bucket: @configs:storage.config.buckets.primary           # Resolves to 'my-app-data'
-  encryption: @configs:storage.config.encryption.algorithm  # Resolves to 'AES256'
+  storage_type: @configs:storage:config.storage.type        # Resolves to 's3'
+  bucket: @configs:storage:config.buckets.primary           # Resolves to 'my-app-data'
+  encryption: @configs:storage:config.encryption.algorithm  # Resolves to 'AES256'
 ```
 
 ### Source Provider Types
@@ -103,14 +102,15 @@ source:
   version: '0.1.1'
   directory: './shared-configs'
 
-import:configs:base
+config:
+  @configs:base
 
 app:
   name: 'my-app'
   database:
-    host: @configs:database.connection.host
+    host: @configs:database:connection.host
   storage:
-    type: @configs:storage.config.type
+    type: @configs:storage:config.type
   
 config-section-name:
   key1: value1
