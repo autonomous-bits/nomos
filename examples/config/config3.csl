@@ -1,0 +1,44 @@
+# Configuration file example 2
+# This file demonstrates multiple sources and environment references.
+source:
+  alias: 'configs' # Alias for this source
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.3.1'
+  directory: './data'
+
+# Second source configuration
+source:
+  alias: 'configs2'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.3.1'
+  directory: './data2'
+
+source:
+  alias: 'configs3'
+  type:  'autonomous-bits/nomos-provider-file'
+  version: '0.3.1'
+  directory: './data3'
+
+# Second source configuration
+source:
+  alias: 'env'
+  type:  'autonomous-bits/nomos-provider-environment-variables'
+  version: '0.1.3'
+
+environments:
+  production: @configs2:prod:database.name
+  staging: @configs:staging:database.name
+
+app:
+  name: 'example-app'
+  list:
+    - item1
+    - item2
+    - item3
+  objects:
+    - key1: value1
+      key2: value2
+    - keyA: valueA
+      keyB: valueB
+log: @env:LOGNAME
+
