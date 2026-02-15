@@ -2171,10 +2171,10 @@ func TestValueToASTExpr_DefaultCase(t *testing.T) {
 
 func TestConvertToASTExprs(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     map[string]any
-		wantKeys  []string
-		wantErr   bool
+		name     string
+		input    map[string]any
+		wantKeys []string
+		wantErr  bool
 	}{
 		{
 			name: "simple map",
