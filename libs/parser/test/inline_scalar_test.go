@@ -73,7 +73,7 @@ func TestParse_InlineScalarValue(t *testing.T) {
 
 			// CRITICAL: Verify NO empty-string keys in Entries
 			if len(section.Entries) > 0 {
-				if _, hasEmpty := section.Entries[""]; hasEmpty {
+				if hasEntry(section.Entries, "") {
 					t.Error("inline scalar should not create empty-string key in Entries")
 				}
 			}
@@ -129,8 +129,8 @@ func TestParse_NestedMapNotInlineScalar(t *testing.T) {
 	}
 
 	// Verify no empty-string keys
-	for key := range section.Entries {
-		if key == "" {
+	for _, entry := range section.Entries {
+		if entry.Key == "" && !entry.Spread {
 			t.Error("nested map should not have empty-string keys")
 		}
 	}
@@ -207,8 +207,8 @@ vpc_id: @network:config.vpc.id`
 	for i, stmt := range result.Statements {
 		section := stmt.(*ast.SectionDecl)
 		if section.Entries != nil {
-			for key := range section.Entries {
-				if key == "" {
+			for _, entry := range section.Entries {
+				if entry.Key == "" && !entry.Spread {
 					t.Errorf("statement %d (%s) has empty-string key", i, section.Name)
 				}
 			}

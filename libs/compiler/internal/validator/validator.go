@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -44,6 +45,23 @@ func (v *Validator) validateValue(ctx context.Context, val any, path string) err
 		return v.checkReference(value)
 
 	case map[string]any:
+		if ordered, ok := value[converter.OrderedEntriesKey]; ok {
+			entries, ok := ordered.([]converter.OrderedEntry)
+			if !ok {
+				return fmt.Errorf("invalid ordered entries payload")
+			}
+			for _, entry := range entries {
+				entryPath := entry.Key
+				if path != "" && entry.Key != "" {
+					entryPath = path + "." + entry.Key
+				}
+				if err := v.validateValue(ctx, entry.Value, entryPath); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
 		// Recursively validate map entries
 		for k, mapValue := range value {
 			newPath := k

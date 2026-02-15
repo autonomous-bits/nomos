@@ -1,35 +1,35 @@
 {
+  "source_span": {
+    "end_col": 1,
+    "end_line": 5,
+    "filename": "../testdata/fixtures/source_without_version.csl",
+    "start_col": 1,
+    "start_line": 1
+  },
   "statements": [
     {
       "alias": "legacy",
-      "type": "file",
-      "version": "",
       "config": {
         "path": {
-          "value": "./data",
           "source_span": {
-            "filename": "../testdata/fixtures/source_without_version.csl",
-            "start_line": 4,
-            "start_col": 8,
+            "end_col": 13,
             "end_line": 4,
-            "end_col": 13
-          }
+            "filename": "../testdata/fixtures/source_without_version.csl",
+            "start_col": 8,
+            "start_line": 4
+          },
+          "value": "./data"
         }
       },
       "source_span": {
-        "filename": "../testdata/fixtures/source_without_version.csl",
-        "start_line": 1,
-        "start_col": 1,
+        "end_col": 1,
         "end_line": 5,
-        "end_col": 1
-      }
+        "filename": "../testdata/fixtures/source_without_version.csl",
+        "start_col": 1,
+        "start_line": 1
+      },
+      "type": "file",
+      "version": ""
     }
-  ],
-  "source_span": {
-    "filename": "../testdata/fixtures/source_without_version.csl",
-    "start_line": 1,
-    "start_col": 1,
-    "end_line": 5,
-    "end_col": 1
-  }
+  ]
 }

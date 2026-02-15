@@ -10,11 +10,11 @@ import (
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
-// TestParseReferenceExpr_RootReference tests parsing of root reference syntax @alias:.
-// T019: Test parseReferenceExpr with root syntax @base:.
-// T020: Test root reference creates ReferenceExpr with empty Path slice.
+// TestParseReferenceExpr_RootReference tests parsing of root reference syntax @alias:*.
+// T019: Test parseReferenceExpr with root syntax @base:*.
+// T020: Test root reference creates ReferenceExpr with wildcard Path slice.
 // T021: Test root reference with various alias names.
-// T022: Test malformed root reference (missing dot) returns error.
+// T022: Test malformed root reference (missing wildcard) returns error.
 func TestParseReferenceExpr_RootReference(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -24,52 +24,61 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name:  "T019: root reference with dot",
-			input: "@base:.",
+			name:  "T019: root reference with wildcard",
+			input: "@base:*",
 			want: &ast.ReferenceExpr{
 				Alias: "base",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			wantErr: false,
 		},
 		{
-			name:  "T020: root reference creates empty Path slice",
-			input: "@config:.",
+			name:  "T020: root reference creates wildcard Path slice",
+			input: "@config:*",
 			want: &ast.ReferenceExpr{
 				Alias: "config",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			wantErr: false,
 		},
 		{
 			name:  "T021: root reference with hyphens in names",
-			input: "@my-config:.",
+			input: "@my-config:*",
 			want: &ast.ReferenceExpr{
 				Alias: "my-config",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			wantErr: false,
 		},
 		{
 			name:  "T021: root reference with underscores",
-			input: "@base_config:.",
+			input: "@base_config:*",
 			want: &ast.ReferenceExpr{
 				Alias: "base_config",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			wantErr: false,
 		},
 		{
 			name:  "T021: root reference with numbers",
-			input: "@config1:.",
+			input: "@config1:*",
 			want: &ast.ReferenceExpr{
 				Alias: "config1",
-				Path:  []string{},
+				Path:  []string{"*"},
 			},
 			wantErr: false,
 		},
 		{
-			name:    "T022: malformed - missing dot for root",
+			name:  "T021: root reference with nested wildcard",
+			input: "@base:database.*",
+			want: &ast.ReferenceExpr{
+				Alias: "base",
+				Path:  []string{"database", "*"},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "T022: malformed - missing wildcard for root",
 			input:   "@base:",
 			wantErr: true,
 			errMsg:  "path cannot be empty",
@@ -88,9 +97,15 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 		},
 		{
 			name:    "T022: malformed - empty alias",
-			input:   "@:.",
+			input:   "@:*",
 			wantErr: true,
 			errMsg:  "alias cannot be empty",
+		},
+		{
+			name:    "T022: malformed - root dot no longer allowed",
+			input:   "@base:.",
+			wantErr: true,
+			errMsg:  "root references must use '*'",
 		},
 		{
 			name:    "T022: malformed - empty path segment",
@@ -99,8 +114,20 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 			errMsg:  "empty segment",
 		},
 		{
+			name:    "T022: malformed - wildcard not last",
+			input:   "@base:*.database",
+			wantErr: true,
+			errMsg:  "wildcard '*' must be the final path segment",
+		},
+		{
+			name:    "T022: malformed - wildcard in middle",
+			input:   "@base:database.*.host",
+			wantErr: true,
+			errMsg:  "wildcard '*' must be the final path segment",
+		},
+		{
 			name:    "T022: malformed - whitespace in reference",
-			input:   "@base :.",
+			input:   "@base :*",
 			wantErr: true,
 			errMsg:  "whitespace not allowed",
 		},
@@ -141,7 +168,7 @@ func TestParseReferenceExpr_RootReference(t *testing.T) {
 			}
 
 			// Extract the value expression
-			valueExpr, ok := section.Entries["value"]
+			valueExpr, ok := findEntry(section.Entries, "value")
 			if !ok {
 				t.Fatal("expected 'value' entry in section")
 			}
@@ -228,7 +255,11 @@ func TestParseReferenceExpr_PropertyPath(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			refExpr := section.Entries["value"].(*ast.ReferenceExpr)
+			valueExpr, ok := findEntry(section.Entries, "value")
+			if !ok {
+				t.Fatal("expected 'value' entry in section")
+			}
+			refExpr := valueExpr.(*ast.ReferenceExpr)
 
 			if refExpr.Alias != tt.want.Alias {
 				t.Errorf("Alias = %q, want %q", refExpr.Alias, tt.want.Alias)

@@ -23,7 +23,7 @@ Minimal configuration for testing basic parsing and compilation.
 
 ### test-provider.csl
 Demonstrates all three reference modes:
-- **Root references**: `@alias:.` - includes all properties at the provider root
+- **Root references**: `@alias:*` - includes all properties at the provider root
 - **Map references**: `@alias:path` - includes a specific map
 - **Property references**: `@alias:path.to.value` - single value
 
@@ -94,12 +94,13 @@ Nomos uses a single reference syntax for all references:
 
 - **`alias`**: Provider instance alias (configured in `source:` block)
 - **`path`**: Dot/bracket path only (no additional `:`)
+- **`*`**: Only allowed as the final path segment (e.g., `@alias:*` or `@alias:path.*`)
 
 ### Three Reference Modes
 
 1. **Root Reference** - Include all properties at the provider root:
    ```csl
-  @alias:.
+  @alias:*
    ```
 
 2. **Map Reference** - Include a specific nested map:

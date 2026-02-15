@@ -20,8 +20,8 @@ func TestExtractImports_FromAST(t *testing.T) {
 			},
 			&ast.SectionDecl{
 				Name: "database",
-				Entries: map[string]ast.Expr{
-					"host": &ast.StringLiteral{Value: "localhost"},
+				Entries: []ast.MapEntry{
+					{Key: "host", Value: &ast.StringLiteral{Value: "localhost"}},
 				},
 			},
 		},

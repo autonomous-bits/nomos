@@ -1,4 +1,4 @@
 {
-  "error": "../testdata/errors/inline_ref_malformed.csl:8:11: invalid syntax: path cannot be empty; use '.' for root (@alias:.)",
+  "error": "../testdata/errors/inline_ref_malformed.csl:8:11: invalid syntax: path cannot be empty; use '*' for root (@alias:*)",
   "filename": "../testdata/errors/inline_ref_malformed.csl"
 }

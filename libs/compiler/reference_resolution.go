@@ -24,7 +24,7 @@ const (
 	MapMode
 
 	// RootMode represents everything from a provider path.
-	// Example: @base:. includes all properties at the provider root.
+	// Example: @base:* includes all properties at the provider root.
 	RootMode
 )
 
@@ -48,9 +48,9 @@ func (m ReferenceMode) String() string {
 //   - PropertyMode: Value contains the single resolved value, Entries is nil
 //   - MapMode/RootMode: Entries contains the resolved map, Value is nil
 type ResolvedReference struct {
-	Mode    ReferenceMode       // Resolution mode (determines which field is populated)
-	Value   ast.Expr            // For PropertyMode: the single resolved value
-	Entries map[string]ast.Expr // For Root/MapMode: resolved entries to merge
+	Mode    ReferenceMode  // Resolution mode (determines which field is populated)
+	Value   ast.Expr       // For PropertyMode: the single resolved value
+	Entries []ast.MapEntry // For Root/MapMode: resolved entries to merge
 }
 
 // ResolutionContext tracks active resolution stack to detect circular references.
@@ -119,7 +119,7 @@ func (ctx *ResolutionContext) formatCycle(ref PathRef) string {
 
 func pathKey(path []string) string {
 	if len(path) == 0 {
-		return "."
+		return "*"
 	}
 	return strings.Join(path, ":")
 }
@@ -148,8 +148,14 @@ var (
 //   - Path leads to scalar → PropertyMode (single value resolution)
 func DetermineReferenceMode(ref *ast.ReferenceExpr, resourceData map[string]any) ReferenceMode {
 	// Empty path means root reference
-	if len(ref.Path) == 0 || (len(ref.Path) == 1 && ref.Path[0] == ".") {
+	if len(ref.Path) == 0 {
 		return RootMode
+	}
+	if len(ref.Path) == 1 && ref.Path[0] == "*" {
+		return RootMode
+	}
+	if ref.Path[len(ref.Path)-1] == "*" {
+		return MapMode
 	}
 
 	// Navigate to the value at the path
@@ -181,6 +187,10 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 
 	// Determine the resolution mode
 	mode := DetermineReferenceMode(ref, resourceData)
+	pathForNavigation := ref.Path
+	if len(ref.Path) > 0 && ref.Path[len(ref.Path)-1] == "*" {
+		pathForNavigation = ref.Path[:len(ref.Path)-1]
+	}
 
 	// Create result structure
 	resolved := &ResolvedReference{
@@ -203,11 +213,11 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 
 	case MapMode:
 		// Navigate to the map at the path
-		value, err := navigatePath(resourceData, ref.Path)
+		value, err := navigatePath(resourceData, pathForNavigation)
 		if err != nil {
 			// T087: Wrap errors with alias, path context
 			// T089: Include source span
-			return nil, formatReferenceError(ref, strings.Join(ref.Path, "."),
+			return nil, formatReferenceError(ref, strings.Join(pathForNavigation, "."),
 				fmt.Errorf("failed to navigate in alias %q: %w",
 					ref.Alias, err))
 		}
@@ -216,9 +226,9 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 		mapValue, ok := value.(map[string]any)
 		if !ok {
 			// T089: Include source span for type mismatch
-			return nil, formatReferenceError(ref, strings.Join(ref.Path, "."),
+			return nil, formatReferenceError(ref, strings.Join(pathForNavigation, "."),
 				fmt.Errorf("expected map at alias %q path %q, got %T",
-					ref.Alias, strings.Join(ref.Path, "."), value))
+					ref.Alias, strings.Join(pathForNavigation, "."), value))
 		}
 
 		// Convert map to AST expressions
@@ -226,7 +236,7 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 		if err != nil {
 			// T087: Include alias and path in conversion errors
 			// T089: Include source span
-			return nil, formatReferenceError(ref, strings.Join(ref.Path, "."),
+			return nil, formatReferenceError(ref, strings.Join(pathForNavigation, "."),
 				fmt.Errorf("failed to convert map data for alias %q: %w",
 					ref.Alias, err))
 		}
@@ -234,11 +244,11 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 
 	case PropertyMode:
 		// Navigate to the scalar value at the path
-		value, err := navigatePath(resourceData, ref.Path)
+		value, err := navigatePath(resourceData, pathForNavigation)
 		if err != nil {
 			// T087: Full context for navigation errors
 			// T089: Include source span
-			return nil, formatReferenceError(ref, strings.Join(ref.Path, "."),
+			return nil, formatReferenceError(ref, strings.Join(pathForNavigation, "."),
 				fmt.Errorf("failed to navigate in alias %q: %w",
 					ref.Alias, err))
 		}
@@ -248,7 +258,7 @@ func ResolveReference(ref *ast.ReferenceExpr, resourceData map[string]any, resCt
 		if err != nil {
 			// T087: Include operation context
 			// T089: Include source span
-			return nil, formatReferenceError(ref, strings.Join(ref.Path, "."),
+			return nil, formatReferenceError(ref, strings.Join(pathForNavigation, "."),
 				fmt.Errorf("failed to convert value for alias %q: %w",
 					ref.Alias, err))
 		}
@@ -320,15 +330,18 @@ func navigatePath(data map[string]any, path []string) (any, error) {
 	return current, nil
 }
 
-// convertToASTExprs converts a map[string]any to map[string]ast.Expr.
-func convertToASTExprs(data map[string]any) (map[string]ast.Expr, error) {
-	result := make(map[string]ast.Expr, len(data))
+// convertToASTExprs converts a map[string]any to ordered AST map entries.
+func convertToASTExprs(data map[string]any) ([]ast.MapEntry, error) {
+	result := make([]ast.MapEntry, 0, len(data))
 	for key, value := range data {
 		expr, err := valueToASTExpr(value)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert key %q: %w", key, err)
 		}
-		result[key] = expr
+		result = append(result, ast.MapEntry{
+			Key:   key,
+			Value: expr,
+		})
 	}
 	return result, nil
 }

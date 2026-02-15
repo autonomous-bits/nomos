@@ -271,6 +271,22 @@ func findReferenceExpr(t *testing.T, node interface{}) *ast.ReferenceExpr {
 				return ref
 			}
 		}
+	case ast.MapEntry:
+		if ref := findReferenceExpr(t, n.Value); ref != nil {
+			return ref
+		}
+	case *ast.MapExpr:
+		for _, entry := range n.Entries {
+			if ref := findReferenceExpr(t, entry); ref != nil {
+				return ref
+			}
+		}
+	case *ast.ListExpr:
+		for _, elem := range n.Elements {
+			if ref := findReferenceExpr(t, elem); ref != nil {
+				return ref
+			}
+		}
 	case *ast.ReferenceExpr:
 		return n
 	}
@@ -295,6 +311,16 @@ func findAllReferenceExprs(t *testing.T, node interface{}) []*ast.ReferenceExpr 
 	case *ast.SourceDecl:
 		for _, expr := range n.Config {
 			refs = append(refs, findAllReferenceExprs(t, expr)...)
+		}
+	case ast.MapEntry:
+		refs = append(refs, findAllReferenceExprs(t, n.Value)...)
+	case *ast.MapExpr:
+		for _, entry := range n.Entries {
+			refs = append(refs, findAllReferenceExprs(t, entry)...)
+		}
+	case *ast.ListExpr:
+		for _, elem := range n.Elements {
+			refs = append(refs, findAllReferenceExprs(t, elem)...)
 		}
 	case *ast.ReferenceExpr:
 		refs = append(refs, n)

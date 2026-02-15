@@ -8,48 +8,88 @@
   },
   "statements": [
     {
-      "entries": {
-        "database": {
-          "source_span": {
-            "end_col": 24,
-            "end_line": 20,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 12,
-            "start_line": 20
-          },
-          "value": "production_db"
-        },
-        "host": {
+      "entries": [
+        {
+          "key": "host",
           "source_span": {
             "end_col": 16,
             "end_line": 16,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 8,
+            "start_col": 2,
             "start_line": 16
           },
-          "value": "localhost"
+          "value": {
+            "source_span": {
+              "end_col": 16,
+              "end_line": 16,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 8,
+              "start_line": 16
+            },
+            "value": "localhost"
+          }
         },
-        "port": {
+        {
+          "key": "port",
           "source_span": {
             "end_col": 11,
             "end_line": 17,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 8,
+            "start_col": 2,
             "start_line": 17
           },
-          "value": "5432"
+          "value": {
+            "source_span": {
+              "end_col": 11,
+              "end_line": 17,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 8,
+              "start_line": 17
+            },
+            "value": "5432"
+          }
         },
-        "ssl_enabled": {
+        {
+          "key": "database",
+          "source_span": {
+            "end_col": 24,
+            "end_line": 20,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 20
+          },
+          "value": {
+            "source_span": {
+              "end_col": 24,
+              "end_line": 20,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 12,
+              "start_line": 20
+            },
+            "value": "production_db"
+          }
+        },
+        {
+          "key": "ssl_enabled",
           "source_span": {
             "end_col": 18,
             "end_line": 23,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 15,
+            "start_col": 2,
             "start_line": 23
           },
-          "value": "true"
+          "value": {
+            "source_span": {
+              "end_col": 18,
+              "end_line": 23,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 15,
+              "start_line": 23
+            },
+            "value": "true"
+          }
         }
-      },
+      ],
       "name": "database",
       "source_span": {
         "end_col": 1,
@@ -60,48 +100,88 @@
       }
     },
     {
-      "entries": {
-        "api_key": {
-          "source_span": {
-            "end_col": 30,
-            "end_line": 40,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 11,
-            "start_line": 40
-          },
-          "value": "production-key-12345"
-        },
-        "base_url": {
+      "entries": [
+        {
+          "key": "base_url",
           "source_span": {
             "end_col": 34,
             "end_line": 35,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 12,
+            "start_col": 2,
             "start_line": 35
           },
-          "value": "https://api.example.com"
+          "value": {
+            "source_span": {
+              "end_col": 34,
+              "end_line": 35,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 12,
+              "start_line": 35
+            },
+            "value": "https://api.example.com"
+          }
         },
-        "rate_limit": {
-          "source_span": {
-            "end_col": 17,
-            "end_line": 42,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 14,
-            "start_line": 42
-          },
-          "value": "1000"
-        },
-        "timeout": {
+        {
+          "key": "timeout",
           "source_span": {
             "end_col": 12,
             "end_line": 37,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 11,
+            "start_col": 2,
             "start_line": 37
           },
-          "value": "30"
+          "value": {
+            "source_span": {
+              "end_col": 12,
+              "end_line": 37,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 11,
+              "start_line": 37
+            },
+            "value": "30"
+          }
+        },
+        {
+          "key": "api_key",
+          "source_span": {
+            "end_col": 30,
+            "end_line": 40,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 40
+          },
+          "value": {
+            "source_span": {
+              "end_col": 30,
+              "end_line": 40,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 11,
+              "start_line": 40
+            },
+            "value": "production-key-12345"
+          }
+        },
+        {
+          "key": "rate_limit",
+          "source_span": {
+            "end_col": 17,
+            "end_line": 42,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 42
+          },
+          "value": {
+            "source_span": {
+              "end_col": 17,
+              "end_line": 42,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 14,
+              "start_line": 42
+            },
+            "value": "1000"
+          }
         }
-      },
+      ],
       "name": "api-config",
       "source_span": {
         "end_col": 1,
@@ -112,38 +192,68 @@
       }
     },
     {
-      "entries": {
-        "enabled": {
+      "entries": [
+        {
+          "key": "enabled",
           "source_span": {
             "end_col": 14,
             "end_line": 47,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 11,
+            "start_col": 2,
             "start_line": 47
           },
-          "value": "true"
+          "value": {
+            "source_span": {
+              "end_col": 14,
+              "end_line": 47,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 11,
+              "start_line": 47
+            },
+            "value": "true"
+          }
         },
-        "max_size": {
-          "source_span": {
-            "end_col": 15,
-            "end_line": 51,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 12,
-            "start_line": 51
-          },
-          "value": "1024"
-        },
-        "ttl": {
+        {
+          "key": "ttl",
           "source_span": {
             "end_col": 10,
             "end_line": 49,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 7,
+            "start_col": 2,
             "start_line": 49
           },
-          "value": "3600"
+          "value": {
+            "source_span": {
+              "end_col": 10,
+              "end_line": 49,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 7,
+              "start_line": 49
+            },
+            "value": "3600"
+          }
+        },
+        {
+          "key": "max_size",
+          "source_span": {
+            "end_col": 15,
+            "end_line": 51,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 51
+          },
+          "value": {
+            "source_span": {
+              "end_col": 15,
+              "end_line": 51,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 12,
+              "start_line": 51
+            },
+            "value": "1024"
+          }
         }
-      },
+      ],
       "name": "cache",
       "source_span": {
         "end_col": 1,
@@ -154,48 +264,88 @@
       }
     },
     {
-      "entries": {
-        "analytics": {
-          "source_span": {
-            "end_col": 19,
-            "end_line": 78,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 13,
-            "start_line": 78
-          },
-          "value": "enabled"
-        },
-        "beta_api": {
-          "source_span": {
-            "end_col": 19,
-            "end_line": 76,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 12,
-            "start_line": 76
-          },
-          "value": "disabled"
-        },
-        "experimental_cache": {
-          "source_span": {
-            "end_col": 26,
-            "end_line": 81,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 22,
-            "start_line": 81
-          },
-          "value": "false"
-        },
-        "new_ui": {
+      "entries": [
+        {
+          "key": "new_ui",
           "source_span": {
             "end_col": 16,
             "end_line": 73,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 10,
+            "start_col": 2,
             "start_line": 73
           },
-          "value": "enabled"
+          "value": {
+            "source_span": {
+              "end_col": 16,
+              "end_line": 73,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 10,
+              "start_line": 73
+            },
+            "value": "enabled"
+          }
+        },
+        {
+          "key": "beta_api",
+          "source_span": {
+            "end_col": 19,
+            "end_line": 76,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 76
+          },
+          "value": {
+            "source_span": {
+              "end_col": 19,
+              "end_line": 76,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 12,
+              "start_line": 76
+            },
+            "value": "disabled"
+          }
+        },
+        {
+          "key": "analytics",
+          "source_span": {
+            "end_col": 19,
+            "end_line": 78,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 78
+          },
+          "value": {
+            "source_span": {
+              "end_col": 19,
+              "end_line": 78,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 13,
+              "start_line": 78
+            },
+            "value": "enabled"
+          }
+        },
+        {
+          "key": "experimental_cache",
+          "source_span": {
+            "end_col": 26,
+            "end_line": 81,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 81
+          },
+          "value": {
+            "source_span": {
+              "end_col": 26,
+              "end_line": 81,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 22,
+              "start_line": 81
+            },
+            "value": "false"
+          }
         }
-      },
+      ],
       "name": "features",
       "source_span": {
         "end_col": 1,
@@ -206,48 +356,88 @@
       }
     },
     {
-      "entries": {
-        "format": {
-          "source_span": {
-            "end_col": 13,
-            "end_line": 91,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 10,
-            "start_line": 91
-          },
-          "value": "json"
-        },
-        "level": {
+      "entries": [
+        {
+          "key": "level",
           "source_span": {
             "end_col": 12,
             "end_line": 89,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 9,
+            "start_col": 2,
             "start_line": 89
           },
-          "value": "INFO"
+          "value": {
+            "source_span": {
+              "end_col": 12,
+              "end_line": 89,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 9,
+              "start_line": 89
+            },
+            "value": "INFO"
+          }
         },
-        "output": {
+        {
+          "key": "format",
+          "source_span": {
+            "end_col": 13,
+            "end_line": 91,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 91
+          },
+          "value": {
+            "source_span": {
+              "end_col": 13,
+              "end_line": 91,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 10,
+              "start_line": 91
+            },
+            "value": "json"
+          }
+        },
+        {
+          "key": "output",
           "source_span": {
             "end_col": 25,
             "end_line": 93,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 10,
+            "start_col": 2,
             "start_line": 93
           },
-          "value": "/var/log/app.log"
+          "value": {
+            "source_span": {
+              "end_col": 25,
+              "end_line": 93,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 10,
+              "start_line": 93
+            },
+            "value": "/var/log/app.log"
+          }
         },
-        "rotation": {
+        {
+          "key": "rotation",
           "source_span": {
             "end_col": 16,
             "end_line": 97,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 12,
+            "start_col": 2,
             "start_line": 97
           },
-          "value": "daily"
+          "value": {
+            "source_span": {
+              "end_col": 16,
+              "end_line": 97,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 12,
+              "start_line": 97
+            },
+            "value": "daily"
+          }
         }
-      },
+      ],
       "name": "logging",
       "source_span": {
         "end_col": 1,
@@ -258,38 +448,68 @@
       }
     },
     {
-      "entries": {
-        "cors_enabled": {
-          "source_span": {
-            "end_col": 19,
-            "end_line": 114,
-            "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 16,
-            "start_line": 114
-          },
-          "value": "true"
-        },
-        "https_only": {
+      "entries": [
+        {
+          "key": "https_only",
           "source_span": {
             "end_col": 17,
             "end_line": 108,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 14,
+            "start_col": 2,
             "start_line": 108
           },
-          "value": "true"
+          "value": {
+            "source_span": {
+              "end_col": 17,
+              "end_line": 108,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 14,
+              "start_line": 108
+            },
+            "value": "true"
+          }
         },
-        "tls_version": {
+        {
+          "key": "tls_version",
           "source_span": {
             "end_col": 17,
             "end_line": 111,
             "filename": "../testdata/fixtures/comments_multiline.csl",
-            "start_col": 15,
+            "start_col": 2,
             "start_line": 111
           },
-          "value": "1.3"
+          "value": {
+            "source_span": {
+              "end_col": 17,
+              "end_line": 111,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 15,
+              "start_line": 111
+            },
+            "value": "1.3"
+          }
+        },
+        {
+          "key": "cors_enabled",
+          "source_span": {
+            "end_col": 19,
+            "end_line": 114,
+            "filename": "../testdata/fixtures/comments_multiline.csl",
+            "start_col": 2,
+            "start_line": 114
+          },
+          "value": {
+            "source_span": {
+              "end_col": 19,
+              "end_line": 114,
+              "filename": "../testdata/fixtures/comments_multiline.csl",
+              "start_col": 16,
+              "start_line": 114
+            },
+            "value": "true"
+          }
         }
-      },
+      ],
       "name": "security",
       "source_span": {
         "end_col": 1,

@@ -75,7 +75,7 @@ api:
 	// Verify only active (uncommented) keys are present in database section
 	expectedDatabaseKeys := []string{"host", "port", "max_connections"}
 	for _, key := range expectedDatabaseKeys {
-		if _, exists := databaseSection.Entries[key]; !exists {
+		if !hasEntry(databaseSection.Entries, key) {
 			t.Errorf("expected database key '%s' to exist, but it was not found", key)
 		}
 	}
@@ -83,18 +83,26 @@ api:
 	// Verify commented-out keys are NOT present
 	unexpectedDatabaseKeys := []string{"backup_host", "backup_port"}
 	for _, key := range unexpectedDatabaseKeys {
-		if _, exists := databaseSection.Entries[key]; exists {
+		if hasEntry(databaseSection.Entries, key) {
 			t.Errorf("expected database key '%s' to NOT exist (should be commented out), but it was found", key)
 		}
 	}
 
 	// Verify database configuration values
-	hostValue := databaseSection.Entries["host"].(*ast.StringLiteral).Value
+	hostExpr, ok := findEntry(databaseSection.Entries, "host")
+	if !ok {
+		t.Fatal("expected host entry")
+	}
+	hostValue := hostExpr.(*ast.StringLiteral).Value
 	if hostValue != "localhost" {
 		t.Errorf("expected host='localhost', got '%s'", hostValue)
 	}
 
-	portValue := databaseSection.Entries["port"].(*ast.StringLiteral).Value
+	portExpr, ok := findEntry(databaseSection.Entries, "port")
+	if !ok {
+		t.Fatal("expected port entry")
+	}
+	portValue := portExpr.(*ast.StringLiteral).Value
 	if portValue != "5432" {
 		t.Errorf("expected port='5432', got '%s'", portValue)
 	}
@@ -115,7 +123,7 @@ api:
 	// Verify only active keys in api
 	expectedAPIKeys := []string{"endpoint", "timeout"}
 	for _, key := range expectedAPIKeys {
-		if _, exists := apiSection.Entries[key]; !exists {
+		if !hasEntry(apiSection.Entries, key) {
 			t.Errorf("expected api key '%s' to exist, but it was not found", key)
 		}
 	}
@@ -123,7 +131,7 @@ api:
 	// Verify commented-out api keys are NOT present
 	unexpectedAPIKeys := []string{"retry", "backoff"}
 	for _, key := range unexpectedAPIKeys {
-		if _, exists := apiSection.Entries[key]; exists {
+		if hasEntry(apiSection.Entries, key) {
 			t.Errorf("expected api key '%s' to NOT exist (should be commented out), but it was found", key)
 		}
 	}
@@ -132,4 +140,21 @@ api:
 	t.Log("Successfully parsed real-world configuration with multi-line comments")
 	t.Log("Verified that comments between entries are properly ignored")
 	t.Log("Verified that commented-out keys are not present in AST")
+}
+
+func findEntry(entries []ast.MapEntry, key string) (ast.Expr, bool) {
+	for _, entry := range entries {
+		if entry.Spread {
+			continue
+		}
+		if entry.Key == key {
+			return entry.Value, true
+		}
+	}
+	return nil, false
+}
+
+func hasEntry(entries []ast.MapEntry, key string) bool {
+	_, ok := findEntry(entries, key)
+	return ok
 }

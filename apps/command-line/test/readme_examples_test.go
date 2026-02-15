@@ -14,8 +14,6 @@ import (
 // Note: Currently skipped due to compiler bug (nil pointer in imports.ExtractImports).
 // This test validates that README examples can be executed once the compiler issue is fixed.
 func TestREADMEExamples(t *testing.T) {
-	t.Skip("Skipping until compiler nil pointer bug in imports.ExtractImports is fixed")
-
 	// Build CLI binary once for all tests
 	binPath := buildCLI(t)
 
@@ -44,7 +42,7 @@ func TestREADMEExamples(t *testing.T) {
 			name:             "compile single file",
 			args:             []string{"build", "-p", "testdata/simple.csl"},
 			wantExitCode:     0,
-			wantOutputSubstr: "data",
+			wantOutputSubstr: "app_name",
 		},
 		{
 			name:             "compile with variables",
@@ -56,7 +54,7 @@ func TestREADMEExamples(t *testing.T) {
 			name:             "strict mode with no warnings",
 			args:             []string{"build", "-p", "testdata/simple.csl", "--strict"},
 			wantExitCode:     0,
-			wantOutputSubstr: "data",
+			wantOutputSubstr: "app_name",
 		},
 	}
 
@@ -86,8 +84,6 @@ func TestREADMEExamples(t *testing.T) {
 // Note: Currently skipped due to compiler bug (nil pointer in imports.ExtractImports).
 // This test validates file output behavior once the compiler issue is fixed.
 func TestREADMEExamplesWithOutput(t *testing.T) {
-	t.Skip("Skipping until compiler nil pointer bug in imports.ExtractImports is fixed")
-
 	// Build CLI binary
 	binPath := buildCLI(t)
 
@@ -109,7 +105,7 @@ func TestREADMEExamplesWithOutput(t *testing.T) {
 	tmpDir := t.TempDir()
 	outputFile := filepath.Join(tmpDir, "snapshot.json")
 
-	//nolint:gosec // G204: Test code with controlled input
+	//nolint:gosec,noctx // G204: Test code with controlled input
 	cmd := exec.Command(binPath, "build", "-p", "testdata/simple.csl", "-o", outputFile)
 	stdout, stderr, exitCode := runCommand(t, cmd)
 
@@ -130,8 +126,8 @@ func TestREADMEExamplesWithOutput(t *testing.T) {
 		t.Fatalf("failed to read output file: %v", err)
 	}
 
-	if !strings.Contains(string(content), "data") {
-		t.Errorf("output file doesn't contain expected 'data' section: %s", content)
+	if !strings.Contains(string(content), "app_name") {
+		t.Errorf("output file doesn't contain expected 'app_name': %s", content)
 	}
 }
 
@@ -140,8 +136,6 @@ func TestREADMEExamplesWithOutput(t *testing.T) {
 // Note: Currently skipped due to compiler bug (nil pointer in imports.ExtractImports).
 // This test validates deterministic output behavior once the compiler issue is fixed.
 func TestREADMEExamplesDeterminism(t *testing.T) {
-	t.Skip("Skipping until compiler nil pointer bug in imports.ExtractImports is fixed")
-
 	// Build CLI binary
 	binPath := buildCLI(t)
 

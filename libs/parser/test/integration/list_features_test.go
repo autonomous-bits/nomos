@@ -48,9 +48,13 @@ func TestSimpleListEndToEnd(t *testing.T) {
 	}
 
 	// Assert: Verify list expression exists
-	listExpr, ok := section.Entries[""].(*ast.ListExpr)
+	entryExpr, ok := findEntry(section.Entries, "")
 	if !ok {
-		t.Fatalf("expected *ast.ListExpr in section entries, got %T", section.Entries[""])
+		t.Fatalf("expected list entry for section, got none")
+	}
+	listExpr, ok := entryExpr.(*ast.ListExpr)
+	if !ok {
+		t.Fatalf("expected *ast.ListExpr in section entries, got %T", entryExpr)
 	}
 
 	// Assert: Verify list has 3 elements
@@ -166,9 +170,13 @@ func TestListImportScenariosEndToEnd(t *testing.T) {
 				t.Fatalf("expected section %q, got none", tt.sectionName)
 			}
 
-			listExpr, ok := section.Entries[""].(*ast.ListExpr)
+			entryExpr, ok := findEntry(section.Entries, "")
 			if !ok {
-				t.Fatalf("expected *ast.ListExpr for section %q, got %T", tt.sectionName, section.Entries[""])
+				t.Fatalf("expected list entry for section %q, got none", tt.sectionName)
+			}
+			listExpr, ok := entryExpr.(*ast.ListExpr)
+			if !ok {
+				t.Fatalf("expected *ast.ListExpr for section %q, got %T", tt.sectionName, entryExpr)
 			}
 
 			if len(listExpr.Elements) != len(tt.expectedValues) {
@@ -304,4 +312,16 @@ func findSectionByName(tree *ast.AST, name string) *ast.SectionDecl {
 		}
 	}
 	return nil
+}
+
+func findEntry(entries []ast.MapEntry, key string) (ast.Expr, bool) {
+	for _, entry := range entries {
+		if entry.Spread {
+			continue
+		}
+		if entry.Key == key {
+			return entry.Value, true
+		}
+	}
+	return nil, false
 }

@@ -173,6 +173,11 @@ func Compile(ctx context.Context, opts Options) CompilationResult {
 		return result
 	}
 
+	// Register "var" provider for variable access
+	opts.ProviderRegistry.Register("var", func(_ ProviderInitOptions) (Provider, error) {
+		return &varProvider{vars: opts.Vars}, nil
+	})
+
 	// Discover input files
 	inputFiles, err := pipeline.DiscoverInputFiles(opts.Path)
 	if err != nil {

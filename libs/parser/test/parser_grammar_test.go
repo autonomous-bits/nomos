@@ -173,7 +173,7 @@ func TestParseSectionDecl_SimpleSection(t *testing.T) {
 	}
 
 	// Verify at least one expected key exists
-	key2Expr, ok := decl.Entries["key2"]
+	key2Expr, ok := findEntry(decl.Entries, "key2")
 	if !ok {
 		t.Fatal("expected 'key2' in Entries")
 	}
@@ -384,8 +384,8 @@ func TestParse_Comments_TrailingAfterKeyValue(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			valueExpr := section.Entries[tt.expectedKey]
-			if valueExpr == nil {
+			valueExpr, ok := findEntry(section.Entries, tt.expectedKey)
+			if !ok {
 				t.Fatalf("expected key '%s' not found", tt.expectedKey)
 			}
 
@@ -504,7 +504,7 @@ func TestParse_Comments_HashInSingleQuotedString(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			valueExpr := section.Entries["key"]
+			valueExpr := entryMap(section.Entries)["key"]
 			literal := valueExpr.(*ast.StringLiteral)
 
 			if literal.Value != tt.expectedValue {
@@ -561,7 +561,7 @@ func TestParse_Comments_HashInDoubleQuotedString(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			valueExpr := section.Entries["key"]
+			valueExpr := entryMap(section.Entries)["key"]
 			literal := valueExpr.(*ast.StringLiteral)
 
 			if literal.Value != tt.expectedValue {
@@ -763,10 +763,10 @@ database-config:
 					t.Errorf("expected section name 'database-config', got '%s'", section.Name)
 				}
 				// Verify both keys are present
-				if _, ok := section.Entries["host"]; !ok {
+				if _, ok := entryMap(section.Entries)["host"]; !ok {
 					t.Error("expected 'host' key in section entries")
 				}
-				if _, ok := section.Entries["port"]; !ok {
+				if _, ok := entryMap(section.Entries)["port"]; !ok {
 					t.Error("expected 'port' key in section entries")
 				}
 			},
@@ -899,14 +899,14 @@ func TestParse_MultiLineComments_CommentedOutKeysNotInAST(t *testing.T) {
 
 			// Verify expected keys ARE present
 			for _, key := range tt.expectedKeys {
-				if _, ok := section.Entries[key]; !ok {
+				if _, ok := entryMap(section.Entries)[key]; !ok {
 					t.Errorf("expected key '%s' to be present in AST, but it was not found", key)
 				}
 			}
 
 			// Verify unexpected (commented) keys are NOT present
 			for _, key := range tt.unexpectedKeys {
-				if _, ok := section.Entries[key]; ok {
+				if _, ok := entryMap(section.Entries)[key]; ok {
 					t.Errorf("expected key '%s' to NOT be present in AST (should be commented out), but it was found", key)
 				}
 			}
@@ -941,7 +941,7 @@ func TestParse_MultiLineComments_InterleavedCommentsAndConfig(t *testing.T) {
 				}
 				expectedKeys := []string{"key1", "key2", "key3"}
 				for _, key := range expectedKeys {
-					if _, ok := section.Entries[key]; !ok {
+					if _, ok := entryMap(section.Entries)[key]; !ok {
 						t.Errorf("expected key '%s' not found", key)
 					}
 				}
@@ -992,11 +992,11 @@ another-section:
 					t.Errorf("expected 3 entries, got %d", len(section.Entries))
 				}
 				// Verify values are correctly parsed (trailing comments removed)
-				key1Value := section.Entries["key1"].(*ast.StringLiteral).Value
+				key1Value := entryMap(section.Entries)["key1"].(*ast.StringLiteral).Value
 				if key1Value != "value1" {
 					t.Errorf("expected key1='value1', got '%s'", key1Value)
 				}
-				key2Value := section.Entries["key2"].(*ast.StringLiteral).Value
+				key2Value := entryMap(section.Entries)["key2"].(*ast.StringLiteral).Value
 				if key2Value != "value2" {
 					t.Errorf("expected key2='value2', got '%s'", key2Value)
 				}
@@ -1184,7 +1184,7 @@ func TestParse_EdgeCase_HashImmediatelyAfterValue(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			valueExpr := section.Entries[tt.expectedKey]
+			valueExpr := entryMap(section.Entries)[tt.expectedKey]
 			if valueExpr == nil {
 				t.Fatalf("expected key '%s' not found", tt.expectedKey)
 			}
@@ -1269,7 +1269,7 @@ config-section:
 `,
 			validateAST: func(t *testing.T, result *ast.AST) {
 				section := result.Statements[0].(*ast.SectionDecl)
-				valueExpr := section.Entries["key"]
+				valueExpr := entryMap(section.Entries)["key"]
 				literal := valueExpr.(*ast.StringLiteral)
 				if literal.Value != "value" {
 					t.Errorf("expected value 'value', got '%s'", literal.Value)
@@ -1343,7 +1343,7 @@ func TestParse_EdgeCase_MixedTabsSpacesBeforeHash(t *testing.T) {
 `,
 			validateAST: func(t *testing.T, result *ast.AST) {
 				section := result.Statements[0].(*ast.SectionDecl)
-				valueExpr := section.Entries["key"]
+				valueExpr := entryMap(section.Entries)["key"]
 				literal := valueExpr.(*ast.StringLiteral)
 				if literal.Value != "value" {
 					t.Errorf("expected value 'value', got '%s'", literal.Value)
@@ -1468,7 +1468,7 @@ func TestParse_EdgeCase_CommentAtEOFWithoutNewline(t *testing.T) {
 			input: "config-section:\n\tkey: value # comment at end of file",
 			validateAST: func(t *testing.T, result *ast.AST) {
 				section := result.Statements[0].(*ast.SectionDecl)
-				valueExpr := section.Entries["key"]
+				valueExpr := entryMap(section.Entries)["key"]
 				literal := valueExpr.(*ast.StringLiteral)
 				if literal.Value != "value" {
 					t.Errorf("expected value 'value', got '%s'", literal.Value)
@@ -1671,7 +1671,7 @@ logging:
 			validateAST: func(t *testing.T, result *ast.AST) {
 				section := result.Statements[0].(*ast.SectionDecl)
 				// Verify specific values
-				levelExpr := section.Entries["level"]
+				levelExpr := entryMap(section.Entries)["level"]
 				if levelExpr == nil {
 					t.Fatal("expected 'level' entry")
 				}
@@ -1768,9 +1768,9 @@ func TestParseSimpleList(t *testing.T) {
 			}
 
 			// The list should be in the section's entries with empty key
-			listExpr, ok := section.Entries[""].(*ast.ListExpr)
+			listExpr, ok := entryMap(section.Entries)[""].(*ast.ListExpr)
 			if !ok {
-				t.Fatalf("expected *ast.ListExpr, got %T", section.Entries[""])
+				t.Fatalf("expected *ast.ListExpr, got %T", entryMap(section.Entries)[""])
 			}
 
 			if len(listExpr.Elements) != tt.expectedCount {
@@ -1803,7 +1803,7 @@ func TestParseEmptyList(t *testing.T) {
 	tests := []struct {
 		name       string
 		input      string
-		checkValue bool   // If true, check section.Value; if false, check section.Entries[entryKey]
+		checkValue bool   // If true, check section.Value; if false, check entryMap(section.Entries)[entryKey]
 		entryKey   string // The key in Entries map (only used when checkValue is false)
 	}{
 		{
@@ -1847,9 +1847,9 @@ func TestParseEmptyList(t *testing.T) {
 				}
 			} else {
 				// Check the Entries map for nested values
-				listExpr, ok = section.Entries[tt.entryKey].(*ast.ListExpr)
+				listExpr, ok = entryMap(section.Entries)[tt.entryKey].(*ast.ListExpr)
 				if !ok {
-					t.Fatalf("expected *ast.ListExpr at key %q, got %T", tt.entryKey, section.Entries[tt.entryKey])
+					t.Fatalf("expected *ast.ListExpr at key %q, got %T", tt.entryKey, entryMap(section.Entries)[tt.entryKey])
 				}
 			}
 
@@ -1878,9 +1878,9 @@ func TestParseNestedList(t *testing.T) {
 		t.Fatalf("expected *ast.SectionDecl, got %T", result.Statements[0])
 	}
 
-	listExpr, ok := section.Entries[""].(*ast.ListExpr)
+	listExpr, ok := entryMap(section.Entries)[""].(*ast.ListExpr)
 	if !ok {
-		t.Fatalf("expected *ast.ListExpr, got %T", section.Entries[""])
+		t.Fatalf("expected *ast.ListExpr, got %T", entryMap(section.Entries)[""])
 	}
 
 	if len(listExpr.Elements) != 2 {
@@ -1943,12 +1943,20 @@ func TestParseListOfObjects(t *testing.T) {
 
 	//nolint:gosec // G304: goldenPath is controlled test fixture path
 	expectedJSON, err := os.ReadFile(goldenPath)
-	if err != nil {
-		t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+	if err != nil || os.Getenv("UPDATE_GOLDEN") == "true" {
+		// If golden file doesn't exist or update requested, write it
+		if os.Getenv("UPDATE_GOLDEN") == "true" {
+			t.Logf("Updating golden file at %s", goldenPath)
+		} else {
+			t.Logf("Golden file not found at %s, writing actual output", goldenPath)
+		}
 		if err := os.WriteFile(goldenPath, actualJSON, 0600); err != nil {
 			t.Fatalf("failed to write golden file: %v", err)
 		}
-		t.Skip("Generated golden file, re-run test to verify")
+		if os.Getenv("UPDATE_GOLDEN") != "true" {
+			t.Skip("Generated golden file, re-run test to verify")
+		}
+		expectedJSON = actualJSON
 	}
 
 	if !testutil.CompareJSON(actualJSON, expectedJSON) {
@@ -2039,7 +2047,7 @@ func requireSection(t *testing.T, tree *ast.AST, name string) *ast.SectionDecl {
 func requireReferenceEntry(t *testing.T, section *ast.SectionDecl, key string) *ast.ReferenceExpr {
 	t.Helper()
 
-	expr, ok := section.Entries[key]
+	expr, ok := entryMap(section.Entries)[key]
 	if !ok {
 		t.Fatalf("expected entry %q in section %q", key, section.Name)
 	}

@@ -26,28 +26,48 @@
     },
     {
       "name": "config-section",
-      "entries": {
-        "key1": {
-          "value": "value1",
+      "entries": [
+        {
+          "key": "key1",
+          "value": {
+            "value": "value1",
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_basic.csl",
+              "start_line": 12,
+              "start_col": 8,
+              "end_line": 12,
+              "end_col": 13
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
             "start_line": 12,
-            "start_col": 8,
+            "start_col": 2,
             "end_line": 12,
             "end_col": 13
           }
         },
-        "key2": {
-          "value": "value2",
+        {
+          "key": "key2",
+          "value": {
+            "value": "value2",
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_basic.csl",
+              "start_line": 13,
+              "start_col": 8,
+              "end_line": 13,
+              "end_col": 13
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
             "start_line": 13,
-            "start_col": 8,
+            "start_col": 2,
             "end_line": 13,
             "end_col": 13
           }
         }
-      },
+      ],
       "source_span": {
         "filename": "../testdata/fixtures/comments_basic.csl",
         "start_line": 11,
@@ -58,18 +78,28 @@
     },
     {
       "name": "another-section",
-      "entries": {
-        "setting": {
-          "value": "enabled",
+      "entries": [
+        {
+          "key": "setting",
+          "value": {
+            "value": "enabled",
+            "source_span": {
+              "filename": "../testdata/fixtures/comments_basic.csl",
+              "start_line": 17,
+              "start_col": 11,
+              "end_line": 17,
+              "end_col": 17
+            }
+          },
           "source_span": {
             "filename": "../testdata/fixtures/comments_basic.csl",
             "start_line": 17,
-            "start_col": 11,
+            "start_col": 2,
             "end_line": 17,
             "end_col": 17
           }
         }
-      },
+      ],
       "source_span": {
         "filename": "../testdata/fixtures/comments_basic.csl",
         "start_line": 16,

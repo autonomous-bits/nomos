@@ -34,7 +34,7 @@ config:
 				}
 
 				// Check for database key
-				dbExpr, ok := section.Entries["database"]
+				dbExpr, ok := findEntry(section.Entries, "database")
 				if !ok {
 					t.Fatal("expected 'database' key in section")
 				}
@@ -50,7 +50,7 @@ config:
 					t.Errorf("expected 2 entries in database map, got %d", len(mapExpr.Entries))
 				}
 
-				hostExpr, ok := mapExpr.Entries["host"]
+				hostExpr, ok := findEntry(mapExpr.Entries, "host")
 				if !ok {
 					t.Error("expected 'host' in database map")
 				}
@@ -59,7 +59,7 @@ config:
 					t.Errorf("expected host='localhost', got %v", hostExpr)
 				}
 
-				portExpr, ok := mapExpr.Entries["port"]
+				portExpr, ok := findEntry(mapExpr.Entries, "port")
 				if !ok {
 					t.Error("expected 'port' in database map")
 				}
@@ -82,11 +82,19 @@ databases:
 			wantErr: false,
 			check: func(t *testing.T, tree *ast.AST) {
 				section := tree.Statements[0].(*ast.SectionDecl)
-				primaryExpr := section.Entries["primary"].(*ast.MapExpr)
-				connExpr := primaryExpr.Entries["connection"].(*ast.MapExpr)
+				primaryExpr, ok := findEntry(section.Entries, "primary")
+				if !ok {
+					t.Fatal("expected primary entry")
+				}
+				primaryMap := primaryExpr.(*ast.MapExpr)
+				connExpr, ok := findEntry(primaryMap.Entries, "connection")
+				if !ok {
+					t.Fatal("expected connection entry")
+				}
+				connMap := connExpr.(*ast.MapExpr)
 
-				if len(connExpr.Entries) != 2 {
-					t.Errorf("expected 2 entries in connection, got %d", len(connExpr.Entries))
+				if len(connMap.Entries) != 2 {
+					t.Errorf("expected 2 entries in connection, got %d", len(connMap.Entries))
 				}
 			},
 		},
@@ -101,11 +109,19 @@ config:
 			wantErr: false,
 			check: func(t *testing.T, tree *ast.AST) {
 				section := tree.Statements[0].(*ast.SectionDecl)
-				dbMap := section.Entries["database"].(*ast.MapExpr)
-
-				hostRef, ok := dbMap.Entries["host"].(*ast.ReferenceExpr)
+				dbExpr, ok := findEntry(section.Entries, "database")
 				if !ok {
-					t.Fatalf("expected ReferenceExpr for host, got %T", dbMap.Entries["host"])
+					t.Fatal("expected database entry")
+				}
+				dbMap := dbExpr.(*ast.MapExpr)
+
+				hostExpr, ok := findEntry(dbMap.Entries, "host")
+				if !ok {
+					t.Fatal("expected host entry")
+				}
+				hostRef, ok := hostExpr.(*ast.ReferenceExpr)
+				if !ok {
+					t.Fatalf("expected ReferenceExpr for host, got %T", hostExpr)
 				}
 
 				if hostRef.Alias != "infra" {
@@ -132,7 +148,11 @@ services:
 			check: func(t *testing.T, tree *ast.AST) {
 				section := tree.Statements[0].(*ast.SectionDecl)
 
-				webMap, ok := section.Entries["web"].(*ast.MapExpr)
+				webExpr, ok := findEntry(section.Entries, "web")
+				if !ok {
+					t.Fatal("expected MapExpr for web")
+				}
+				webMap, ok := webExpr.(*ast.MapExpr)
 				if !ok {
 					t.Fatal("expected MapExpr for web")
 				}
@@ -140,7 +160,11 @@ services:
 					t.Errorf("expected 2 entries in web, got %d", len(webMap.Entries))
 				}
 
-				apiMap, ok := section.Entries["api"].(*ast.MapExpr)
+				apiExpr, ok := findEntry(section.Entries, "api")
+				if !ok {
+					t.Fatal("expected MapExpr for api")
+				}
+				apiMap, ok := apiExpr.(*ast.MapExpr)
 				if !ok {
 					t.Fatal("expected MapExpr for api")
 				}
@@ -165,18 +189,18 @@ app:
 				section := tree.Statements[0].(*ast.SectionDecl)
 
 				// Flat values
-				if _, ok := section.Entries["name"].(*ast.StringLiteral); !ok {
+				if entry, ok := findEntry(section.Entries, "name"); !ok || entry == nil {
 					t.Error("expected StringLiteral for name")
 				}
-				if _, ok := section.Entries["version"].(*ast.StringLiteral); !ok {
+				if entry, ok := findEntry(section.Entries, "version"); !ok || entry == nil {
 					t.Error("expected StringLiteral for version")
 				}
-				if _, ok := section.Entries["debug"].(*ast.StringLiteral); !ok {
+				if entry, ok := findEntry(section.Entries, "debug"); !ok || entry == nil {
 					t.Error("expected StringLiteral for debug")
 				}
 
 				// Nested map
-				if _, ok := section.Entries["database"].(*ast.MapExpr); !ok {
+				if entry, ok := findEntry(section.Entries, "database"); !ok || entry == nil {
 					t.Error("expected MapExpr for database")
 				}
 			},

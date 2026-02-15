@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- [Compiler][Parser] BREAKING: Replace `@alias:.` with `@alias:*` and restrict `*` to the final path segment
 - [Compiler][Parser] BREAKING: Treat everything after the first `:` as a dot-only path (no additional `:`) for `@alias:path`
 
 ### Fixed

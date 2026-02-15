@@ -32,154 +32,284 @@
       "version": ""
     },
     {
-      "entries": {
-        "security-groups": {
-          "entries": {
-            "database": {
-              "entries": {
-                "ingress": {
-                  "entries": {
-                    "port": {
-                      "source_span": {
-                        "end_col": 14,
-                        "end_line": 18,
-                        "filename": "../testdata/fixtures/complex_config.csl",
-                        "start_col": 11,
-                        "start_line": 18
-                      },
-                      "value": "5432"
-                    },
-                    "protocol": {
-                      "source_span": {
-                        "end_col": 17,
-                        "end_line": 19,
-                        "filename": "../testdata/fixtures/complex_config.csl",
-                        "start_col": 15,
-                        "start_line": 19
-                      },
-                      "value": "tcp"
-                    }
-                  },
-                  "source_span": {
-                    "end_col": 1,
-                    "end_line": 20,
-                    "filename": "../testdata/fixtures/complex_config.csl",
-                    "start_col": 4,
-                    "start_line": 17
-                  }
-                }
-              },
-              "source_span": {
-                "end_col": 1,
-                "end_line": 20,
-                "filename": "../testdata/fixtures/complex_config.csl",
-                "start_col": 3,
-                "start_line": 16
-              }
-            },
-            "web": {
-              "entries": {
-                "ingress": {
-                  "entries": {
-                    "port": {
-                      "source_span": {
-                        "end_col": 12,
-                        "end_line": 14,
-                        "filename": "../testdata/fixtures/complex_config.csl",
-                        "start_col": 11,
-                        "start_line": 14
-                      },
-                      "value": "80"
-                    },
-                    "protocol": {
-                      "source_span": {
-                        "end_col": 17,
-                        "end_line": 15,
-                        "filename": "../testdata/fixtures/complex_config.csl",
-                        "start_col": 15,
-                        "start_line": 15
-                      },
-                      "value": "tcp"
-                    }
-                  },
-                  "source_span": {
-                    "end_col": 1,
-                    "end_line": 16,
-                    "filename": "../testdata/fixtures/complex_config.csl",
-                    "start_col": 4,
-                    "start_line": 13
-                  }
-                }
-              },
-              "source_span": {
-                "end_col": 1,
-                "end_line": 16,
-                "filename": "../testdata/fixtures/complex_config.csl",
-                "start_col": 3,
-                "start_line": 12
-              }
-            }
-          },
-          "source_span": {
-            "end_col": 1,
-            "end_line": 20,
-            "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 2,
-            "start_line": 11
-          }
-        },
-        "vpc": {
-          "entries": {
-            "cidr": {
-              "source_span": {
-                "end_col": 19,
-                "end_line": 8,
-                "filename": "../testdata/fixtures/complex_config.csl",
-                "start_col": 9,
-                "start_line": 8
-              },
-              "value": "10.0.0.0/16"
-            },
-            "region": {
-              "alias": "base",
-              "path": [
-                "config",
-                "config",
-                "region"
-              ],
-              "source_span": {
-                "end_col": 36,
-                "end_line": 9,
-                "filename": "../testdata/fixtures/complex_config.csl",
-                "start_col": 11,
-                "start_line": 9
-              }
-            }
-          },
+      "entries": [
+        {
+          "key": "vpc",
           "source_span": {
             "end_col": 1,
             "end_line": 10,
             "filename": "../testdata/fixtures/complex_config.csl",
             "start_col": 2,
             "start_line": 7
+          },
+          "value": {
+            "entries": [
+              {
+                "key": "cidr",
+                "source_span": {
+                  "end_col": 19,
+                  "end_line": 8,
+                  "filename": "../testdata/fixtures/complex_config.csl",
+                  "start_col": 3,
+                  "start_line": 8
+                },
+                "value": {
+                  "source_span": {
+                    "end_col": 19,
+                    "end_line": 8,
+                    "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_col": 9,
+                    "start_line": 8
+                  },
+                  "value": "10.0.0.0/16"
+                }
+              },
+              {
+                "key": "region",
+                "source_span": {
+                  "end_col": 36,
+                  "end_line": 9,
+                  "filename": "../testdata/fixtures/complex_config.csl",
+                  "start_col": 3,
+                  "start_line": 9
+                },
+                "value": {
+                  "alias": "base",
+                  "path": [
+                    "config",
+                    "config",
+                    "region"
+                  ],
+                  "source_span": {
+                    "end_col": 36,
+                    "end_line": 9,
+                    "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_col": 11,
+                    "start_line": 9
+                  }
+                }
+              }
+            ],
+            "source_span": {
+              "end_col": 1,
+              "end_line": 10,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 2,
+              "start_line": 7
+            }
           }
         },
-        "vpc_cidr_ref": {
-          "alias": "network",
-          "path": [
-            "config",
-            "vpc",
-            "cidr"
-          ],
+        {
+          "key": "vpc_cidr_ref",
           "source_span": {
             "end_col": 39,
             "end_line": 10,
             "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 16,
+            "start_col": 2,
             "start_line": 10
+          },
+          "value": {
+            "alias": "network",
+            "path": [
+              "config",
+              "vpc",
+              "cidr"
+            ],
+            "source_span": {
+              "end_col": 39,
+              "end_line": 10,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 16,
+              "start_line": 10
+            }
+          }
+        },
+        {
+          "key": "security-groups",
+          "source_span": {
+            "end_col": 1,
+            "end_line": 20,
+            "filename": "../testdata/fixtures/complex_config.csl",
+            "start_col": 2,
+            "start_line": 11
+          },
+          "value": {
+            "entries": [
+              {
+                "key": "web",
+                "source_span": {
+                  "end_col": 1,
+                  "end_line": 16,
+                  "filename": "../testdata/fixtures/complex_config.csl",
+                  "start_col": 3,
+                  "start_line": 12
+                },
+                "value": {
+                  "entries": [
+                    {
+                      "key": "ingress",
+                      "source_span": {
+                        "end_col": 1,
+                        "end_line": 16,
+                        "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_col": 4,
+                        "start_line": 13
+                      },
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "port",
+                            "source_span": {
+                              "end_col": 12,
+                              "end_line": 14,
+                              "filename": "../testdata/fixtures/complex_config.csl",
+                              "start_col": 5,
+                              "start_line": 14
+                            },
+                            "value": {
+                              "source_span": {
+                                "end_col": 12,
+                                "end_line": 14,
+                                "filename": "../testdata/fixtures/complex_config.csl",
+                                "start_col": 11,
+                                "start_line": 14
+                              },
+                              "value": "80"
+                            }
+                          },
+                          {
+                            "key": "protocol",
+                            "source_span": {
+                              "end_col": 17,
+                              "end_line": 15,
+                              "filename": "../testdata/fixtures/complex_config.csl",
+                              "start_col": 5,
+                              "start_line": 15
+                            },
+                            "value": {
+                              "source_span": {
+                                "end_col": 17,
+                                "end_line": 15,
+                                "filename": "../testdata/fixtures/complex_config.csl",
+                                "start_col": 15,
+                                "start_line": 15
+                              },
+                              "value": "tcp"
+                            }
+                          }
+                        ],
+                        "source_span": {
+                          "end_col": 1,
+                          "end_line": 16,
+                          "filename": "../testdata/fixtures/complex_config.csl",
+                          "start_col": 4,
+                          "start_line": 13
+                        }
+                      }
+                    }
+                  ],
+                  "source_span": {
+                    "end_col": 1,
+                    "end_line": 16,
+                    "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_col": 3,
+                    "start_line": 12
+                  }
+                }
+              },
+              {
+                "key": "database",
+                "source_span": {
+                  "end_col": 1,
+                  "end_line": 20,
+                  "filename": "../testdata/fixtures/complex_config.csl",
+                  "start_col": 3,
+                  "start_line": 16
+                },
+                "value": {
+                  "entries": [
+                    {
+                      "key": "ingress",
+                      "source_span": {
+                        "end_col": 1,
+                        "end_line": 20,
+                        "filename": "../testdata/fixtures/complex_config.csl",
+                        "start_col": 4,
+                        "start_line": 17
+                      },
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "port",
+                            "source_span": {
+                              "end_col": 14,
+                              "end_line": 18,
+                              "filename": "../testdata/fixtures/complex_config.csl",
+                              "start_col": 5,
+                              "start_line": 18
+                            },
+                            "value": {
+                              "source_span": {
+                                "end_col": 14,
+                                "end_line": 18,
+                                "filename": "../testdata/fixtures/complex_config.csl",
+                                "start_col": 11,
+                                "start_line": 18
+                              },
+                              "value": "5432"
+                            }
+                          },
+                          {
+                            "key": "protocol",
+                            "source_span": {
+                              "end_col": 17,
+                              "end_line": 19,
+                              "filename": "../testdata/fixtures/complex_config.csl",
+                              "start_col": 5,
+                              "start_line": 19
+                            },
+                            "value": {
+                              "source_span": {
+                                "end_col": 17,
+                                "end_line": 19,
+                                "filename": "../testdata/fixtures/complex_config.csl",
+                                "start_col": 15,
+                                "start_line": 19
+                              },
+                              "value": "tcp"
+                            }
+                          }
+                        ],
+                        "source_span": {
+                          "end_col": 1,
+                          "end_line": 20,
+                          "filename": "../testdata/fixtures/complex_config.csl",
+                          "start_col": 4,
+                          "start_line": 17
+                        }
+                      }
+                    }
+                  ],
+                  "source_span": {
+                    "end_col": 1,
+                    "end_line": 20,
+                    "filename": "../testdata/fixtures/complex_config.csl",
+                    "start_col": 3,
+                    "start_line": 16
+                  }
+                }
+              }
+            ],
+            "source_span": {
+              "end_col": 1,
+              "end_line": 20,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 2,
+              "start_line": 11
+            }
           }
         }
-      },
+      ],
       "name": "infrastructure",
       "source_span": {
         "end_col": 1,
@@ -190,38 +320,68 @@
       }
     },
     {
-      "entries": {
-        "name": {
+      "entries": [
+        {
+          "key": "name",
           "source_span": {
             "end_col": 13,
             "end_line": 22,
             "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 8,
+            "start_col": 2,
             "start_line": 22
           },
-          "value": "my-app"
+          "value": {
+            "source_span": {
+              "end_col": 13,
+              "end_line": 22,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 8,
+              "start_line": 22
+            },
+            "value": "my-app"
+          }
         },
-        "replicas": {
-          "source_span": {
-            "end_col": 12,
-            "end_line": 24,
-            "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 12,
-            "start_line": 24
-          },
-          "value": "3"
-        },
-        "version": {
+        {
+          "key": "version",
           "source_span": {
             "end_col": 15,
             "end_line": 23,
             "filename": "../testdata/fixtures/complex_config.csl",
-            "start_col": 11,
+            "start_col": 2,
             "start_line": 23
           },
-          "value": "1.0.0"
+          "value": {
+            "source_span": {
+              "end_col": 15,
+              "end_line": 23,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 11,
+              "start_line": 23
+            },
+            "value": "1.0.0"
+          }
+        },
+        {
+          "key": "replicas",
+          "source_span": {
+            "end_col": 12,
+            "end_line": 24,
+            "filename": "../testdata/fixtures/complex_config.csl",
+            "start_col": 2,
+            "start_line": 24
+          },
+          "value": {
+            "source_span": {
+              "end_col": 12,
+              "end_line": 24,
+              "filename": "../testdata/fixtures/complex_config.csl",
+              "start_col": 12,
+              "start_line": 24
+            },
+            "value": "3"
+          }
         }
-      },
+      ],
       "name": "application",
       "source_span": {
         "end_col": 1,

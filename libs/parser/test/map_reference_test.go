@@ -139,7 +139,7 @@ func TestParseReferenceExpr_MapReference(t *testing.T) {
 			}
 
 			// Extract the value expression
-			valueExpr, ok := section.Entries["value"]
+			valueExpr, ok := findEntry(section.Entries, "value")
 			if !ok {
 				t.Fatal("expected 'value' entry in section")
 			}
@@ -229,7 +229,11 @@ func TestParseReferenceExpr_MapReference_NestedLevels(t *testing.T) {
 			}
 
 			section := result.Statements[0].(*ast.SectionDecl)
-			refExpr := section.Entries["value"].(*ast.ReferenceExpr)
+			valueExpr, ok := findEntry(section.Entries, "value")
+			if !ok {
+				t.Fatal("expected 'value' entry in section")
+			}
+			refExpr := valueExpr.(*ast.ReferenceExpr)
 
 			// Verify nesting level
 			if len(refExpr.Path) != tt.wantLevels {

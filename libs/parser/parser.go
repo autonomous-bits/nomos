@@ -187,6 +187,25 @@ func (p *Parser) parseStatement(s *scanner.Scanner) (ast.Stmt, error) {
 		return nil, err
 	}
 
+	if ch == '@' {
+		refExpr, err := p.parseValueExpr(s, startLine, startCol)
+		if err != nil {
+			return nil, err
+		}
+		ref, ok := refExpr.(*ast.ReferenceExpr)
+		if !ok {
+			parseErr := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: standalone references must use @alias:path")
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+			return nil, parseErr
+		}
+		s.SkipToNextLine()
+		return &ast.SpreadStmt{
+			Reference:  ref,
+			SourceSpan: ref.SourceSpan,
+		}, nil
+	}
+
 	// Peek at the first token to determine statement type
 	token := s.PeekToken()
 
@@ -228,9 +247,20 @@ func (p *Parser) parseSourceDecl(s *scanner.Scanner, startLine, startCol int) (*
 	}
 
 	// Parse configuration block (indented key-value pairs)
-	config, err := p.parseConfigBlock(s)
+	configEntries, err := p.parseConfigBlock(s)
 	if err != nil {
 		return nil, err
+	}
+
+	config := make(map[string]ast.Expr)
+	for _, entry := range configEntries {
+		if entry.Spread || entry.Key == "" {
+			parseErr := NewParseError(SyntaxError, s.Filename(), startLine, startCol,
+				"invalid syntax: 'source' declaration does not allow spread or empty keys")
+			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, startLine, startCol))
+			return nil, parseErr
+		}
+		config[entry.Key] = entry.Value
 	}
 
 	// Extract and validate alias field
@@ -386,8 +416,8 @@ func (p *Parser) parseSectionDecl(s *scanner.Scanner, startLine, startCol int) (
 
 // parseConfigBlock parses an indented block of key-value pairs.
 // It can now handle nested map structures and direct lists (when a section contains only list items).
-func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, error) {
-	config := make(map[string]ast.Expr)
+func (p *Parser) parseConfigBlock(s *scanner.Scanner) ([]ast.MapEntry, error) {
+	config := make([]ast.MapEntry, 0)
 
 	s.SkipToNextLine()
 	if p.isWhitespaceOnlyIndentedBlock(s) {
@@ -418,7 +448,17 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 		if err != nil {
 			return nil, err
 		}
-		config[""] = listExpr
+		config = append(config, ast.MapEntry{
+			Key:   "",
+			Value: listExpr,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: listLine,
+				StartCol:  listCol,
+				EndLine:   listExpr.Span().EndLine,
+				EndCol:    listExpr.Span().EndCol,
+			},
+		})
 		return config, nil
 	}
 
@@ -429,7 +469,17 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 		if err != nil {
 			return nil, err
 		}
-		config[""] = listExpr
+		config = append(config, ast.MapEntry{
+			Key:   "",
+			Value: listExpr,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: listLine,
+				StartCol:  listCol,
+				EndLine:   listExpr.Span().EndLine,
+				EndCol:    listExpr.Span().EndCol,
+			},
+		})
 		return config, nil
 	}
 	s.Restore(listSnapshot)
@@ -468,6 +518,34 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 				"invalid syntax: list items must be nested under a key")
 			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, listLine, listCol))
 			return nil, parseErr
+		}
+
+		if s.PeekChar() == '@' {
+			refStartLine, refStartCol := s.Line(), s.Column()
+			refExpr, err := p.parseValueExpr(s, refStartLine, refStartCol)
+			if err != nil {
+				return nil, err
+			}
+			ref, ok := refExpr.(*ast.ReferenceExpr)
+			if !ok {
+				parseErr := NewParseError(SyntaxError, s.Filename(), refStartLine, refStartCol,
+					"invalid syntax: standalone references must use @alias:path")
+				parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, refStartLine, refStartCol))
+				return nil, parseErr
+			}
+			config = append(config, ast.MapEntry{
+				Value:  ref,
+				Spread: true,
+				SourceSpan: ast.SourceSpan{
+					Filename:  s.Filename(),
+					StartLine: ref.SourceSpan.StartLine,
+					StartCol:  ref.SourceSpan.StartCol,
+					EndLine:   ref.SourceSpan.EndLine,
+					EndCol:    ref.SourceSpan.EndCol,
+				},
+			})
+			s.SkipToNextLine()
+			continue
 		}
 
 		keyStartLine := s.Line()
@@ -525,7 +603,17 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 						if err != nil {
 							return nil, err
 						}
-						config[key] = listExpr
+						config = append(config, ast.MapEntry{
+							Key:   key,
+							Value: listExpr,
+							SourceSpan: ast.SourceSpan{
+								Filename:  s.Filename(),
+								StartLine: keyStartLine,
+								StartCol:  keyStart,
+								EndLine:   listExpr.Span().EndLine,
+								EndCol:    listExpr.Span().EndCol,
+							},
+						})
 						continue
 					}
 
@@ -536,8 +624,18 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 
 					endLine := s.Line()
 					endCol := p.mapEndColumn(s)
-					config[key] = &ast.MapExpr{
-						Entries: nestedEntries,
+					config = append(config, ast.MapEntry{
+						Key: key,
+						Value: &ast.MapExpr{
+							Entries: nestedEntries,
+							SourceSpan: ast.SourceSpan{
+								Filename:  s.Filename(),
+								StartLine: keyStartLine,
+								StartCol:  keyStart,
+								EndLine:   endLine,
+								EndCol:    endCol,
+							},
+						},
 						SourceSpan: ast.SourceSpan{
 							Filename:  s.Filename(),
 							StartLine: keyStartLine,
@@ -545,14 +643,24 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 							EndLine:   endLine,
 							EndCol:    endCol,
 						},
-					}
+					})
 					continue
 				}
 			}
 
 			// Empty value (newline but no nested content)
-			config[key] = &ast.StringLiteral{
-				Value: "",
+			config = append(config, ast.MapEntry{
+				Key: key,
+				Value: &ast.StringLiteral{
+					Value: "",
+					SourceSpan: ast.SourceSpan{
+						Filename:  s.Filename(),
+						StartLine: keyStartLine,
+						StartCol:  keyStart,
+						EndLine:   keyStartLine,
+						EndCol:    keyStart + len(key) + 1,
+					},
+				},
 				SourceSpan: ast.SourceSpan{
 					Filename:  s.Filename(),
 					StartLine: keyStartLine,
@@ -560,7 +668,7 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 					EndLine:   keyStartLine,
 					EndCol:    keyStart + len(key) + 1,
 				},
-			}
+			})
 			continue
 		}
 
@@ -571,7 +679,17 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 			return nil, err
 		}
 
-		config[key] = valueExpr
+		config = append(config, ast.MapEntry{
+			Key:   key,
+			Value: valueExpr,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: keyStartLine,
+				StartCol:  keyStart,
+				EndLine:   valueExpr.Span().EndLine,
+				EndCol:    valueExpr.Span().EndCol,
+			},
+		})
 		s.SkipToNextLine()
 	}
 
@@ -579,14 +697,14 @@ func (p *Parser) parseConfigBlock(s *scanner.Scanner) (map[string]ast.Expr, erro
 }
 
 // parseNestedMap parses a nested map at a specific indentation level.
-func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) (map[string]ast.Expr, error) {
+func (p *Parser) parseNestedMap(s *scanner.Scanner, expectedIndent int) ([]ast.MapEntry, error) {
 	return p.parseNestedMapWithListDepth(s, expectedIndent, 1)
 }
 
 // parseNestedMapWithListDepth parses a nested map at a specific indentation level,
 // using listDepth for any lists encountered within the map.
-func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent int, listDepth int) (map[string]ast.Expr, error) {
-	entries := make(map[string]ast.Expr)
+func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent int, listDepth int) ([]ast.MapEntry, error) {
+	entries := make([]ast.MapEntry, 0)
 
 	for !s.IsEOF() {
 		// Check if we're still at the correct indentation level
@@ -627,6 +745,34 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 				"invalid syntax: list items must be nested under a key")
 			parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, listLine, listCol))
 			return nil, parseErr
+		}
+
+		if s.PeekChar() == '@' {
+			refStartLine, refStartCol := s.Line(), s.Column()
+			refExpr, err := p.parseValueExpr(s, refStartLine, refStartCol)
+			if err != nil {
+				return nil, err
+			}
+			ref, ok := refExpr.(*ast.ReferenceExpr)
+			if !ok {
+				parseErr := NewParseError(SyntaxError, s.Filename(), refStartLine, refStartCol,
+					"invalid syntax: standalone references must use @alias:path")
+				parseErr.SetSnippet(generateSnippetFromSource(p.sourceText, refStartLine, refStartCol))
+				return nil, parseErr
+			}
+			entries = append(entries, ast.MapEntry{
+				Value:  ref,
+				Spread: true,
+				SourceSpan: ast.SourceSpan{
+					Filename:  s.Filename(),
+					StartLine: ref.SourceSpan.StartLine,
+					StartCol:  ref.SourceSpan.StartCol,
+					EndLine:   ref.SourceSpan.EndLine,
+					EndCol:    ref.SourceSpan.EndCol,
+				},
+			})
+			s.SkipToNextLine()
+			continue
 		}
 
 		keyStartLine := s.Line()
@@ -679,7 +825,17 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 						if err != nil {
 							return nil, err
 						}
-						entries[key] = listExpr
+						entries = append(entries, ast.MapEntry{
+							Key:   key,
+							Value: listExpr,
+							SourceSpan: ast.SourceSpan{
+								Filename:  s.Filename(),
+								StartLine: keyStartLine,
+								StartCol:  keyStart,
+								EndLine:   listExpr.Span().EndLine,
+								EndCol:    listExpr.Span().EndCol,
+							},
+						})
 						continue
 					}
 					nestedEntries, err := p.parseNestedMapWithListDepth(s, nextIndent, listDepth)
@@ -689,8 +845,18 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 
 					endLine := s.Line()
 					endCol := p.mapEndColumn(s)
-					entries[key] = &ast.MapExpr{
-						Entries: nestedEntries,
+					entries = append(entries, ast.MapEntry{
+						Key: key,
+						Value: &ast.MapExpr{
+							Entries: nestedEntries,
+							SourceSpan: ast.SourceSpan{
+								Filename:  s.Filename(),
+								StartLine: keyStartLine,
+								StartCol:  keyStart,
+								EndLine:   endLine,
+								EndCol:    endCol,
+							},
+						},
 						SourceSpan: ast.SourceSpan{
 							Filename:  s.Filename(),
 							StartLine: keyStartLine,
@@ -698,14 +864,24 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 							EndLine:   endLine,
 							EndCol:    endCol,
 						},
-					}
+					})
 					continue
 				}
 			}
 
 			// Empty value
-			entries[key] = &ast.StringLiteral{
-				Value: "",
+			entries = append(entries, ast.MapEntry{
+				Key: key,
+				Value: &ast.StringLiteral{
+					Value: "",
+					SourceSpan: ast.SourceSpan{
+						Filename:  s.Filename(),
+						StartLine: keyStartLine,
+						StartCol:  keyStart,
+						EndLine:   keyStartLine,
+						EndCol:    keyStart + len(key) + 1,
+					},
+				},
 				SourceSpan: ast.SourceSpan{
 					Filename:  s.Filename(),
 					StartLine: keyStartLine,
@@ -713,7 +889,7 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 					EndLine:   keyStartLine,
 					EndCol:    keyStart + len(key) + 1,
 				},
-			}
+			})
 			continue
 		}
 
@@ -724,7 +900,17 @@ func (p *Parser) parseNestedMapWithListDepth(s *scanner.Scanner, expectedIndent 
 			return nil, err
 		}
 
-		entries[key] = valueExpr
+		entries = append(entries, ast.MapEntry{
+			Key:   key,
+			Value: valueExpr,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: keyStartLine,
+				StartCol:  keyStart,
+				EndLine:   valueExpr.Span().EndLine,
+				EndCol:    valueExpr.Span().EndCol,
+			},
+		})
 		s.SkipToNextLine()
 	}
 
@@ -839,7 +1025,7 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 		// Validate path exists
 		if pathStr == "" {
 			return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
-				"invalid syntax: path cannot be empty; use '.' for root (@alias:.)")
+				"invalid syntax: path cannot be empty; use '*' for root (@alias:*)")
 		}
 
 		if strings.Contains(pathStr, ":") {
@@ -897,14 +1083,29 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 // stray ']' or '[') and include actionable messages.
 func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col int) ([]string, error) {
 	if pathStr == "." {
-		return []string{}, nil
+		return nil, NewParseError(SyntaxError, filename, line, col,
+			"invalid syntax: root references must use '*' (e.g., @alias:*)")
+	}
+	if pathStr == "*" {
+		return []string{"*"}, nil
 	}
 	if !strings.ContainsAny(pathStr, "[]") {
 		parts := strings.Split(pathStr, ".")
-		for _, part := range parts {
+		for i, part := range parts {
 			if part == "" {
 				return nil, NewParseError(SyntaxError, filename, line, col,
 					"invalid syntax: inline reference path has empty segment")
+			}
+			if part == "*" {
+				if i != len(parts)-1 {
+					return nil, NewParseError(SyntaxError, filename, line, col,
+						"invalid syntax: wildcard '*' must be the final path segment")
+				}
+				continue
+			}
+			if strings.Contains(part, "*") {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: wildcard '*' must be a full path segment")
 			}
 		}
 		return parts, nil
@@ -965,6 +1166,19 @@ func (p *Parser) parseInlineReferencePath(pathStr, filename string, line, col in
 	}
 
 	components = append(components, current.String())
+	for i, component := range components {
+		if component == "*" {
+			if i != len(components)-1 {
+				return nil, NewParseError(SyntaxError, filename, line, col,
+					"invalid syntax: wildcard '*' must be the final path segment")
+			}
+			continue
+		}
+		if strings.Contains(component, "*") {
+			return nil, NewParseError(SyntaxError, filename, line, col,
+				"invalid syntax: wildcard '*' must be a full path segment")
+		}
+	}
 	return components, nil
 }
 
@@ -1160,8 +1374,21 @@ func (p *Parser) parseListExpr(s *scanner.Scanner, baseIndent int, depth int, st
 						s.SkipToNextLine()
 					}
 
-					entries := map[string]ast.Expr{mapKey: valueExpr}
-					if err := p.parseInlineMapAdditionalEntries(s, keyIndent, entries, depth+1); err != nil {
+					entries := []ast.MapEntry{
+						{
+							Key:   mapKey,
+							Value: valueExpr,
+							SourceSpan: ast.SourceSpan{
+								Filename:  s.Filename(),
+								StartLine: mapKeyStartLine,
+								StartCol:  mapKeyStartCol,
+								EndLine:   valueExpr.Span().EndLine,
+								EndCol:    valueExpr.Span().EndCol,
+							},
+						},
+					}
+					entries, err = p.parseInlineMapAdditionalEntries(s, keyIndent, entries, depth+1)
+					if err != nil {
 						return nil, err
 					}
 
@@ -1333,7 +1560,7 @@ func (p *Parser) parseInlineMapValue(
 }
 
 // parseInlineMapAdditionalEntries parses additional entries for a list item map at the same indentation level.
-func (p *Parser) parseInlineMapAdditionalEntries(s *scanner.Scanner, expectedIndent int, entries map[string]ast.Expr, listDepth int) error {
+func (p *Parser) parseInlineMapAdditionalEntries(s *scanner.Scanner, expectedIndent int, entries []ast.MapEntry, listDepth int) ([]ast.MapEntry, error) {
 	snapshot := s.Snapshot()
 	if p.seekToIndentedContent(s, expectedIndent) {
 		currentIndent := s.Column() - 1
@@ -1341,17 +1568,15 @@ func (p *Parser) parseInlineMapAdditionalEntries(s *scanner.Scanner, expectedInd
 			s.Restore(snapshot)
 			additionalEntries, err := p.parseNestedMapWithListDepth(s, expectedIndent, listDepth)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			for key, value := range additionalEntries {
-				entries[key] = value
-			}
-			return nil
+			entries = append(entries, additionalEntries...)
+			return entries, nil
 		}
 	}
 
 	s.Restore(snapshot)
-	return nil
+	return entries, nil
 }
 
 // findBaseIndent scans forward to find the base indentation for a block.

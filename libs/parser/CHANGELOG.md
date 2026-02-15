@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **BREAKING CHANGE: Root references now use `*`**
+  - Root references use `@alias:*` instead of `@alias:.`
+  - Wildcard `*` is only allowed as the final path segment (e.g., `@alias:path.*`)
+  - Parser rejects `@alias:.` and `*` in non-final path segments
 - **BREAKING CHANGE: ImportStmt removed from AST** (Feature 006-expand-at-references Phase 2)
   - `ImportStmt` AST type completely removed from `pkg/ast` package
   - Parser now rejects `import:` keyword with clear error message
