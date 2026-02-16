@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-16
+
+### Changed
+- upgraded Go version to 1.26.0 to fix TLS vulnerabilities
+- Docs: update AGENTS.md with new agent roles
+
 ## [0.2.0] - 2025-12-26
 
 ### Added
