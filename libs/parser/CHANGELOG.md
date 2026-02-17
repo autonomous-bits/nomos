@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-02-17
+
+### Added
+- **Marked Expressions**: Support for `!mark` syntax in CSL
+  - Enables marking values for special processing (e.g., encryption)
+  - Syntax: `key: !encrypt "secret-value"`
+  - AST support with `MarkedExpr` node type
+
 ## [0.9.0] - 2026-02-16
 
 ### Changed
