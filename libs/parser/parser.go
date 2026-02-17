@@ -954,7 +954,21 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 	}
 
 	// ReadValue() reads the value and trims quotes/whitespace
-	valueText := s.ReadValue()
+	// We use ReadValueWithQuoteStatus to distinguish between quoted strings containing '!'
+	// and values suffixed with the '!' operator.
+	valueText, wasQuoted := s.ReadValueWithQuoteStatus()
+
+	// Check for encryption marker '!'
+	isMarked := false
+	if !wasQuoted && strings.HasSuffix(valueText, "!") {
+		isMarked = true
+		valueText = strings.TrimSpace(strings.TrimSuffix(valueText, "!"))
+		// After stripping '!', the value might be a quoted string (e.g. "secret"!)
+		// which ReadValue didn't detect as quoted because of the suffix.
+		if len(valueText) >= 2 && (valueText[0] == '\'' || valueText[0] == '"') && valueText[0] == valueText[len(valueText)-1] {
+			valueText = valueText[1 : len(valueText)-1]
+		}
+	}
 
 	// Check for backslash error marker from scanner (FR-014)
 	if strings.HasPrefix(valueText, "\x00BACKSLASH_ERROR\x00") {
@@ -975,6 +989,8 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 		return nil, NewParseError(SyntaxError, s.Filename(), startLine, startCol,
 			fmt.Sprintf("invalid syntax: unterminated string (missing closing %c)", quote))
 	}
+
+	var expr ast.Expr
 
 	// Check if this is an inline reference expression
 	if strings.HasPrefix(valueText, "@") {
@@ -1044,7 +1060,7 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 		// EndCol should point to the last character of the value (inclusive)
 		refEndCol := startCol + len(valueText) - 1
 
-		return &ast.ReferenceExpr{
+		expr = &ast.ReferenceExpr{
 			Alias: aliasName,
 			Path:  pathParts,
 			SourceSpan: ast.SourceSpan{
@@ -1054,26 +1070,41 @@ func (p *Parser) parseValueExpr(s *scanner.Scanner, startLine, startCol int) (as
 				EndLine:   startLine, // Inline references are single-line
 				EndCol:    refEndCol,
 			},
+		}
+	} else {
+		// Plain string literal (ReadValue has already stripped quotes if any)
+		// EndCol is 1-indexed and inclusive (points to last character)
+		literalEndCol := startCol + len(valueText) - 1
+		if len(valueText) == 0 {
+			literalEndCol = startCol
+		}
+
+		expr = &ast.StringLiteral{
+			Value: valueText,
+			SourceSpan: ast.SourceSpan{
+				Filename:  s.Filename(),
+				StartLine: startLine,
+				StartCol:  startCol,
+				EndLine:   startLine,
+				EndCol:    literalEndCol,
+			},
+		}
+	}
+
+	if isMarked {
+		return &ast.MarkedExpr{
+			Expr: expr,
+			SourceSpan: ast.SourceSpan{
+				Filename:  expr.Span().Filename,
+				StartLine: expr.Span().StartLine,
+				StartCol:  expr.Span().StartCol,
+				EndLine:   expr.Span().EndLine,
+				EndCol:    expr.Span().EndCol + 1, // Include '!'
+			},
 		}, nil
 	}
 
-	// Plain string literal (ReadValue has already stripped quotes if any)
-	// EndCol is 1-indexed and inclusive (points to last character)
-	literalEndCol := startCol + len(valueText) - 1
-	if len(valueText) == 0 {
-		literalEndCol = startCol
-	}
-
-	return &ast.StringLiteral{
-		Value: valueText,
-		SourceSpan: ast.SourceSpan{
-			Filename:  s.Filename(),
-			StartLine: startLine,
-			StartCol:  startCol,
-			EndLine:   startLine,
-			EndCol:    literalEndCol,
-		},
-	}, nil
+	return expr, nil
 }
 
 // parseInlineReferencePath splits an inline reference path into components.

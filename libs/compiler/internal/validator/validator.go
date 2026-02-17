@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/models"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -81,6 +82,9 @@ func (v *Validator) validateValue(ctx context.Context, val any, path string) err
 				return err
 			}
 		}
+
+	case models.Secret:
+		return v.validateValue(ctx, value.Value, path)
 	}
 
 	return nil

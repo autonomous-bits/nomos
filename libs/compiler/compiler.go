@@ -37,8 +37,12 @@ type Options struct {
 	// Timeouts configures timeout behavior for compilation operations.
 	Timeouts OptionsTimeouts
 
-	// AllowMissingProvider controls behavior when a provider fetch fails.
+	// AllowMissingProvider, if true, prevents errors when a provider is not found.
 	AllowMissingProvider bool
+
+	// EncryptionKey is the AES-256 key used to encrypt marked secrets.
+	// If nil or empty, secrets will not be encrypted (or result in error if strictly required).
+	EncryptionKey []byte
 }
 
 // OptionsTimeouts configures timeout behavior for compilation operations.
@@ -337,12 +341,23 @@ func Compile(ctx context.Context, opts Options) CompilationResult {
 		},
 	})
 	if resolveErr != nil {
-		*errors = append(*errors, fmt.Sprintf("reference resolution failed: %v", resolveErr))
+		result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors, fmt.Sprintf("resolution failed: %v", resolveErr))
 		result.Snapshot.Metadata.EndTime = time.Now()
 		return result
 	}
 
-	// Update with resolved data
+	// Encrypt secrets if key is provided
+	if len(opts.EncryptionKey) > 0 {
+		encryptedData, encryptErr := pipeline.EncryptSecrets(resolvedData, opts.EncryptionKey)
+		if encryptErr != nil {
+			result.Snapshot.Metadata.Errors = append(result.Snapshot.Metadata.Errors, fmt.Sprintf("encryption failed: %v", encryptErr))
+			result.Snapshot.Metadata.EndTime = time.Now()
+			return result
+		}
+		resolvedData = encryptedData
+	}
+
+	// Update with resolved (and potentially encrypted) data
 	result.Snapshot.Data = resolvedData
 	result.Snapshot.Metadata.EndTime = time.Now()
 
