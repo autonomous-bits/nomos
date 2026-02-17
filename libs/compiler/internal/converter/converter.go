@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/models"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -140,6 +141,14 @@ func exprToValue(expr ast.Expr) (any, error) {
 	case *ast.IdentExpr:
 		// Identifiers become strings
 		return e.Name, nil
+
+	case *ast.MarkedExpr:
+		// Marked expressions become Secrets
+		val, err := exprToValue(e.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return models.Secret{Value: val}, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported expression type: %T", expr)

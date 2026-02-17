@@ -330,6 +330,15 @@ func (s *Scanner) ReadPath() string {
 }
 
 // ReadValue reads a value from the current position until end of line or comment.
+// It wraps ReadValueWithQuoteStatus and returns only the value string for backward compatibility.
+func (s *Scanner) ReadValue() string {
+	val, _ := s.ReadValueWithQuoteStatus()
+	return val
+}
+
+// ReadValueWithQuoteStatus reads a value from the current position until end of line or comment.
+// It returns the value string and a boolean indicating if the value was quoted.
+//
 // The method implements context-aware comment handling: it stops reading at a '#' character
 // when outside quoted strings (treating it as the start of a comment), but preserves '#'
 // characters that appear inside single-quoted or double-quoted strings as literal content.
@@ -346,7 +355,7 @@ func (s *Scanner) ReadPath() string {
 //
 // The method also detects and marks unquoted backslash characters as syntax errors
 // (see FR-014 in the feature specification).
-func (s *Scanner) ReadValue() string {
+func (s *Scanner) ReadValueWithQuoteStatus() (string, bool) {
 	start := s.pos
 	end := s.pos
 
@@ -393,7 +402,7 @@ func (s *Scanner) ReadValue() string {
 		value = "\x00BACKSLASH_ERROR\x00" + value
 	}
 
-	return value
+	return value, valueWasQuoted
 }
 
 // Expect consumes the expected character or returns an error.

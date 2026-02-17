@@ -14,6 +14,7 @@ import (
 
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/models"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -153,6 +154,14 @@ func (r *Resolver) ResolveValue(ctx context.Context, val any) (any, error) {
 	case []any:
 		// Recursively resolve slice elements
 		return r.resolveSlice(ctx, v)
+
+	case models.Secret:
+		// Resolve the inner value of the secret
+		resolved, err := r.ResolveValue(ctx, v.Value)
+		if err != nil {
+			return nil, err
+		}
+		return models.Secret{Value: resolved}, nil
 
 	default:
 		// Scalar values and other types pass through

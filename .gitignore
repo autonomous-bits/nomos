@@ -4,6 +4,7 @@ coverage.txt
 coverage.html
 *.cover
 *.out
+coverage/
 
 # Binaries
 bin/

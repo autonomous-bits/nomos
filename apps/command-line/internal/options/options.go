@@ -35,6 +35,9 @@ type BuildParams struct {
 	// ProviderTypeRegistry is the registry to use for provider types.
 	// If nil, NewProviderRegistries creates a default empty registry.
 	ProviderTypeRegistry compiler.ProviderTypeRegistry
+
+	// EncryptionKey is the AES-256 key used to encrypt marked secrets.
+	EncryptionKey []byte
 }
 
 // NewProviderRegistries creates default provider and provider type registries.
@@ -99,6 +102,7 @@ func BuildOptions(params BuildParams) (compiler.Options, error) {
 		Vars:                 make(map[string]any),
 		ProviderRegistry:     params.ProviderRegistry,
 		ProviderTypeRegistry: params.ProviderTypeRegistry,
+		EncryptionKey:        params.EncryptionKey,
 	}
 
 	// Parse and validate vars

@@ -200,3 +200,15 @@ type ListExpr struct {
 func (l *ListExpr) Span() SourceSpan { return l.SourceSpan }
 func (l *ListExpr) node()            {}
 func (l *ListExpr) expr()            {}
+
+// MarkedExpr represents an expression marked for encryption (suffixed with !).
+// Example: "password"!
+type MarkedExpr struct {
+	Expr       Expr       `json:"expr"`
+	SourceSpan SourceSpan `json:"source_span"`
+}
+
+// Span implements Node for MarkedExpr.
+func (m *MarkedExpr) Span() SourceSpan { return m.SourceSpan }
+func (m *MarkedExpr) node()            {}
+func (m *MarkedExpr) expr()            {}

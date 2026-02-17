@@ -49,6 +49,7 @@ func init() {
 	// Optionally add new commands (Phase 2.4)
 	rootCmd.AddCommand(validateCmd)
 	rootCmd.AddCommand(providersCmd)
+	rootCmd.AddCommand(keysCmd)
 
 	// Add shell completion commands
 	rootCmd.AddCommand(completionCmd)

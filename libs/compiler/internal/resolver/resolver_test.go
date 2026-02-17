@@ -7,7 +7,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/converter"
 	"github.com/autonomous-bits/nomos/libs/compiler/internal/core"
+	"github.com/autonomous-bits/nomos/libs/compiler/internal/models"
 	"github.com/autonomous-bits/nomos/libs/parser/pkg/ast"
 )
 
@@ -537,5 +539,120 @@ func TestBuildCacheKey(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
+	}
+}
+
+// TestResolveValue_Secret_RecursiveResolution tests that secrets are resolved recursively.
+func TestResolveValue_Secret_RecursiveResolution(t *testing.T) {
+	registry := newFakeProviderRegistry()
+	provider := newFakeProvider("vault")
+	provider.FetchResponses["secret/password"] = "s3cr3t"
+	registry.addProvider("vault", provider)
+
+	resolver := New(ResolverOptions{
+		ProviderRegistry: registry,
+	})
+
+	input := models.Secret{
+		Value: &ast.ReferenceExpr{
+			Alias:      "vault",
+			Path:       []string{"secret", "password"},
+			SourceSpan: ast.SourceSpan{Filename: "test.csl", StartLine: 1},
+		},
+	}
+
+	ctx := context.Background()
+	result, err := resolver.ResolveValue(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	secret, ok := result.(models.Secret)
+	if !ok {
+		t.Fatalf("expected Secret result, got %T", result)
+	}
+
+	if secret.Value != "s3cr3t" {
+		t.Errorf("expected sensitive 's3cr3t', got %v", secret.Value)
+	}
+}
+
+// TestResolveValue_CircularReference tests detection of circular dependencies.
+func TestResolveValue_CircularReference(t *testing.T) {
+	registry := newFakeProviderRegistry()
+
+	// Chain: a -> b -> a
+	providerA := newFakeProvider("a")
+	providerA.FetchResponses["ref"] = &ast.ReferenceExpr{
+		Alias: "b", Path: []string{"ref"},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl", StartLine: 1},
+	}
+	registry.addProvider("a", providerA)
+
+	providerB := newFakeProvider("b")
+	providerB.FetchResponses["ref"] = &ast.ReferenceExpr{
+		Alias: "a", Path: []string{"ref"},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl", StartLine: 2},
+	}
+	registry.addProvider("b", providerB)
+
+	resolver := New(ResolverOptions{
+		ProviderRegistry: registry,
+	})
+
+	input := &ast.ReferenceExpr{
+		Alias: "a", Path: []string{"ref"},
+		SourceSpan: ast.SourceSpan{Filename: "test.csl", StartLine: 3},
+	}
+
+	ctx := context.Background()
+	_, err := resolver.ResolveValue(ctx, input)
+
+	if err == nil {
+		t.Fatal("expected error for circular reference")
+	}
+	if !errors.Is(err, ErrCircularReference) {
+		t.Errorf("expected ErrCircularReference, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "a:ref → b:ref → a:ref") {
+		t.Errorf("error should contain cycle path, got: %v", err)
+	}
+}
+
+// TestResolveValue_OrderedEntries tests resolution of ordered map entries.
+func TestResolveValue_OrderedEntries(t *testing.T) {
+	registry := newFakeProviderRegistry()
+	resolver := New(ResolverOptions{
+		ProviderRegistry: registry,
+	})
+
+	// Input using internal OrderedEntries structure that parser produces
+	input := map[string]any{
+		converter.OrderedEntriesKey: []converter.OrderedEntry{
+			{Key: "a", Value: 1},
+			{Key: "b", Value: 2},
+			{Key: "a", Value: 3}, // Override
+		},
+	}
+
+	ctx := context.Background()
+	result, err := resolver.ResolveValue(ctx, input)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	m, ok := result.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map result, got %T", result)
+	}
+
+	if len(m) != 2 {
+		t.Errorf("expected 2 keys, got %d", len(m))
+	}
+	if m["a"] != 3 {
+		t.Errorf("expected a=3, got %v", m["a"])
+	}
+	if m["b"] != 2 {
+		t.Errorf("expected b=2, got %v", m["b"])
 	}
 }
