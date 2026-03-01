@@ -382,6 +382,7 @@ The CLI will automatically rebuild when you modify source files in `apps/` or `l
 - `apps/command-line` – Nomos CLI
 - `libs/compiler` – compiler library
 - `libs/parser` – parser library
+- `libs/provider-downloader` – provider binary downloader library
 - `libs/provider-proto` – provider protobuf contracts
 - `docs/` – architecture, guides, and examples
 
