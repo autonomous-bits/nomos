@@ -36,7 +36,6 @@ Run `make help` for the full list of available targets. Common commands:
 **Building:**
 - `make build` – Build all applications
 - `make build-cli` – Build the CLI app to `bin/nomos`
-- `make build-test` – Build test binaries (required for some integration tests)
 
 **Testing:**
 - `make test` / `make test-race` – Run tests across all modules
@@ -58,12 +57,6 @@ Run `make help` for the full list of available targets. Common commands:
 ## Troubleshooting
 
 ### Common Build Issues
-
-**Problem:** `Test binary not found` or test execution failures  
-**Solution:** Build test binaries first:
-```bash
-make build-test
-```
 
 **Problem:** `go.work` out of sync or module resolution errors  
 **Solution:** Sync workspace and tidy dependencies:
