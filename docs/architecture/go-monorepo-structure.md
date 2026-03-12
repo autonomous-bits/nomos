@@ -93,12 +93,17 @@ Common elements should be centralized:
 │   │   │   └── codegen/
 │   │   └── test/
 │   │       └── ...
-│   ├── common/
+│   ├── parser/
 │   │   ├── go.mod
 │   │   ├── go.sum
 │   │   ├── README.md
 │   │   └── ...
-│   └── parser/
+│   ├── provider-downloader/
+│   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── README.md
+│   │   └── ...
+│   └── provider-proto/
 │       ├── go.mod
 │       ├── go.sum
 │       ├── README.md
@@ -172,9 +177,11 @@ go 1.26.0
 
 use (
     ./apps/command-line
+    ./examples/consumer
     ./libs/compiler
-    ./libs/common
     ./libs/parser
+    ./libs/provider-downloader
+    ./libs/provider-proto
 )
 ```
 
@@ -192,9 +199,11 @@ use (
 go work init ./apps/command-line
 
 # Add modules
+go work use ./examples/consumer
 go work use ./libs/compiler
-go work use ./libs/common
 go work use ./libs/parser
+go work use ./libs/provider-downloader
+go work use ./libs/provider-proto
 
 # Sync dependencies
 go work sync
@@ -233,6 +242,8 @@ module-name/
    github.com/autonomous-bits/nomos/apps/command-line
    github.com/autonomous-bits/nomos/libs/compiler
    github.com/autonomous-bits/nomos/libs/parser
+   github.com/autonomous-bits/nomos/libs/provider-downloader
+   github.com/autonomous-bits/nomos/libs/provider-proto
    ```
 
 2. **Package Names**: Short, lowercase, no underscores
@@ -255,7 +266,8 @@ apps/command-line/v1.0.0
 # Library releases
 libs/compiler/v1.2.3
 libs/parser/v0.5.0
-libs/common/v1.0.0
+libs/provider-downloader/v1.0.0
+libs/provider-proto/v1.0.0
 ```
 
 ## Build and Tooling
@@ -364,7 +376,6 @@ go 1.26.0
 
 require (
     github.com/autonomous-bits/nomos/libs/compiler v0.1.0
-    github.com/autonomous-bits/nomos/libs/common v0.1.0
 )
 ```
 
@@ -504,10 +515,11 @@ docs/
 ```bash
 # Create directory structure
 mkdir -p apps/command-line
-mkdir -p libs/{compiler,common,parser}
+mkdir -p libs/{compiler,parser,provider-downloader,provider-proto}
 mkdir -p tools/{scripts,generators}
 mkdir -p internal/{build,testing}
 mkdir -p docs/{architecture,contributing,guides}
+mkdir -p examples/consumer
 
 # Create workspace
 go work init
@@ -515,15 +527,18 @@ go work init
 # Initialize modules
 cd apps/command-line && go mod init github.com/autonomous-bits/nomos/apps/command-line
 cd ../../libs/compiler && go mod init github.com/autonomous-bits/nomos/libs/compiler
-cd ../common && go mod init github.com/autonomous-bits/nomos/libs/common
 cd ../parser && go mod init github.com/autonomous-bits/nomos/libs/parser
+cd ../provider-downloader && go mod init github.com/autonomous-bits/nomos/libs/provider-downloader
+cd ../provider-proto && go mod init github.com/autonomous-bits/nomos/libs/provider-proto
 
 # Add to workspace
 cd ../../
 go work use ./apps/command-line
+go work use ./examples/consumer
 go work use ./libs/compiler
-go work use ./libs/common
 go work use ./libs/parser
+go work use ./libs/provider-downloader
+go work use ./libs/provider-proto
 ```
 
 ### Step 2: Set Up Build System
